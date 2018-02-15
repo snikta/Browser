@@ -166,37 +166,81 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 	//node.y += node.marginY || 0;
 
 	if (node.get_tag_name() == "div") {
-		/*var i = 0, bg = node.style && node.style["background"], len = bg && bg.length, gradColors, lg = 'linear-gradient(', colors, el, grad;
-		if (bg) {
-		while (i < len && bg[i] == lg[i]) {
-		i++;
-		}
-		if (i == lg.length) {
-		colors = [];
-		el = '';
-		while (i < len) {
-		if (bg[i] == ',') {
-		colors.push(el);
-		el = '';
-		} else {
-		el += bg[i];
-		}
-		i++;
-		}
-		colors.push(el.slice(0, -1));
+		string bg = node.style["background"];
+		ID2D1LinearGradientBrush *m_pLinearGradientBrush;
+		if (bg != "")
+		{
+			/*if (colors[0].find('to right') != string::npos) {
+				grad = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y);
+			} else if (colors[0].find('to bottom'') !== string::npos) {
+				grad = ctx.createLinearGradient(node.x, node.y, node.x, node.y + node.height);
+			}*/
+			int len = bg.length();
+			string lg = "linear-gradient(";
+			D2D1_RECT_F rect1 = D2D1::RectF(
+				node.x,
+				node.y,
+				node.x + node.width,
+				node.y + node.height
+			);
+			if (bg.find(lg) == string::npos) {
+				vector<string> rgbValues;
+				splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(4), ',', rgbValues);
+				D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+				pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				pRenderTarget->FillRectangle(&rect1, pBrush);
+			} else {
+				bg = bg.substr(0, bg.length() - 1).substr(lg.length());
 
-		if (colors[0].trim() == 'to right') {
-		grad = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y);
-		} else if (colors[0].trim() == 'to bottom') {
-		grad = ctx.createLinearGradient(node.x, node.y, node.x, node.y + node.height);
+				int bgI = 0, bgLen = bg.length();
+				vector<string> colors;
+				string color;
+				while (bgI < bgLen) {
+					if ((bgI == bgLen - 1) || (bg[bgI] == ',' && !isdigit(bg[bgI - 1])))
+					{
+						if (bgI == bgLen - 1)
+						{
+							color += bg[bgI];
+						}
+						colors.push_back(color);
+						color = "";
+					}
+					else {
+						color += bg[bgI];
+					}
+					bgI++;
+				}
+				len = colors.size();
+				ID2D1GradientStopCollection *pGradientStops = NULL;
+				D2D1_GRADIENT_STOP *gradStops = new D2D1_GRADIENT_STOP[len - 1]; // delete later
+				for (int i = 1; i < len; i++)
+				{	
+					vector<string> rgbValues;
+					splitString(colors[i].substr(0, colors[i].length() - 1).substr(4), ',', rgbValues);
+					gradStops[i - 1].color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+					gradStops[i - 1].position = (float(i) - 1) / (float(len) - 1);
+				}
+				HRESULT hr = pRenderTarget->CreateGradientStopCollection(
+					gradStops,
+					len - 1,
+					D2D1_GAMMA_2_2,
+					D2D1_EXTEND_MODE_CLAMP,
+					&pGradientStops
+				);
+				if (SUCCEEDED(hr))
+				{
+					hr = pRenderTarget->CreateLinearGradientBrush(
+						D2D1::LinearGradientBrushProperties(
+							D2D1::Point2F(node.x, node.y),
+							D2D1::Point2F(node.x + node.width, node.y)),
+						pGradientStops,
+						&m_pLinearGradientBrush
+					);
+					pRenderTarget->FillRectangle(&rect1, m_pLinearGradientBrush);
+				}
+			}
 		}
-		colors.shift();
-		colors.forEach(function (color, idx) {
-		grad.addColorStop(idx / (colors.length - 1), color);
-		});
-		}
-		}
-		var boxShadow = node.style['box-shadow'];
+		/*var boxShadow = node.style['box-shadow'];
 		if (boxShadow && boxShadow != "none") {
 		boxShadow = boxShadow.split(' ');
 		ctx.shadowOffsetX = Number(boxShadow[0].replace("px", ''));
@@ -219,27 +263,12 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			pBrush
 		);*/
 
-		D2D1_RECT_F rect1 = D2D1::RectF(
-			node.x,
-			node.y,
-			node.x + node.width,
-			node.y + node.height
-		);
-		vector<string> rgbValues;
+		//vector<string> rgbValues;
 
-		if (node.style["background"] == "")
+		/*if (node.style["background"] == "")
 		{
 			node.style["background"] = "rgb(255,255,255)";
-		}
-
-		splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(4), ',', rgbValues);
-		//myParser.output += rgbValues[0] + ':' + rgbValues[1] + ':' + rgbValues[2] + ';';
-		D2D1_COLOR_F color = D2D1::ColorF( stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
-		//pRenderTarget->CreateSolidColorBrush(color, &pBrush);
-		//pRenderTarget->DrawRectangle(&rect1, pBrush,5.0f,NULL);
-		//D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0);
-		pRenderTarget->CreateSolidColorBrush(color, &pBrush);
-		pRenderTarget->FillRectangle(&rect1, pBrush);
+		}*/
 	}
 
 	if (node.get_tag_name() == "TextNode") {
