@@ -1,9 +1,9 @@
 html, body { width: 100%; height: 100%; overflow: hidden; }
-#footer { background: #ffffff; }
-div { position: absolute; margin: 0%; box-shadow: 0px 0px 20px black; }
-#tableContainer { position: relative; }
+#footer { background: rgb(255,255,255); }
+div { position: absolute; }
+#tableContainer { position: absolute; }
 
-table, tr, div, li, ul, ol, img, p { display: block; }
+table, tr, div, li, ul, ol, img, p, div { display: block; }
 th, td { width: 20%; display: inline-block; }
 b { font-weight: bold; }
 i { font-style: italic; }
@@ -12,9 +12,9 @@ a { color: blue; }
 #header {
 	left: 0;
 	top: 0;
-	width: 94%;
+	width: 100%;
 	height: 20%;
-	background: gray;
+	background: rgb(80,80,80);
 }
 
 #contentFooter, #tableContainer { margin: 0; }
@@ -22,8 +22,8 @@ a { color: blue; }
 #main {
 	left: 0;
 	top: 20%;
-	width: 90%;
-	height: 40%;
+	width: 100%;
+	height: 60%;
 	box-shadow: none;
 }
 
@@ -32,7 +32,7 @@ a { color: blue; }
 	top: 0;
 	width: 20%;
 	height: 100%;
-	background: #a1a1a1;
+	background: rgb(161,161,161);
 }
 
 #content {
@@ -40,7 +40,7 @@ a { color: blue; }
 	top: 0;
 	width: 80%;
 	height: 100%;
-	background: #d3d3d3;
+	background: rgb(211,211,211);
 }
 
 #contentFooter {
@@ -48,14 +48,14 @@ a { color: blue; }
 	left: 0;
 	width: 100%;
 	height: 20%;
-	background: linear-gradient(to right, red,yellow,lime,cyan,blue,magenta,red);
+	background: rgb(255,255,0);
 }
 
 #footer {
 	left: 0;
-	top: 70%;
+	top: 80%;
 	height: 20%;
-	width: 94%;
+	width: 100%;
 }
 
 .halfWide {
@@ -63,11 +63,11 @@ a { color: blue; }
 	top: 0;
 	width: 50%;
 	height: 100%;
-	background: gray;
+	background: rgb(80,80,80);
 	margin: 0;
 }
 
 .hwRight {
 	left: 50%;
-	background: linear-gradient(to bottom, white, dodgerblue);
+	background: rgb(30,144,255);
 }

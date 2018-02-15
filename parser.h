@@ -19,14 +19,16 @@
 class Parser
 {
 public:
+	DOMNode *rootNode;
+	string output;
 	string cssFilename;
 	map<string, map<string, string>> styles;
 	string printElementAttributes(DOMNode &node)
 	{
 		map<string, string> *ptrAttributes = &(node.attributes);
 		vector<string> *classList = &(node.classList);
-		string str = node.get_tag_name() + ":" + node.get_text_content() + ";";
-		for (auto className = classList->begin(); className != classList->end(); ++className)
+		//string str = to_string(node.get_idx())+")"+node.get_tag_name() + ":" + node.get_text_content() + ";";
+		/*for (auto className = classList->begin(); className != classList->end(); ++className)
 		{
 			str += "[" + *className + "],";
 			if (styles.find(*className) != styles.end())
@@ -39,22 +41,28 @@ public:
 					str += it->first + " " + it->second + ";";
 				}
 			}
-		}
+		}*/
 
-		/*for (auto beg = ptrAttributes->begin(), end = ptrAttributes->end(); beg != end; ++beg)
+		string str;
+		/*for (auto beg = node.style.begin(), end = node.style.end(); beg != end; ++beg)
 		{
 			str += "[" + beg->first + "] = " + beg->second;// +"\n";
 		}*/
 
-		return str;
+		if (node.get_tag_name() == "div") {
+			return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + ';';
+		}
+		else {
+			return "";
+		}
 	};
 	string printChildTagNames(DOMNode &node, int level, bool last)
 	{
 		string tagTree;
-		for (int i = 0; i < level; i++)
+		/*for (int i = 0; i < level; i++)
 		{
 			tagTree += "  ";
-		}
+		}*/
 		tagTree += printElementAttributes(node);
 		if (node.get_child_count())
 		{
@@ -64,7 +72,7 @@ public:
 			string newPath;
 			while (i < len)
 			{
-				tagTree += "\n" + printChildTagNames(*curChild, level + 1, i == len - 1);
+				tagTree += /*"\n" +*/ printChildTagNames(*curChild, level + 1, i == len - 1);
 				curChild = curChild->nextSibling;
 				i++;
 			}

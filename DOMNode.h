@@ -22,12 +22,16 @@ public:
 	DOMNode *nextSibling; // private -- invert case (camelCase becomes _ and vice versa)
 	DOMNode *parentNode;
 	string type;
-	double width;
-	double height;
-	double x;
-	double y;
-	double marginX;
-	double marginY;
+	double width = 0;
+	double height = 0;
+	double x = 0;
+	double y = 0;
+	double marginX = 0;
+	double marginY = 0;
+	bool x_set = false;
+	bool y_set = false;
+	bool width_set = false;
+	bool height_set = false;
 	DOMNode(string tagName, string textContent, int start, int end, int idx) : idx(0)
 	{
 		//this->parentNode = &parentNode;
@@ -35,7 +39,7 @@ public:
 		this->textContent = textContent;
 		this->start = start;
 		this->end = end;
-		this->idx = idx;
+		//this->idx = idx;
 	};
 
 	void set_parent_node(DOMNode &node)
@@ -88,6 +92,11 @@ public:
 		return this->idx;
 	};
 
+	void set_idx(int newIdx)
+	{
+		this->idx = newIdx;
+	};
+
 	void set_end(int newEnd)
 	{
 		this->end = newEnd;
@@ -104,8 +113,8 @@ public:
 		{
 			this->lastChild->nextSibling = &childNode;
 			this->lastChild = &childNode;
+			childNode.previousSibling = this->lastChild;
 			childNode.nextSibling = NULL;
-			this->previousSibling = this->lastChild;
 		}
 		else
 		{

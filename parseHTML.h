@@ -28,10 +28,7 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 			if (node.get_text_content() != "")
 			{
 				newNode = new DOMNode("TextNode", node.get_text_content(), charIndex + 1, end, 0);
-				if (node.get_child_count())
-				{
-					//newNode->previousSibling = node.lastChild;
-				}
+				newNode->set_idx(node.get_child_count());
 				node.appendChild(*newNode);
 				node.clear_text_content();
 				newNode->set_parent_node(node);
@@ -106,6 +103,7 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 				// CAREFUL!!!
 				parseHTML(*newNode, node, src, charIndex + 1, end, openingTag);
 				node.appendChild(*newNode);
+				newNode->set_idx(node.get_child_count() - 1);
 				newNode->set_tag_name(lcase(openingTag));
 
 				elsByTagName[newNode->get_tag_name()].push_back(newNode);

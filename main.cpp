@@ -134,9 +134,21 @@ public:
 		ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
 		ptMouse(D2D1::Point2F())
 	{
+		string fname = "layout.html";
+		string src;
+		int len = readTextFile(fname, src);
+
+		string emptyStr = "";
+		string root = "root";
+
+		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
+		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
+
+		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
+		parseCSS(myParser.cssFilename);
 	}
 
-	PCWSTR  ClassName() const { return L"Circle Window Class"; }
+	PCWSTR  ClassName() const { return L"Browser Window Class"; }
 	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
@@ -238,33 +250,19 @@ void MainWindow::OnPaint()
 		hr = DemoApp::CreateDeviceIndependentResources();
 		if (SUCCEEDED(hr))
 		{
-			// don't do this every paint
-			string fname = "layout.html";
-			string src;
-			int len = readTextFile(fname, src);
-
-			string emptyStr = "";
-			string root = "root";
-
-			DOMNode rootNode(root, emptyStr, 0, len, 0);
-			rootNode.set_parent_node(rootNode);
-
-			parseHTML(rootNode, rootNode, src, 0, len, emptyStr);
-			parseCSS(myParser.cssFilename);
-
 			// h/t https://stackoverflow.com/a/27344958
 			/*string str;
 			for (auto const &ent_i : myParser.styles)
 			{
-				auto const &outer_key = ent_i.first;
-				auto const &inner_map = ent_i.second;
-				for (auto const &ent_j : inner_map) {
-					auto const &inner_key = ent_j.first;
-					auto const &inner_value = ent_j.second;
+			auto const &outer_key = ent_i.first;
+			auto const &inner_map = ent_i.second;
+			for (auto const &ent_j : inner_map) {
+			auto const &inner_key = ent_j.first;
+			auto const &inner_value = ent_j.second;
 
-					str += "styles[" + outer_key + "][" + inner_key + "] = " + inner_value + "\n";
-				}
-				str += "\n";
+			str += "styles[" + outer_key + "][" + inner_key + "] = " + inner_value + "\n";
+			}
+			str += "\n";
 			}*/
 
 			/*string str;
@@ -272,23 +270,25 @@ void MainWindow::OnPaint()
 			vector<DOMNode*> *ptrElsOfTag;
 			if (elsByClassName.find(className) != elsByClassName.end())
 			{
-				ptrElsOfTag = &(elsByClassName[className]);
+			ptrElsOfTag = &(elsByClassName[className]);
 
-				for (int i = 0, len = ptrElsOfTag->size(); i < len; i++)
-				{
-					str += (*ptrElsOfTag)[i]->get_tag_name() + "\n";
-					str += myParser.printElementAttributes(*((*ptrElsOfTag)[i]));
-				}
+			for (int i = 0, len = ptrElsOfTag->size(); i < len; i++)
+			{
+			str += (*ptrElsOfTag)[i]->get_tag_name() + "\n";
+			str += myParser.printElementAttributes(*((*ptrElsOfTag)[i]));
+			}
 			}*/
 
-			string str = myParser.printChildTagNames(rootNode, 0, false);
-			std::wstring widestr = std::wstring(str.begin(), str.end());
+			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush);
+			
+			//myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
+			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
 			static const wchar_t* sc_text = widestr.c_str();
 			D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 
 			pRenderTarget->DrawText(
 				sc_text,
-				str.length(),
+				myParser.output.length(),
 				m_pTextFormat,
 				D2D1::RectF(0, 0, renderTargetSize.width, renderTargetSize.height),
 				pBrush

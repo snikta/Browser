@@ -52,6 +52,10 @@ void parseCSS(string &filename)
 			parsingPropName = true;
 			do
 			{
+				if (whspace(chr))
+				{
+					continue;
+				}
 				if (parsingPropName)
 				{
 					do
