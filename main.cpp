@@ -316,7 +316,7 @@ void MainWindow::OnPaint()
 
 			yiy = 0;
 
-			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight);
+			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth);
 		}
 
 		hr = pRenderTarget->EndDraw();
@@ -454,6 +454,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 			}
 		}
 	//}
+
+	InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
 void MainWindow::OnLButtonUp()

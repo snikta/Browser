@@ -9,7 +9,7 @@ const vector<string> styleSkipList = { "box-shadow", "margin", "position", "disp
 
 float viewportScaleX, viewportScaleY;
 int yiy = 0;
-void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight) {
+void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight, int newWidth, int origWidth) {
 	DOMNode *parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
@@ -44,6 +44,9 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			node.x = node.previousSibling->x;
 			if (node.previousSibling->style["display"].find("inline") != -1)
 			{
+				string s1 = to_string(node.previousSibling->width);
+				std::wstring widestr = std::wstring(s1.begin(), s1.end());
+				OutputDebugStringW(widestr.c_str());
 				node.x += node.previousSibling->width;
 			}
 			node.y = node.previousSibling->y;
@@ -145,11 +148,6 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		ID2D1LinearGradientBrush *m_pLinearGradientBrush;
 		if (bg != "")
 		{
-			/*if (colors[0].find('to right') != string::npos) {
-			grad = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y);
-			} else if (colors[0].find('to bottom'') !== string::npos) {
-			grad = ctx.createLinearGradient(node.x, node.y, node.x, node.y + node.height);
-			}*/
 			int len = bg.length();
 			string lg = "linear-gradient(";
 			D2D1_RECT_F rect1 = D2D1::RectF(
@@ -212,9 +210,12 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 						pGradientStops,
 						&m_pLinearGradientBrush
 					);
+					//m_pLinearGradientBrush->Release();
 					pRenderTarget->FillRectangle(&rect1, m_pLinearGradientBrush);
-					delete gradStops;
 				}
+				SafeRelease(pGradientStops);
+				SafeRelease(m_pLinearGradientBrush);
+				delete[] gradStops;
 			}
 		}
 	}
@@ -231,7 +232,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			L"", //locale
 			&m_pTextFormat
 		);
-		
+
 		D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0, 1.0f);
 		pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 
@@ -246,7 +247,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		);
 	}
 	else if (node.get_tag_name() == "img") {
-		
+
 		// Create a bitmap from a file.
 		std::wstring widestr = std::wstring(node.attributes["src"].begin(), node.attributes["src"].end());
 
@@ -284,26 +285,30 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 					D2D1::RectF(
 						upperLeftCorner.x,
 						upperLeftCorner.y,
-						upperLeftCorner.x + size.width,
-						upperLeftCorner.y + size.height)
+						upperLeftCorner.x + size.width * viewportScaleX * newWidth / origWidth,
+						upperLeftCorner.y + size.height * viewportScaleY * newHeight / origHeight)
 				);
 
 				SafeRelease(&m_pBitmap);
 			}
 		}
 	}
-	else if (node.get_child_count()) {
-		if (node.parentNode->get_tag_name() != "root") {
+	else if (node.get_child_count())
+	{
+		if (node.parentNode->get_tag_name() != "root")
+		{
 			if (node.style["display"] == "block" || node.style["display"] == "inline-block") {
 				node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * node.parentNode->width;
 				node.width_set = true;
 			}
-			if (node.style["display"] == "block") {
+			if (node.style["display"] == "block")
+			{
 				node.height = stod(substrReplace(node.style["height"] == "" ? "100" : node.style["height"], "%", "")) / 100 * node.parentNode->height;
 				node.height_set = true;
 			}
 		}
-		else {
+		else
+		{
 			node.width = renderTargetSize.width * viewportScaleX;
 			node.height = renderTargetSize.height * viewportScaleY;
 			node.width_set = node.height_set = true;
@@ -322,7 +327,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 					child->height = stod(substrReplace(child->style["height"] == "" ? "0" : child->style["height"], "%", "")) / 100 * node.height;
 					child->height_set = true;
 				}
-				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight);
+				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight, newWidth, origWidth);
 				child = child->nextSibling;
 			}
 		}
@@ -338,15 +343,23 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			while (child)
 			{
 				totalWidth += child->width;
-				if (child->style["display"] == "block" || idx == 0 || child->get_tag_name() == "TextNode") {
+				if (child->style["display"] == "block" || idx == 0 || child->get_tag_name() == "TextNode")
+				{
 					totalHeight += child->height;
 				}
 				idx++;
 				child = child->nextSibling;
 			}
 		}
-		if (node.style["display"] == "inline") {
+		if (node.style["display"] == "inline")
+		{
 			node.width = totalWidth;
+			node.width_set = true;
+		}
+		if (node.get_tag_name() == "TextNode")
+		{
+			string txt1 = node.get_text_content();
+			node.width = 5 * txt1.length();
 			node.width_set = true;
 		}
 		node.height = totalHeight;
