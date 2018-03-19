@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basewin.h" />
+    <ClInclude Include="deleteShape.h" />
     <ClInclude Include="DOMNode.h" />
     <ClInclude Include="drawDOMNode.h" />
     <ClInclude Include="lcase.h" />
@@ -154,7 +155,9 @@
     <ClInclude Include="parseHTML.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="readTextFile.h" />
+    <ClInclude Include="RedBlackTree.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SlabDecomposition.h" />
     <ClInclude Include="splitString.h" />
     <ClInclude Include="substrReplace.h" />
     <ClInclude Include="text.h" />

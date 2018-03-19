@@ -4,15 +4,26 @@
 #include <vector>
 #include "DOMNode.h"
 #include "substrReplace.h"
+#include "LoadBitmapFromFile.h"
 const vector<string> styleSkipList = { "box-shadow", "margin", "position", "display", "left", "top", "width", "height" };
 
+float viewportScaleX, viewportScaleY;
+int yiy = 0;
 void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush) {
 	DOMNode *parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
 
-	string tagName = node.get_tag_name();
+	node.x = 0;
+	node.y = 0;
+	node.width = 0;
+	node.height = 0;
+	node.width_set = false;
+	node.height_set = false;
+	node.x_set = false;
+	node.y_set = false;
 
+	string tagName = node.get_tag_name();
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 
 	//ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
@@ -29,7 +40,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 
 		/*if (node.get_id() == "main")
 		{
-			myParser.output = to_string(node.get_idx()) + " " + node.style["display"] + " " + node.previousSibling->style["display"];
+		myParser.output = to_string(node.get_idx()) + " " + node.style["display"] + " " + node.previousSibling->style["display"];
 		}*/
 		if (node.get_idx() == 0)
 		{
@@ -94,28 +105,28 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 
 			/*for (auto const &ent_i : node.style)
 			{
-				myParser.output += ent_i.first + ":" + ent_i.second + ";";
+			myParser.output += ent_i.first + ":" + ent_i.second + ";";
 			}*/
 
 			if (node.style["display"] == "block") {
-			/*string str3 = "Width:" + node.style["width"];
-			std::wstring widestr = std::wstring(str3.begin(), str3.end());
-			static const wchar_t* sc_text = widestr.c_str();
-			MessageBox(NULL, sc_text, L"", MB_OK);*/
+				/*string str3 = "Width:" + node.style["width"];
+				std::wstring widestr = std::wstring(str3.begin(), str3.end());
+				static const wchar_t* sc_text = widestr.c_str();
+				MessageBox(NULL, sc_text, L"", MB_OK);*/
 				//if (!(x_set && y_set))
 				//{
-					node.x = parentNode->x + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
-					if (node.style["position"] == "absolute") {
-						node.y = parentNode->y + stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * parentNode->height;
-					}
+				node.x = parentNode->x + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
+				if (node.style["position"] == "absolute") {
+					node.y = parentNode->y + stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * parentNode->height;
+				}
 				//}
 				//if (!width_set)
 				//{
-					node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * parentNode->width;
+				node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * parentNode->width;
 				//}
 				//if (!height_set)
 				//{
-					node.height = node.style["height"] == "" ? 12 : (stod(substrReplace(node.style["height"] == "" ? "0" : node.style["height"], "%", "")) / 100 * parentNode->height);
+				node.height = node.style["height"] == "" ? 12 : (stod(substrReplace(node.style["height"] == "" ? "0" : node.style["height"], "%", "")) / 100 * parentNode->height);
 				//}
 				node.x_set = node.y_set = node.width_set = node.height_set = true;
 			}
@@ -135,8 +146,8 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 	else {
 		node.x = 0;
 		node.y = 0;
-		node.width = renderTargetSize.width;
-		node.height = renderTargetSize.height;
+		node.width = renderTargetSize.width * viewportScaleX;
+		node.height = renderTargetSize.height * viewportScaleY;
 		node.x_set = node.y_set = node.width_set = node.height_set = true;
 	}
 
@@ -162,8 +173,21 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 	 node.marginY*=3;
 	 }*/
 	 //drawDOMNode(header,"main");
-	//node.x += node.marginX || 0;
-	//node.y += node.marginY || 0;
+	 //node.x += node.marginX || 0;
+	 //node.y += node.marginY || 0;
+
+	/*string str = node.get_tag_name() + " " + to_string(node.x) + "," + to_string(node.y) + "->" + to_string(node.width) + "," + to_string(node.height);
+
+	std::wstring widestr = std::wstring(str.begin(), str.end());
+
+	pRenderTarget->DrawText(
+		widestr.c_str(),
+		str.length(),
+		m_pTextFormat,
+		D2D1::RectF(0, yiy, renderTargetSize.width, renderTargetSize.height),
+		pBrush
+	);
+	yiy += 5;*/
 
 	if (node.get_tag_name() == "div") {
 		string bg = node.style["background"];
@@ -171,9 +195,9 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		if (bg != "")
 		{
 			/*if (colors[0].find('to right') != string::npos) {
-				grad = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y);
+			grad = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y);
 			} else if (colors[0].find('to bottom'') !== string::npos) {
-				grad = ctx.createLinearGradient(node.x, node.y, node.x, node.y + node.height);
+			grad = ctx.createLinearGradient(node.x, node.y, node.x, node.y + node.height);
 			}*/
 			int len = bg.length();
 			string lg = "linear-gradient(";
@@ -189,7 +213,8 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 				D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
 				pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 				pRenderTarget->FillRectangle(&rect1, pBrush);
-			} else {
+			}
+			else {
 				bg = bg.substr(0, bg.length() - 1).substr(lg.length());
 
 				int bgI = 0, bgLen = bg.length();
@@ -214,11 +239,11 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 				ID2D1GradientStopCollection *pGradientStops = NULL;
 				D2D1_GRADIENT_STOP *gradStops = new D2D1_GRADIENT_STOP[len - 1]; // delete later
 				for (int i = 1; i < len; i++)
-				{	
+				{
 					vector<string> rgbValues;
 					splitString(colors[i].substr(0, colors[i].length() - 1).substr(4), ',', rgbValues);
 					gradStops[i - 1].color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
-					gradStops[i - 1].position = (float(i) - 1) / (float(len) - 1);
+					gradStops[i - 1].position = (float(i) - 1) / (float(len) - 2);
 				}
 				HRESULT hr = pRenderTarget->CreateGradientStopCollection(
 					gradStops,
@@ -237,6 +262,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 						&m_pLinearGradientBrush
 					);
 					pRenderTarget->FillRectangle(&rect1, m_pLinearGradientBrush);
+					delete gradStops;
 				}
 			}
 		}
@@ -250,24 +276,55 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		}
 		ctx.fillStyle = grad || node.style["background"] || "transparent";
 		ctx.fillRect(node.x, node.y, node.width, node.height);*/
-		
+
+		/*ComPtr<ID2D1Effect> shadowEffect;
+		m_d2dContext->CreateEffect(CLSID_D2D1Shadow, &shadowEffect);
+
+		shadowEffect->SetInput(0, bitmap);
+
+		// Shadow is composited on top of a white surface to show opacity.
+		ComPtr<ID2D1Effect> floodEffect;
+		m_d2dContext->CreateEffect(CLSID_D2D1Flood, &floodEffect);
+
+		floodEffect->SetValue(D2D1_FLOOD_PROP_COLOR, D2D1::Vector4F(1.0f, 1.0f, 1.0f, 1.0f));
+
+		ComPtr<ID2D1Effect> affineTransformEffect;
+		m_d2dContext->CreateEffect(CLSID_D2D12DAffineTransform, &affineTransformEffect);
+
+		affineTransformEffect->SetInputEffect(0, shadowEffect.Get());
+
+		D2D1_MATRIX_3X2_F matrix = D2D1::Matrix3x2F::Translation(20, 20));
+
+		affineTransformEffect->SetValue(D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX, matrix);
+
+		ComPtr<ID2D1Effect> compositeEffect;
+		m_d2dContext->CreateEffect(CLSID_D2D1Composite, &compositeEffect);
+
+		compositeEffect->SetInputEffect(0, floodEffect.Get());
+		compositeEffect->SetInputEffect(1, affineTransformEffect.Get());
+		compositeEffect->SetInput(2, bitmap);
+
+		m_d2dContext->BeginDraw();
+		m_d2dContext->DrawImage(compositeEffect.Get());
+		m_d2dContext->EndDraw();*/
+
 		/*string s = to_string(node.x);
 		std::wstring widestr = std::wstring(s.begin(), s.end());
 		static const wchar_t* sc_text = widestr.c_str();*/
 
 		/*pRenderTarget->DrawText(
-			sc_text,
-			s.length(),
-			m_pTextFormat,
-			D2D1::RectF(0, 0, 100,100),
-			pBrush
+		sc_text,
+		s.length(),
+		m_pTextFormat,
+		D2D1::RectF(0, 0, 100,100),
+		pBrush
 		);*/
 
 		//vector<string> rgbValues;
 
 		/*if (node.style["background"] == "")
 		{
-			node.style["background"] = "rgb(255,255,255)";
+		node.style["background"] = "rgb(255,255,255)";
 		}*/
 	}
 
@@ -277,26 +334,54 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		ctx.fillText(node.textContent, node.x, node.y + 12);*/
 		node.width = 100;// ctx.measureText(node.textContent).width;
 		node.height = 12;
-	}/* else if (node.tagName == "img") {
-	 img = new Image();
-	 img.src = node.attributes.src;
-	 img.x1 = node.x;
-	 img.y1 = node.y;
-	 node.width = Math.min(Number(node.attributes.width), node.parentNode->width);
-	 node.height = Number(node.attributes.height);
-	 img.x2 = node.x + node.width;
-	 img.y2 = node.y + node.height;
-	 img.onload = function () {
-	 ctx.beginPath();
-	 ctx.moveTo(this.x1, this.y1);
-	 ctx.lineTo(this.x2, this.y1);
-	 ctx.lineTo(this.x2, this.y2);
-	 ctx.lineTo(this.x1, this.y2);
-	 ctx.closePath();
-	 ctx.clip();
-	 ctx.drawImage(this, this.x1, this.y1);
-	 }
-	 } */
+	}
+	else if (node.get_tag_name() == "img") {
+		// Create a bitmap from a file.
+		std::wstring widestr = std::wstring(node.attributes["src"].begin(), node.attributes["src"].end());
+		static const wchar_t* sc_text = widestr.c_str();
+
+		IWICImagingFactory     *m_pWICFactory;
+		ID2D1Bitmap            *m_pBitmap;
+
+		HRESULT hr = CoCreateInstance(
+			CLSID_WICImagingFactory,
+			nullptr,
+			CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(&m_pWICFactory)
+		);
+
+		if (SUCCEEDED(hr))
+		{
+			hr = LoadBitmapFromFile(
+				pRenderTarget,
+				m_pWICFactory,
+				sc_text,
+				0,
+				0,
+				&m_pBitmap
+			);
+
+			if (SUCCEEDED(hr))
+			{
+				// Retrieve the size of the bitmap.
+				D2D1_SIZE_F size = m_pBitmap->GetSize();
+
+				D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(node.x, node.y);
+
+				// Draw a bitmap.
+				pRenderTarget->DrawBitmap(
+					m_pBitmap,
+					D2D1::RectF(
+						upperLeftCorner.x,
+						upperLeftCorner.y,
+						upperLeftCorner.x + size.width,
+						upperLeftCorner.y + size.height)
+				);
+
+				SafeRelease(&m_pBitmap);
+			}
+		}
+	}
 	else if (node.get_child_count()) {
 		if (node.parentNode->get_tag_name() != "root") {
 			if (node.style["display"] == "block" || node.style["display"] == "inline-block") {
@@ -309,11 +394,11 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			}
 		}
 		else {
-			node.width = renderTargetSize.width;
-			node.height = renderTargetSize.height;
+			node.width = renderTargetSize.width * viewportScaleX;
+			node.height = renderTargetSize.height * viewportScaleY;
 			node.width_set = node.height_set = true;
 		}
-		
+
 		if (node.get_child_count())
 		{
 			DOMNode *child = node.firstChild;

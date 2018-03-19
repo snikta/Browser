@@ -3,6 +3,7 @@
 #include <wincodec.h> 
 #include <commdlg.h> 
 #include <Windowsx.h>
+#include <fstream>
 #include <d2d1.h>
 #pragma comment(lib, "d2d1")
 
@@ -12,109 +13,25 @@
 #include "parser.h"
 #include "parseCSS.h"
 #include "parseHTML.h"
+#include "SafeRelease.h"
+#include "LoadBitmapFromFile.h"
 #include "drawDOMNode.h"
+#include "RedBlackTree.h"
+#include "SlabDecomposition.h"
+#include "deleteShape.h"
 
-template <typename T>
-inline void SafeRelease(T *&p)
-{
-	if (nullptr != p)
-	{
-		p->Release();
-		p = nullptr;
-	}
-}
-
-template <class T> void SafeRelease(T **ppT)
-{
-	if (*ppT)
-	{
-		(*ppT)->Release();
-		*ppT = NULL;
-	}
-}
-
-HRESULT LoadBitmapFromFile(
-	ID2D1RenderTarget *pRenderTarget,
-	IWICImagingFactory *pIWICFactory,
-	PCWSTR uri,
-	UINT destinationWidth,
-	UINT destinationHeight,
-	ID2D1Bitmap **ppBitmap
-)
-{
-	IWICBitmapDecoder *pDecoder = NULL;
-	IWICBitmapFrameDecode *pSource = NULL;
-	IWICStream *pStream = NULL;
-	IWICFormatConverter *pConverter = NULL;
-	IWICBitmapScaler *pScaler = NULL;
-
-	HRESULT hr = pIWICFactory->CreateDecoderFromFilename(
-		uri,
-		NULL,
-		GENERIC_READ,
-		WICDecodeMetadataCacheOnLoad,
-		&pDecoder
-	);
-
-	if (SUCCEEDED(hr))
-	{
-		// Create the initial frame.
-		hr = pDecoder->GetFrame(0, &pSource);
-	}
-
-
-	if (SUCCEEDED(hr))
-	{
-
-		// Convert the image format to 32bppPBGRA
-		// (DXGI_FORMAT_B8G8R8A8_UNORM + D2D1_ALPHA_MODE_PREMULTIPLIED).
-		hr = pIWICFactory->CreateFormatConverter(&pConverter);
-
-	}
-
-
-	if (SUCCEEDED(hr))
-	{
-
-		hr = pConverter->Initialize(
-			pSource,
-			GUID_WICPixelFormat32bppPBGRA,
-			WICBitmapDitherTypeNone,
-			NULL,
-			0.f,
-			WICBitmapPaletteTypeMedianCut
-		);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-
-		// Create a Direct2D bitmap from the WIC bitmap.
-		hr = pRenderTarget->CreateBitmapFromWicBitmap(
-			pConverter,
-			NULL,
-			ppBitmap
-		);
-	}
-
-	SafeRelease(&pDecoder);
-	SafeRelease(&pSource);
-	SafeRelease(&pStream);
-	SafeRelease(&pConverter);
-	SafeRelease(&pScaler);
-
-	return hr;
-}
+std::ofstream ffile;
 
 class MainWindow : public BaseWindow<MainWindow>
 {
+	IWICImagingFactory     *m_pWICFactory;
 	ID2D1Factory            *pFactory;
 	ID2D1HwndRenderTarget   *pRenderTarget;
 	ID2D1SolidColorBrush    *pBrush;
+	ID2D1SolidColorBrush    *redBrush;
 	D2D1_ELLIPSE            ellipse;
 	D2D1_POINT_2F           ptMouse;
-	IWICImagingFactory     *m_pWICFactory;
-	ID2D1Bitmap            *m_pBitmap;
+	SlabContainer			mySlabContainer;
 
 	void    CalculateLayout();
 	HRESULT CreateGraphicsResources();
@@ -123,14 +40,45 @@ class MainWindow : public BaseWindow<MainWindow>
 	void    Resize();
 
 public:
-	
-	float x1, y1;
+	Region *selRegion;
+	bool success;
+	float slabLeft, slabRight, regionTop, regionBottom;
+	float x1, y1, x2, y2;
 	float dX, dY;
 	void    OnLButtonDown(int pixelX, int pixelY, DWORD flags);
 	void    OnLButtonUp();
 	void    OnMouseMove(int pixelX, int pixelY, DWORD flags);
+	void    visualize(RedBlackTree *rbt, RedBlackNode &x, int level, bool last)
+	{
+		if (&x == rbt->nil)
+		{
+			return;
+		}
 
-	MainWindow() : pFactory(NULL), pRenderTarget(NULL), pBrush(NULL)/*,
+		//RedBlackTree *rbt = &mySlabContainer.RBTSlabLines;
+		string str = "";
+		for (int i = 0; i < level; i++)
+		{
+			ffile << "  ";
+		}
+		ffile << to_string(level) << ":" << to_string(x.key) << endl;
+
+		std::wstring widestr = std::wstring(str.begin(), str.end());
+		static const wchar_t* sc_text = widestr.c_str();
+
+		OutputDebugStringW(sc_text);
+
+		if (x.left != rbt->nil)
+		{
+			visualize(rbt, *(x.left), level + 1, x.right != rbt->nil);
+		}
+		if (x.right != rbt->nil)
+		{
+			visualize(rbt, *(x.right), level + 1, true);
+		}
+	};
+
+	MainWindow() : pFactory(NULL), pRenderTarget(NULL), pBrush(NULL), redBrush(NULL)/*,
 		ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
 		ptMouse(D2D1::Point2F())
 	{
@@ -194,13 +142,13 @@ HRESULT MainWindow::CreateGraphicsResources()
 {
 	HRESULT hr = S_OK;
 
-	// Create WIC factory 
+	/*// Create WIC factory 
 	hr = CoCreateInstance(
 		CLSID_WICImagingFactory,
 		nullptr,
 		CLSCTX_INPROC_SERVER,
 		IID_PPV_ARGS(&m_pWICFactory)
-	);
+	);*/
 
 	if (pRenderTarget == NULL)
 	{
@@ -218,6 +166,8 @@ HRESULT MainWindow::CreateGraphicsResources()
 		{
 			const D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0);
 			hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			const D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0);
+			hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
 
 			if (SUCCEEDED(hr))
 			{
@@ -231,8 +181,9 @@ HRESULT MainWindow::CreateGraphicsResources()
 void MainWindow::DiscardGraphicsResources()
 {
 	SafeRelease(&pRenderTarget);
-	SafeRelease(m_pBitmap);
+//	SafeRelease(m_pBitmap);
 	SafeRelease(&pBrush);
+	SafeRelease(&redBrush);
 }
 
 void MainWindow::OnPaint()
@@ -244,13 +195,11 @@ void MainWindow::OnPaint()
 		BeginPaint(m_hwnd, &ps);
 
 		pRenderTarget->BeginDraw();
-
 		pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
 		hr = DemoApp::CreateDeviceIndependentResources();
 		if (SUCCEEDED(hr))
 		{
-			// h/t https://stackoverflow.com/a/27344958
 			/*string str;
 			for (auto const &ent_i : myParser.styles)
 			{
@@ -279,47 +228,75 @@ void MainWindow::OnPaint()
 			}
 			}*/
 
-			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush);
-			
-			//myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
-			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
-			static const wchar_t* sc_text = widestr.c_str();
 			D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
+			viewportScaleX = 0.8;
+			viewportScaleY = 0.8;
+			
+			myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
+			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
 
 			pRenderTarget->DrawText(
-				sc_text,
+				widestr.c_str(),
 				myParser.output.length(),
 				m_pTextFormat,
-				D2D1::RectF(0, 0, renderTargetSize.width, renderTargetSize.height),
+				D2D1::RectF(renderTargetSize.width * viewportScaleX, 0, renderTargetSize.width, renderTargetSize.height),
 				pBrush
 			);
+
+			if (!mySlabContainer.ShapeMembers.size())
+			{
+				vector<string> outputByLine;
+
+				splitString(myParser.output, '\n', outputByLine);
+				int y = 0;
+				for (int i = 0, len = outputByLine.size(); i < len; i++)
+				{
+					int shapeId = mySlabContainer.NextAvailableShapeId++;
+					int x1, x2, y1, y2;
+					Shape *newShape = new Shape;
+					newShape->id = shapeId;
+					x1 = newShape->x1 = renderTargetSize.width * 0.8;
+					x2 = newShape->x2 = renderTargetSize.width;
+					y1 = newShape->y1 = y;
+					y2 = newShape->y2 = y + 12;
+					y += 12;
+					newShape->rect = new D2D1_RECT_F(D2D1::RectF(x1, y1, x2, y2));
+
+					mySlabContainer.ShapeMembers[shapeId] = newShape;
+					mySlabContainer.addShape(*newShape);
+				}
+
+/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
+				MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);
+				map<int, Slab*>::iterator SlabIt;
+				for (SlabIt = mySlabContainer.SlabLinesByLeft.begin(); SlabIt != mySlabContainer.SlabLinesByLeft.end(); ++SlabIt)
+				{
+					//int _x1 = mySlabContainer.ShapeMembers[i + 1]->x1;
+					//if (mySlabContainer.SlabLinesByLeft.find(_x1) != mySlabContainer.SlabLinesByLeft.end())
+					//{
+						MainWindow::visualize(SlabIt->second->RBTRegions, *(SlabIt->second->RBTRegions->root), 0, true);
+						ffile << endl << "-------" << endl;
+					//}
+				}
+				ffile.close();*/
+			}
+
+			/*map<int, Shape*>::iterator ShapeIt;
+			for (ShapeIt = mySlabContainer.ShapeMembers.begin(); ShapeIt != mySlabContainer.ShapeMembers.end(); ++ShapeIt)
+			{
+				pRenderTarget->FillRectangle(*(ShapeIt->second->rect), pBrush);
+			}*/
+
+			if (MainWindow::success)
+			{
+				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft, regionTop, slabRight, regionBottom);
+				pRenderTarget->FillRectangle(rect1, redBrush);
+			}
+
+			yiy = 0;
+
+			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush);
 		}
-
-
-		/*// Create a bitmap from a file.
-		hr = LoadBitmapFromFile(
-			pRenderTarget,
-			m_pWICFactory,
-			L"apollo.jpg",
-			0,
-			0,
-			&m_pBitmap
-		);
-
-		// Retrieve the size of the bitmap.
-		D2D1_SIZE_F size = m_pBitmap->GetSize();
-
-		D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(MainWindow::x1, MainWindow::y1);
-
-		// Draw a bitmap.
-		pRenderTarget->DrawBitmap(
-			m_pBitmap,
-			D2D1::RectF(
-				upperLeftCorner.x,
-				upperLeftCorner.y,
-				upperLeftCorner.x + size.width,
-				upperLeftCorner.y + size.height)
-		);*/
 
 		hr = pRenderTarget->EndDraw();
 		if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET)
@@ -327,6 +304,7 @@ void MainWindow::OnPaint()
 			DiscardGraphicsResources();
 		}
 		EndPaint(m_hwnd, &ps);
+		//InvalidateRect(m_hwnd, NULL, FALSE);
 	}
 }
 
@@ -380,8 +358,8 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 
 void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 {
-	if (flags & MK_LBUTTON)
-	{
+	//if (flags & MK_LBUTTON)
+	//{
 		const D2D1_POINT_2F dips = DPIScale::PixelsToDips(pixelX, pixelY);
 		const float x1 = -dX + dips.x;
 		const float y1 = -dY + dips.y;
@@ -389,10 +367,73 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		MainWindow::x1 = x1;
 		MainWindow::y1 = y1;
 
-		MainWindow::OnPaint();
+		MainWindow::x2 = dips.x;
+		MainWindow::y2 = dips.y;
 
-		InvalidateRect(m_hwnd, NULL, FALSE);
-	}
+		RedBlackTree *rbt = &(mySlabContainer.RBTSlabLines);
+		RedBlackNode *node = rbt->closest(x2);
+		Slab *slab = &nilSlab;
+		bool success = false, slabExists = false;
+
+		MainWindow::success = false;
+
+		if (node->key > x2)
+		{
+			int nodeKey = rbt->predecessor(node)->key;
+			slabExists = mySlabContainer.SlabLinesByLeft.find(nodeKey) != mySlabContainer.SlabLinesByLeft.end();
+			if (slabExists)
+			{
+				slab = mySlabContainer.SlabLinesByLeft[nodeKey];
+			}
+		}
+		else
+		{
+			slabExists = mySlabContainer.SlabLinesByLeft.find(node->key) != mySlabContainer.SlabLinesByLeft.end();
+			if (slabExists)
+			{
+				slab = mySlabContainer.SlabLinesByLeft[node->key];
+			}
+		}
+
+		if (slabExists && x2 >= slab->leftX && x2 <= slab->rightX)
+		{
+			rbt = slab->RBTRegions;
+			node = rbt->closest(y2);
+
+			bool regionExists;
+			Region *region = &nilRegion;
+			if (node->key > y2)
+			{
+				int regionKey = rbt->predecessor(node)->key;
+				regionExists = slab->RegionsByTop.find(regionKey) != slab->RegionsByTop.end();
+				if (regionExists)
+				{
+					region = slab->RegionsByTop[regionKey];
+				}
+			}
+			else
+			{
+				regionExists = slab->RegionsByTop.find(node->key) != slab->RegionsByTop.end();
+				if (regionExists)
+				{
+					region = slab->RegionsByTop[node->key];
+				}
+			}
+
+			if (regionExists && y2 >= region->topY && y2 <= region->bottomY)
+			{
+				MainWindow::selRegion = region;
+
+				MainWindow::slabLeft = slab->leftX;
+				MainWindow::slabRight = slab->rightX;
+
+				MainWindow::regionTop = region->topY;
+				MainWindow::regionBottom = region->bottomY;
+
+				MainWindow::success = true;
+			}
+		}
+	//}
 }
 
 void MainWindow::OnLButtonUp()
@@ -425,7 +466,6 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		OnPaint();
 		return 0;
 
-
 	case WM_SIZE:
 		Resize();
 		return 0;
@@ -440,6 +480,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_MOUSEMOVE:
 		OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (DWORD)wParam);
+		OnPaint();
 		return 0;
 	}
 	return DefWindowProc(m_hwnd, uMsg, wParam, lParam);

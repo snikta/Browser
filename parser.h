@@ -50,19 +50,27 @@ public:
 		}*/
 
 		if (node.get_tag_name() == "div") {
-			return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + ';';
+			return "<" + node.get_tag_name() + " id=" + '"' + node.get_id() + '"' + ">\n";
+			//return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + '\n';
 		}
-		else {
+		else if (node.get_tag_name() != "TextNode" && node.get_tag_name() != "root") {
+			return "<" + node.get_tag_name() + (node.get_id() == "" ? "" : " id=" + '"' + node.get_id() + '"') + ">\n";
+		}
+		else
+		{
 			return "";
 		}
 	};
 	string printChildTagNames(DOMNode &node, int level, bool last)
 	{
 		string tagTree;
-		/*for (int i = 0; i < level; i++)
+		if (node.get_child_count() && node.get_tag_name() != "root" && node.get_tag_name() != "html")
 		{
-			tagTree += "  ";
-		}*/
+			for (int i = 0; i < level; i++)
+			{
+				tagTree += "  ";
+			}
+		}
 		tagTree += printElementAttributes(node);
 		if (node.get_child_count())
 		{
@@ -72,7 +80,7 @@ public:
 			string newPath;
 			while (i < len)
 			{
-				tagTree += /*"\n" +*/ printChildTagNames(*curChild, level + 1, i == len - 1);
+				tagTree += printChildTagNames(*curChild, level + 1, i == len - 1);
 				curChild = curChild->nextSibling;
 				i++;
 			}
