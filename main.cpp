@@ -45,6 +45,7 @@ public:
 	float slabLeft, slabRight, regionTop, regionBottom;
 	float x1, y1, x2, y2;
 	float dX, dY;
+	float origWidth = 0.0, origHeight = 0.0, newWidth, newHeight;
 	void    OnLButtonDown(int pixelX, int pixelY, DWORD flags);
 	void    OnLButtonUp();
 	void    OnMouseMove(int pixelX, int pixelY, DWORD flags);
@@ -62,11 +63,6 @@ public:
 			ffile << "  ";
 		}
 		ffile << to_string(level) << ":" << to_string(x.key) << endl;
-
-		std::wstring widestr = std::wstring(str.begin(), str.end());
-		static const wchar_t* sc_text = widestr.c_str();
-
-		OutputDebugStringW(sc_text);
 
 		if (x.left != rbt->nil)
 		{
@@ -181,7 +177,7 @@ HRESULT MainWindow::CreateGraphicsResources()
 void MainWindow::DiscardGraphicsResources()
 {
 	SafeRelease(&pRenderTarget);
-//	SafeRelease(m_pBitmap);
+	//SafeRelease(m_pBitmap);
 	SafeRelease(&pBrush);
 	SafeRelease(&redBrush);
 }
@@ -229,11 +225,35 @@ void MainWindow::OnPaint()
 			}*/
 
 			D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
+
+			if (origWidth == 0.0)
+			{
+				origWidth = renderTargetSize.width;
+			}
+			if (origHeight == 0.0)
+			{
+				origHeight = renderTargetSize.height;
+			}
+			newWidth = renderTargetSize.width;
+			newHeight = renderTargetSize.height;
+
 			viewportScaleX = 0.8;
 			viewportScaleY = 0.8;
 			
 			myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
 			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
+
+			float yDiff = 10 * newHeight / origHeight;
+			hr = m_pDWriteFactory->CreateTextFormat(
+				L"Verdana",
+				NULL,
+				DWRITE_FONT_WEIGHT_NORMAL,
+				DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				yDiff,
+				L"", //locale
+				&m_pTextFormat
+			);
 
 			pRenderTarget->DrawText(
 				widestr.c_str(),
@@ -255,11 +275,11 @@ void MainWindow::OnPaint()
 					int x1, x2, y1, y2;
 					Shape *newShape = new Shape;
 					newShape->id = shapeId;
-					x1 = newShape->x1 = renderTargetSize.width * 0.8;
+					x1 = newShape->x1 = renderTargetSize.width * viewportScaleX;
 					x2 = newShape->x2 = renderTargetSize.width;
 					y1 = newShape->y1 = y;
-					y2 = newShape->y2 = y + 12;
-					y += 12;
+					y2 = newShape->y2 = y + yDiff;
+					y += yDiff;
 					newShape->rect = new D2D1_RECT_F(D2D1::RectF(x1, y1, x2, y2));
 
 					mySlabContainer.ShapeMembers[shapeId] = newShape;
@@ -289,13 +309,14 @@ void MainWindow::OnPaint()
 
 			if (MainWindow::success)
 			{
-				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft, regionTop, slabRight, regionBottom);
+				float sX = newWidth / origWidth, sY = newHeight / origHeight;
+				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft * sX, regionTop * sY, slabRight * sX, regionBottom * sY);
 				pRenderTarget->FillRectangle(rect1, redBrush);
 			}
 
 			yiy = 0;
 
-			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush);
+			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight);
 		}
 
 		hr = pRenderTarget->EndDraw();
@@ -326,7 +347,6 @@ void MainWindow::Resize()
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
 	MainWindow win;
-
 	if (!win.Create(L"Snikta Browser 2018", WS_OVERLAPPEDWINDOW))
 	{
 		return 0;
@@ -367,8 +387,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		MainWindow::x1 = x1;
 		MainWindow::y1 = y1;
 
-		MainWindow::x2 = dips.x;
-		MainWindow::y2 = dips.y;
+		MainWindow::x2 = dips.x / (newWidth / origWidth);
+		MainWindow::y2 = dips.y / (newHeight / origHeight);
 
 		RedBlackTree *rbt = &(mySlabContainer.RBTSlabLines);
 		RedBlackNode *node = rbt->closest(x2);

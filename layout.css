@@ -5,8 +5,8 @@ div { position: absolute; }
 
 table, tr, div, li, ul, ol, img, p, div { display: block; }
 th, td { width: 20%; display: inline-block; }
-b { font-weight: bold; }
-i { font-style: italic; }
+b { font-weight: bold; display: inline; }
+i { font-style: italic; display: inline; }
 a { color: blue; }
 
 #header {
