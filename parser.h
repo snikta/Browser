@@ -54,7 +54,7 @@ public:
 			return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + '\n';
 		}
 		else if (node.get_tag_name() != "root") {
-			return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + '\n';
+			return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + node.style["font-weight"] + ";" + node.style["font-style"] + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + '\n';
 			//return "<" + node.get_tag_name() + (node.get_id() == "" ? "" : " id=" + '"' + node.get_id() + '"') + ">\n";
 		}
 		else

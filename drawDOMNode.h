@@ -9,7 +9,7 @@ const vector<string> styleSkipList = { "box-shadow", "margin", "position", "disp
 
 float viewportScaleX, viewportScaleY;
 int yiy = 0;
-void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight, int newWidth, int origWidth) {
+void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy) {
 	DOMNode *parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
@@ -42,13 +42,18 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		else
 		{
 			node.x = node.previousSibling->x;
-			if (node.previousSibling->style["display"].find("inline") != -1)
+			//if (node.previousSibling->style["display"].find("inline") != -1)
 			{
 				string s1 = to_string(node.previousSibling->width);
 				std::wstring widestr = std::wstring(s1.begin(), s1.end());
 				OutputDebugStringW(widestr.c_str());
 				node.x += node.previousSibling->width;
 			}
+			/*if (node.get_tag_name() == "TextNode")
+			{
+				node.x_set = true;
+				node.y_set = true;
+			}*/
 			node.y = node.previousSibling->y;
 			if ((node.style["display"] == "block") || (node.previousSibling->style["display"] == "block"))
 			{
@@ -66,7 +71,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 
 		node.style["display"] = "inline";
 
-		if ((node.attributes).size()) {
+		if (true || (node.attributes).size()) {
 			map<string, string>::iterator it;
 			map<string, string> *elStyles;
 
@@ -225,8 +230,8 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		HRESULT hr = m_pDWriteFactory->CreateTextFormat(
 			L"Verdana",
 			NULL,
-			DWRITE_FONT_WEIGHT_NORMAL,
-			DWRITE_FONT_STYLE_NORMAL,
+			node.style["font-weight"] == "bold" ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+			node.style["font-style"] == "italic" ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
 			DWRITE_FONT_STRETCH_NORMAL,
 			yDiff,
 			L"", //locale
@@ -317,6 +322,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		if (node.get_child_count())
 		{
 			DOMNode *child = node.firstChild;
+			int xy = 0;
 			while (child)
 			{
 				if (child->style["width"] != "") {
@@ -327,7 +333,8 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 					child->height = stod(substrReplace(child->style["height"] == "" ? "0" : child->style["height"], "%", "")) / 100 * node.height;
 					child->height_set = true;
 				}
-				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight, newWidth, origWidth);
+				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight, newWidth, origWidth, xy);
+				xy += child->width;
 				child = child->nextSibling;
 			}
 		}
@@ -356,15 +363,32 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			node.width = totalWidth;
 			node.width_set = true;
 		}
-		if (node.get_tag_name() == "TextNode")
-		{
-			string txt1 = node.get_text_content();
-			node.width = 5 * txt1.length();
-			node.width_set = true;
-		}
 		node.height = totalHeight;
 		node.height_set = true;
 		//console.log(node.tagName,node.width);
 		//console.log('\n');
+
+		if (node.get_tag_name() == "TextNode") {
+			// Create a text layout using the text format.
+			string s3 = node.get_text_content();
+			std::wstring widestr = std::wstring(s3.begin(), s3.end());
+
+			IDWriteTextLayout *pTextLayout_;
+
+			HRESULT hr = m_pDWriteFactory->CreateTextLayout(
+				widestr.c_str(),      // The string to be laid out and formatted.
+				s3.length(),  // The length of the string.
+				m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+				renderTargetSize.width,         // The width of the layout box.
+				renderTargetSize.height,        // The height of the layout box.
+				&pTextLayout_  // The IDWriteTextLayout interface pointer.
+			);
+
+			DWRITE_TEXT_METRICS metrics;
+			pTextLayout_->GetMetrics(&metrics);
+			node.width = metrics.widthIncludingTrailingWhitespace;
+
+			SafeRelease(pTextLayout_);
+		}
 	}
 }

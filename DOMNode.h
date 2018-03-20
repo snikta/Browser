@@ -111,10 +111,10 @@ public:
 	{
 		if (this->childCount)
 		{
-			this->lastChild->nextSibling = &childNode;
-			this->lastChild = &childNode;
 			childNode.previousSibling = this->lastChild;
 			childNode.nextSibling = NULL;
+			this->lastChild->nextSibling = &childNode;
+			this->lastChild = &childNode;
 		}
 		else
 		{

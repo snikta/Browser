@@ -240,9 +240,6 @@ void MainWindow::OnPaint()
 			viewportScaleX = 0.8;
 			viewportScaleY = 0.8;
 			
-			myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
-			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
-
 			float yDiff = 10 * newHeight / origHeight;
 			hr = m_pDWriteFactory->CreateTextFormat(
 				L"Verdana",
@@ -255,6 +252,10 @@ void MainWindow::OnPaint()
 				&m_pTextFormat
 			);
 
+			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0);
+
+			myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
+			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
 			pRenderTarget->DrawText(
 				widestr.c_str(),
 				myParser.output.length(),
@@ -313,10 +314,6 @@ void MainWindow::OnPaint()
 				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft * sX, regionTop * sY, slabRight * sX, regionBottom * sY);
 				pRenderTarget->FillRectangle(rect1, redBrush);
 			}
-
-			yiy = 0;
-
-			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth);
 		}
 
 		hr = pRenderTarget->EndDraw();
