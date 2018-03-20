@@ -32,6 +32,7 @@ class MainWindow : public BaseWindow<MainWindow>
 	D2D1_ELLIPSE            ellipse;
 	D2D1_POINT_2F           ptMouse;
 	SlabContainer			mySlabContainer;
+	SlabContainer			scToolbar;
 
 	void    CalculateLayout();
 	HRESULT CreateGraphicsResources();
@@ -240,6 +241,72 @@ void MainWindow::OnPaint()
 			viewportScaleX = 0.8;
 			viewportScaleY = 0.8;
 			
+			//...
+
+			// Create a bitmap from a file.
+			IWICImagingFactory     *m_pWICFactory;
+			ID2D1Bitmap            *m_pBitmap;
+
+			HRESULT hr = CoCreateInstance(
+				CLSID_WICImagingFactory,
+				nullptr,
+				CLSCTX_INPROC_SERVER,
+				IID_PPV_ARGS(&m_pWICFactory)
+			);
+
+			if (SUCCEEDED(hr))
+			{
+				hr = LoadBitmapFromFile(
+					pRenderTarget,
+					m_pWICFactory,
+					L"icons.png",
+					0,
+					0,
+					&m_pBitmap
+				);
+
+				if (SUCCEEDED(hr))
+				{
+					// Retrieve the size of the bitmap.
+					D2D1_SIZE_F size = m_pBitmap->GetSize();
+
+					D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(0.0, 0.0);
+
+					// Draw a bitmap.
+					pRenderTarget->DrawBitmap(
+						m_pBitmap,
+						D2D1::RectF(
+							upperLeftCorner.x,
+							upperLeftCorner.y,
+							upperLeftCorner.x + size.width * viewportScaleX * newWidth / origWidth,
+							upperLeftCorner.y + size.height * viewportScaleY * newHeight / origHeight)
+					);
+
+					SafeRelease(&m_pBitmap);
+				}
+			}
+
+			vector<Shape*> shapesToPreprocess;
+			int x = 0, xDiff = 107 * viewportScaleX;
+			for (int i = 0, len = 5; i < len; i++)
+			{
+				int shapeId = mySlabContainer.NextAvailableShapeId++;
+				int x1, x2, y1, y2;
+				Shape *newShape = new Shape;
+				newShape->id = shapeId;
+				x1 = newShape->x1 = x;
+				x2 = newShape->x2 = x + xDiff;
+				y1 = newShape->y1 = 0;
+				y2 = newShape->y2 = 107 * viewportScaleY;
+
+				shapesToPreprocess.push_back(newShape);
+
+				x += xDiff;
+			}
+			//mySlabContainer.preprocessSubdivision(iconShapes, 'x', nilSlab);
+
+			//...
+
 			float yDiff = 10 * newHeight / origHeight;
 			hr = m_pDWriteFactory->CreateTextFormat(
 				L"Verdana",
@@ -280,12 +347,12 @@ void MainWindow::OnPaint()
 					x2 = newShape->x2 = renderTargetSize.width;
 					y1 = newShape->y1 = y;
 					y2 = newShape->y2 = y + yDiff;
-					y += yDiff;
-					newShape->rect = new D2D1_RECT_F(D2D1::RectF(x1, y1, x2, y2));
 
-					mySlabContainer.ShapeMembers[shapeId] = newShape;
-					mySlabContainer.addShape(*newShape);
+					shapesToPreprocess.push_back(newShape);
+
+					y += yDiff;
 				}
+				mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
 
 /*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
 				MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);
@@ -312,7 +379,7 @@ void MainWindow::OnPaint()
 			{
 				float sX = newWidth / origWidth, sY = newHeight / origHeight;
 				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft * sX, regionTop * sY, slabRight * sX, regionBottom * sY);
-				pRenderTarget->FillRectangle(rect1, redBrush);
+				pRenderTarget->DrawRectangle(rect1, redBrush);
 			}
 		}
 

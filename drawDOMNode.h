@@ -15,7 +15,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 	double totalWidth, totalHeight;
 
 	node.x = 0;
-	node.y = 0;
+	node.y = 107 * newHeight / origHeight;
 	node.width = 0;
 	node.height = 0;
 	node.width_set = false;
@@ -387,6 +387,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			DWRITE_TEXT_METRICS metrics;
 			pTextLayout_->GetMetrics(&metrics);
 			node.width = metrics.widthIncludingTrailingWhitespace;
+			node.height = metrics.height;
 
 			SafeRelease(pTextLayout_);
 		}
