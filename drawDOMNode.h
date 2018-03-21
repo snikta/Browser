@@ -9,11 +9,12 @@ const vector<string> styleSkipList = { "box-shadow", "margin", "position", "disp
 
 float viewportScaleX, viewportScaleY;
 int yiy = 0;
-void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy) {
+void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*> &nodesInOrder, int level) {
 	DOMNode *parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
 
+	//node.expand = false;
 	node.x = 0;
 	node.y = 107 * newHeight / origHeight;
 	node.width = 0;
@@ -22,6 +23,11 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 	node.height_set = false;
 	node.x_set = false;
 	node.y_set = false;
+
+	if (node.get_tag_name() != "root" && node.get_tag_name() != "TextNode")
+	{
+		nodesInOrder.push_back(&node);
+	}
 
 	string tagName = node.get_tag_name();
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
@@ -333,7 +339,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 					child->height = stod(substrReplace(child->style["height"] == "" ? "0" : child->style["height"], "%", "")) / 100 * node.height;
 					child->height_set = true;
 				}
-				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight, newWidth, origWidth, xy);
+				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight, newWidth, origWidth, xy, nodesInOrder, level + 1);
 				xy += child->width;
 				child = child->nextSibling;
 			}

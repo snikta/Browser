@@ -51,6 +51,7 @@ public:
 	vector<Slab*> slabs; // must delete Slabs later
 	int id, x1, x2, y1, y2;
 	D2D1_RECT_F *rect;
+	DOMNode *node;
 };
 
 class Region

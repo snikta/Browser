@@ -42,6 +42,7 @@ class MainWindow : public BaseWindow<MainWindow>
 
 public:
 	Region *selRegion;
+	DOMNode *nodeToExpand;
 	bool success;
 	float slabLeft, slabRight, regionTop, regionBottom;
 	float x1, y1, x2, y2;
@@ -319,7 +320,20 @@ void MainWindow::OnPaint()
 				&m_pTextFormat
 			);
 
-			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0);
+			vector<DOMNode*> nodesInOrder;
+			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+
+			if (!MainWindow::nodeToExpand)
+			{
+				MainWindow::nodeToExpand = myParser.rootNode;
+			}
+
+			DOMNode *dNode;
+			dNode = nodeToExpand;
+			do
+			{
+				dNode->expand = true;
+			} while (dNode->parentNode != dNode && (dNode = dNode->parentNode));
 
 			myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
 			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
@@ -327,8 +341,9 @@ void MainWindow::OnPaint()
 				widestr.c_str(),
 				myParser.output.length(),
 				m_pTextFormat,
-				D2D1::RectF(renderTargetSize.width * viewportScaleX, 0, renderTargetSize.width, renderTargetSize.height),
-				pBrush
+				D2D1::RectF(renderTargetSize.width * viewportScaleX, 0, renderTargetSize.width, renderTargetSize.height * 0.6),
+				pBrush,
+				D2D1_DRAW_TEXT_OPTIONS_CLIP
 			);
 
 			if (!mySlabContainer.ShapeMembers.size())
@@ -337,20 +352,38 @@ void MainWindow::OnPaint()
 
 				splitString(myParser.output, '\n', outputByLine);
 				int y = 0;
-				for (int i = 0, len = outputByLine.size(); i < len; i++)
+				for (int i = 0, len = nodesInOrder.size(); i < len; i++)
 				{
 					int shapeId = mySlabContainer.NextAvailableShapeId++;
 					int x1, x2, y1, y2;
+
+					IDWriteTextLayout *pTextLayout_;
+					string tName = nodesInOrder[i]->get_tag_name();
+					std::wstring widestr = std::wstring(tName.begin(), tName.end());
+
+					HRESULT hr = m_pDWriteFactory->CreateTextLayout(
+						widestr.c_str(),      // The string to be laid out and formatted.
+						tName.length(),  // The length of the string.
+						m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+						renderTargetSize.width,         // The width of the layout box.
+						renderTargetSize.height,        // The height of the layout box.
+						&pTextLayout_  // The IDWriteTextLayout interface pointer.
+					);
+
+					DWRITE_TEXT_METRICS metrics;
+					pTextLayout_->GetMetrics(&metrics);
+
 					Shape *newShape = new Shape;
 					newShape->id = shapeId;
 					x1 = newShape->x1 = renderTargetSize.width * viewportScaleX;
 					x2 = newShape->x2 = renderTargetSize.width;
 					y1 = newShape->y1 = y;
-					y2 = newShape->y2 = y + yDiff;
+					y2 = newShape->y2 = y + metrics.height;
+					newShape->node = nodesInOrder[i];
 
 					shapesToPreprocess.push_back(newShape);
 
-					y += yDiff;
+					y += metrics.height;
 				}
 				mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
 
@@ -380,6 +413,34 @@ void MainWindow::OnPaint()
 				float sX = newWidth / origWidth, sY = newHeight / origHeight;
 				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft * sX, regionTop * sY, slabRight * sX, regionBottom * sY);
 				pRenderTarget->DrawRectangle(rect1, redBrush);
+
+				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
+				{
+					DOMNode *node = selRegion->shapes[i]->node;
+					if (node)
+					{
+						D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
+
+						D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0, 0.5);
+						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
+
+						pRenderTarget->FillRectangle(nodeBorder, redBrush);
+
+						color2 = D2D1::ColorF(255, 0, 0, 1.0);
+						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
+
+						myParser.output = myParser.printElementAttributes(*node);
+						std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
+						pRenderTarget->DrawText(
+							widestr.c_str(),
+							myParser.output.length(),
+							m_pTextFormat,
+							D2D1::RectF(renderTargetSize.width * viewportScaleX, renderTargetSize.height * 0.6, renderTargetSize.width, renderTargetSize.height),
+							pBrush,
+							D2D1_DRAW_TEXT_OPTIONS_CLIP
+						);
+					}
+				}
 			}
 		}
 
@@ -436,6 +497,24 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	ptMouse = DPIScale::PixelsToDips(pixelX, pixelY);
 	dX = ptMouse.x - x1;
 	dY = ptMouse.y - y1;
+
+	if (MainWindow::success)
+	{
+		for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
+		{
+			DOMNode *node = selRegion->shapes[i]->node;
+			if (node)
+			{
+				if (nodeToExpand == node)
+				{
+					nodeToExpand = node->parentNode;
+				}
+				else {
+					nodeToExpand = node;
+				}
+			}
+		}
+	}
 
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }

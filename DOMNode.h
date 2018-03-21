@@ -22,6 +22,7 @@ public:
 	DOMNode *nextSibling; // private -- invert case (camelCase becomes _ and vice versa)
 	DOMNode *parentNode;
 	string type;
+	bool expand = true;
 	double width = 0;
 	double height = 0;
 	double x = 0;

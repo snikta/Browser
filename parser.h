@@ -27,7 +27,7 @@ public:
 	{
 		map<string, string> *ptrAttributes = &(node.attributes);
 		vector<string> *classList = &(node.classList);
-		//string str = to_string(node.get_idx())+")"+node.get_tag_name() + ":" + node.get_text_content() + ";";
+		string str;
 		/*for (auto className = classList->begin(); className != classList->end(); ++className)
 		{
 			str += "[" + *className + "],";
@@ -43,33 +43,17 @@ public:
 			}
 		}*/
 
-		string str;
-		/*for (auto beg = node.style.begin(), end = node.style.end(); beg != end; ++beg)
-		{
-			str += "[" + beg->first + "] = " + beg->second;// +"\n";
-		}*/
+		str += "(" + to_string((int) node.x) + ", " + to_string((int) node.y) + ") -> (" + to_string((int) (node.x + node.width)) + ", " + to_string(int (node.y + node.height)) + ")\n";
 
-		if (node.get_tag_name() != "root" && node.get_tag_name() != "TextNode")
+		for (auto beg = node.style.begin(), end = node.style.end(); beg != end; ++beg)
 		{
-			return "<" + node.get_tag_name() + ":" + to_string(node.get_idx()) +">\n";
-		}
-		else
-		{
-			return "";
+			if (beg->second != "")
+			{
+				str += "[" + beg->first + "] = " + beg->second + "\n";
+			}
 		}
 
-		/*if (node.get_tag_name() == "div") {
-			return "<" + node.get_tag_name() + (node.get_id() == "" ? "" : " id=" + '"' + node.get_id() + '"') + ">\n";
-			//return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + '\n';
-		}
-		else if (node.get_tag_name() != "root" && node.get_tag_name() != "TextNode") {
-			//return node.get_tag_name() + to_string(node.get_idx()) + '=' + node.get_id() + str + ',' + node.style["display"] + '>' + node.style["font-weight"] + ";" + node.style["font-style"] + to_string((int)node.x) + ',' + to_string((int)node.y) + ',' + to_string((int)node.width) + ',' + to_string((int)node.height) + '\n';
-			return "<" + node.get_tag_name() + (node.get_id() == "" ? "" : " id=" + '"' + node.get_id() + '"') + ">\n";
-		}
-		else
-		{
-			return "";
-		}*/
+		return str;
 	};
 	string printChildTagNames(DOMNode &node, int level, bool last)
 	{
@@ -81,8 +65,11 @@ public:
 				tagTree += "  ";
 			}
 		}
-		tagTree += printElementAttributes(node);
-		if (node.get_child_count())
+		if (node.get_tag_name() != "root" && node.get_tag_name() != "TextNode")
+		{
+			tagTree += "<" + node.get_tag_name() + ">\n";
+		}
+		if (node.get_tag_name() != "head" && node.expand && node.get_child_count())
 		{
 			DOMNode *curChild;
 			curChild = node.firstChild;
