@@ -41,7 +41,7 @@ class MainWindow : public BaseWindow<MainWindow>
 	void    Resize();
 
 public:
-	Region *selRegion;
+	Region * selRegion;
 	DOMNode *nodeToExpand;
 	bool success;
 	float slabLeft, slabRight, regionTop, regionBottom;
@@ -77,7 +77,7 @@ public:
 	};
 
 	MainWindow() : pFactory(NULL), pRenderTarget(NULL), pBrush(NULL), redBrush(NULL)/*,
-		ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
+																					ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
 		ptMouse(D2D1::Point2F())
 	{
 		string fname = "layout.html";
@@ -104,11 +104,11 @@ void MainWindow::CalculateLayout()
 {
 	/*if (pRenderTarget != NULL)
 	{
-		D2D1_SIZE_F size = pRenderTarget->GetSize();
-		const float x = size.width / 2;
-		const float y = size.height / 2;
-		const float radius = min(x, y);
-		ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius);
+	D2D1_SIZE_F size = pRenderTarget->GetSize();
+	const float x = size.width / 2;
+	const float y = size.height / 2;
+	const float radius = min(x, y);
+	ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius);
 	}*/
 }
 
@@ -140,12 +140,12 @@ HRESULT MainWindow::CreateGraphicsResources()
 {
 	HRESULT hr = S_OK;
 
-	/*// Create WIC factory 
+	/*// Create WIC factory
 	hr = CoCreateInstance(
-		CLSID_WICImagingFactory,
-		nullptr,
-		CLSCTX_INPROC_SERVER,
-		IID_PPV_ARGS(&m_pWICFactory)
+	CLSID_WICImagingFactory,
+	nullptr,
+	CLSCTX_INPROC_SERVER,
+	IID_PPV_ARGS(&m_pWICFactory)
 	);*/
 
 	if (pRenderTarget == NULL)
@@ -241,7 +241,7 @@ void MainWindow::OnPaint()
 
 			viewportScaleX = 0.8;
 			viewportScaleY = 0.8;
-			
+
 			//...
 
 			// Create a bitmap from a file.
@@ -387,17 +387,17 @@ void MainWindow::OnPaint()
 				}
 				mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
 
-/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
+				/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
 				MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);
 				map<int, Slab*>::iterator SlabIt;
 				for (SlabIt = mySlabContainer.SlabLinesByLeft.begin(); SlabIt != mySlabContainer.SlabLinesByLeft.end(); ++SlabIt)
 				{
-					//int _x1 = mySlabContainer.ShapeMembers[i + 1]->x1;
-					//if (mySlabContainer.SlabLinesByLeft.find(_x1) != mySlabContainer.SlabLinesByLeft.end())
-					//{
-						MainWindow::visualize(SlabIt->second->RBTRegions, *(SlabIt->second->RBTRegions->root), 0, true);
-						ffile << endl << "-------" << endl;
-					//}
+				//int _x1 = mySlabContainer.ShapeMembers[i + 1]->x1;
+				//if (mySlabContainer.SlabLinesByLeft.find(_x1) != mySlabContainer.SlabLinesByLeft.end())
+				//{
+				MainWindow::visualize(SlabIt->second->RBTRegions, *(SlabIt->second->RBTRegions->root), 0, true);
+				ffile << endl << "-------" << endl;
+				//}
 				}
 				ffile.close();*/
 			}
@@ -405,7 +405,7 @@ void MainWindow::OnPaint()
 			/*map<int, Shape*>::iterator ShapeIt;
 			for (ShapeIt = mySlabContainer.ShapeMembers.begin(); ShapeIt != mySlabContainer.ShapeMembers.end(); ++ShapeIt)
 			{
-				pRenderTarget->FillRectangle(*(ShapeIt->second->rect), pBrush);
+			pRenderTarget->FillRectangle(*(ShapeIt->second->rect), pBrush);
 			}*/
 
 			if (MainWindow::success)
@@ -523,79 +523,79 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 {
 	//if (flags & MK_LBUTTON)
 	//{
-		const D2D1_POINT_2F dips = DPIScale::PixelsToDips(pixelX, pixelY);
-		const float x1 = -dX + dips.x;
-		const float y1 = -dY + dips.y;
+	const D2D1_POINT_2F dips = DPIScale::PixelsToDips(pixelX, pixelY);
+	const float x1 = -dX + dips.x;
+	const float y1 = -dY + dips.y;
 
-		MainWindow::x1 = x1;
-		MainWindow::y1 = y1;
+	MainWindow::x1 = x1;
+	MainWindow::y1 = y1;
 
-		MainWindow::x2 = dips.x / (newWidth / origWidth);
-		MainWindow::y2 = dips.y / (newHeight / origHeight);
+	MainWindow::x2 = dips.x / (newWidth / origWidth);
+	MainWindow::y2 = dips.y / (newHeight / origHeight);
 
-		RedBlackTree *rbt = &(mySlabContainer.RBTSlabLines);
-		RedBlackNode *node = rbt->closest(x2);
-		Slab *slab = &nilSlab;
-		bool success = false, slabExists = false;
+	RedBlackTree *rbt = &(mySlabContainer.RBTSlabLines);
+	RedBlackNode *node = rbt->closest(x2);
+	Slab *slab = &nilSlab;
+	bool success = false, slabExists = false;
 
-		MainWindow::success = false;
+	MainWindow::success = false;
 
-		if (node->key > x2)
+	if (node->key > x2)
+	{
+		int nodeKey = rbt->predecessor(node)->key;
+		slabExists = mySlabContainer.SlabLinesByLeft.find(nodeKey) != mySlabContainer.SlabLinesByLeft.end();
+		if (slabExists)
 		{
-			int nodeKey = rbt->predecessor(node)->key;
-			slabExists = mySlabContainer.SlabLinesByLeft.find(nodeKey) != mySlabContainer.SlabLinesByLeft.end();
-			if (slabExists)
+			slab = mySlabContainer.SlabLinesByLeft[nodeKey];
+		}
+	}
+	else
+	{
+		slabExists = mySlabContainer.SlabLinesByLeft.find(node->key) != mySlabContainer.SlabLinesByLeft.end();
+		if (slabExists)
+		{
+			slab = mySlabContainer.SlabLinesByLeft[node->key];
+		}
+	}
+
+	if (slabExists && x2 >= slab->leftX && x2 <= slab->rightX)
+	{
+		rbt = slab->RBTRegions;
+		node = rbt->closest(y2);
+
+		bool regionExists;
+		Region *region = &nilRegion;
+		if (node->key > y2)
+		{
+			int regionKey = rbt->predecessor(node)->key;
+			regionExists = slab->RegionsByTop.find(regionKey) != slab->RegionsByTop.end();
+			if (regionExists)
 			{
-				slab = mySlabContainer.SlabLinesByLeft[nodeKey];
+				region = slab->RegionsByTop[regionKey];
 			}
 		}
 		else
 		{
-			slabExists = mySlabContainer.SlabLinesByLeft.find(node->key) != mySlabContainer.SlabLinesByLeft.end();
-			if (slabExists)
+			regionExists = slab->RegionsByTop.find(node->key) != slab->RegionsByTop.end();
+			if (regionExists)
 			{
-				slab = mySlabContainer.SlabLinesByLeft[node->key];
+				region = slab->RegionsByTop[node->key];
 			}
 		}
 
-		if (slabExists && x2 >= slab->leftX && x2 <= slab->rightX)
+		if (regionExists && y2 >= region->topY && y2 <= region->bottomY)
 		{
-			rbt = slab->RBTRegions;
-			node = rbt->closest(y2);
+			MainWindow::selRegion = region;
 
-			bool regionExists;
-			Region *region = &nilRegion;
-			if (node->key > y2)
-			{
-				int regionKey = rbt->predecessor(node)->key;
-				regionExists = slab->RegionsByTop.find(regionKey) != slab->RegionsByTop.end();
-				if (regionExists)
-				{
-					region = slab->RegionsByTop[regionKey];
-				}
-			}
-			else
-			{
-				regionExists = slab->RegionsByTop.find(node->key) != slab->RegionsByTop.end();
-				if (regionExists)
-				{
-					region = slab->RegionsByTop[node->key];
-				}
-			}
+			MainWindow::slabLeft = slab->leftX;
+			MainWindow::slabRight = slab->rightX;
 
-			if (regionExists && y2 >= region->topY && y2 <= region->bottomY)
-			{
-				MainWindow::selRegion = region;
+			MainWindow::regionTop = region->topY;
+			MainWindow::regionBottom = region->bottomY;
 
-				MainWindow::slabLeft = slab->leftX;
-				MainWindow::slabRight = slab->rightX;
-
-				MainWindow::regionTop = region->topY;
-				MainWindow::regionBottom = region->bottomY;
-
-				MainWindow::success = true;
-			}
+			MainWindow::success = true;
 		}
+	}
 	//}
 
 	InvalidateRect(m_hwnd, NULL, FALSE);

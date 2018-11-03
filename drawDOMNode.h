@@ -58,8 +58,8 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			}
 			/*if (node.get_tag_name() == "TextNode")
 			{
-				node.x_set = true;
-				node.y_set = true;
+			node.x_set = true;
+			node.y_set = true;
 			}*/
 			node.y = node.previousSibling->y;
 			if ((node.style["display"] == "block") || (node.previousSibling->style["display"] == "block"))
