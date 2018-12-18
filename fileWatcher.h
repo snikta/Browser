@@ -1,4 +1,8 @@
 #pragma once
+// By Microsoft Corporation
+// https://docs.microsoft.com/en-gb/windows/desktop/FileIO/obtaining-directory-change-notifications
+// "Obtaining Directory Change Notifications"
+
 //#include "pch.h"
 #include <windows.h>
 #include <stdlib.h>
