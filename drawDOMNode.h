@@ -8,6 +8,26 @@
 #include "LoadBitmapFromFile.h"
 const vector<string> styleSkipList = { "box-shadow", "margin", "position", "display", "left", "top", "width", "height" };
 
+// START: https://stackoverflow.com/questions/27220/how-to-convert-stdstring-to-lpcwstr-in-c-unicode
+std::wstring s2ws(const std::string& s)
+{
+	int len;
+	int slength = (int)s.length() + 1;
+	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+	wchar_t* buf = new wchar_t[len];
+	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+	std::wstring r(buf);
+	delete[] buf;
+	return r;
+}
+
+LPCWSTR stringToLPCWSTR(string str) {
+	std::wstring stemp = s2ws(str);
+	LPCWSTR result = stemp.c_str();
+	return result;
+}
+// END: https://stackoverflow.com/questions/27220/how-to-convert-stdstring-to-lpcwstr-in-c-unicode
+
 float viewportScaleX, viewportScaleY;
 int yiy = 0;
 void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1SolidColorBrush *pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*> &nodesInOrder, int level) {
@@ -77,6 +97,7 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		}
 
 		node.style["display"] = "inline";
+		//node.style["color"] = "rgb(0,255,0)";
 
 		if (true || (node.attributes).size()) {
 			map<string, string>::iterator it;
@@ -86,6 +107,10 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			for (it = elStyles->begin(); it != elStyles->end(); ++it) {
 				node.style[it->first] = it->second;
 			}
+
+			/*if (node.get_tag_name() == "a") {
+				MessageBox(NULL, stringToLPCWSTR(node.style["color"]), L"DOM.document.body.node.style.color", MB_OK);
+			}*/
 
 			elStyles = &(myParser.styles[node.get_id()]);
 			for (it = elStyles->begin(); it != elStyles->end(); ++it) {
@@ -245,7 +270,18 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			&m_pTextFormat
 		);
 
-		D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0, 1.0f);
+		//D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0, 1.0f);
+		vector<string> rgbValues;
+
+		//MessageBox(NULL, stringToLPCWSTR(node.style["color"]), L"node.style.color", MB_OK);
+
+		/*if (node.style["color"] == "")
+		{
+			node.style["color"] = "rgb(0,0,0)";
+		}*/
+
+		splitString(node.style["color"].substr(0, node.style["color"].length() - 1).substr(4), ',', rgbValues);
+		D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
 		pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 
 		string txt = node.get_text_content();
