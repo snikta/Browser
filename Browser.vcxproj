@@ -144,12 +144,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mainGUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basewin.h" />
     <ClInclude Include="deleteShape.h" />
     <ClInclude Include="DOMNode.h" />
     <ClInclude Include="drawDOMNode.h" />
+    <ClInclude Include="fileWatcher.h" />
     <ClInclude Include="lcase.h" />
     <ClInclude Include="parseCSS.h" />
     <ClInclude Include="parseHTML.h" />
