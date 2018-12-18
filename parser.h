@@ -23,6 +23,7 @@ public:
 	string output;
 	string cssFilename;
 	map<string, map<string, string>> styles;
+	//vector<DOMNode*> selectedChildNodes;
 	string printElementAttributes(DOMNode &node)
 	{
 		map<string, string> *ptrAttributes = &(node.attributes);
@@ -44,6 +45,10 @@ public:
 		}*/
 
 		str += "(" + to_string((int) node.x) + ", " + to_string((int) node.y) + ") -> (" + to_string((int) (node.x + node.width)) + ", " + to_string(int (node.y + node.height)) + ")\n";
+
+		if (node.get_tag_name() == "a") {
+			str += "href = " + node.attributes["href"] + "\n";
+		}
 
 		for (auto beg = node.style.begin(), end = node.style.end(); beg != end; ++beg)
 		{

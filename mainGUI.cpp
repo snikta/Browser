@@ -445,6 +445,8 @@ void MainWindow::OnPaint()
 						color2 = D2D1::ColorF(255, 0, 0, 1.0);
 						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
 
+						//MessageBox(NULL, stringToLPCWSTR(node->get_text_content()), L"tag_name", MB_OK);
+
 						myParser.output = myParser.printElementAttributes(*node);
 						std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
 						pRenderTarget->DrawText(
@@ -672,4 +674,3 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
-
