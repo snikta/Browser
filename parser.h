@@ -18,12 +18,20 @@
 
 class Parser
 {
+private:
+	string location;
 public:
 	DOMNode *rootNode;
 	string output;
 	string cssFilename;
 	map<string, map<string, string>> styles;
 	//vector<DOMNode*> selectedChildNodes;
+	void set_location(string newLocation) {
+		this->location = newLocation;
+	};
+	string get_location() {
+		return this->location;
+	};
 	string printElementAttributes(DOMNode &node)
 	{
 		map<string, string> *ptrAttributes = &(node.attributes);

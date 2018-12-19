@@ -84,7 +84,9 @@ public:
 	{
 		//MessageBox(m_hwnd, L"Hello this is a test for the world (hello world)!", L"So yeah this is a caption", MB_OK);
 
-		string fname = "layout.html";
+		myParser.set_location("C:\\wamp\\www\\sterling\\stream");
+
+		/*string fname = "layout.html";
 		string src;
 		int len = readTextFile(fname, src);
 
@@ -95,7 +97,7 @@ public:
 		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
 
 		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
-		parseCSS(myParser.cssFilename);
+		parseCSS(myParser.cssFilename);*/
 	}
 
 	PCWSTR  ClassName() const { return L"Browser Window Class"; }
@@ -199,12 +201,14 @@ void MainWindow::OnPaint()
 		pRenderTarget->BeginDraw();
 		pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
-		string fname = "C:\\wamp\\www\\sterling\\stream";
+		string fname = myParser.get_location();
 		string src;
 		int len = readTextFile(fname, src);
 
 		string emptyStr = "";
 		string root = "root";
+
+		mySlabContainer = *(new SlabContainer);
 
 		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
 		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
@@ -436,8 +440,6 @@ void MainWindow::OnPaint()
 			if (MainWindow::success)
 			{
 				float sX = newWidth / origWidth, sY = newHeight / origHeight;
-
-				DOMNode *frontMostNode;
 				int largestZIndex = -1;
 				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 				{
@@ -455,6 +457,7 @@ void MainWindow::OnPaint()
 					DOMNode *node = selRegion->shapes[i]->node;
 					if (node)
 					{
+
 						if (node->get_zindex() >= (largestZIndex - 1)) {
 							D2D1_RECT_F *rect1 = &D2D1::RectF(node->x * sX, node->y * sY, (node->x + node->width) * sX, (node->y + node->height) * sY);
 							pRenderTarget->DrawRectangle(rect1, redBrush);
@@ -551,17 +554,34 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 
 	if (MainWindow::success)
 	{
+		int largestZIndex = -1;
 		for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 		{
 			DOMNode *node = selRegion->shapes[i]->node;
 			if (node)
 			{
+				if (node->get_zindex() > largestZIndex) {
+					largestZIndex = node->get_zindex();
+				}
+
 				if (nodeToExpand == node)
 				{
 					nodeToExpand = node->parentNode;
 				}
 				else {
 					nodeToExpand = node;
+				}
+			}
+		}
+
+		for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
+		{
+			DOMNode *node = selRegion->shapes[i]->node;
+			if (node)
+			{
+				if (node->get_tag_name() == "a" && node->get_zindex() >= (largestZIndex - 1)) {
+					MessageBox(NULL, stringToLPCWSTR("Navigating to \"" + node->attributes["href"] + "\""), L"<a>.href", MB_OK);
+					myParser.set_location(node->attributes["href"]);
 				}
 			}
 		}
