@@ -50,6 +50,8 @@ public:
 			str += "href = " + node.attributes["href"] + "\n";
 		}
 
+		str += "z-index: " + to_string((double) node.get_zindex()) + "\n";
+
 		for (auto beg = node.style.begin(), end = node.style.end(); beg != end; ++beg)
 		{
 			if (beg->second != "")

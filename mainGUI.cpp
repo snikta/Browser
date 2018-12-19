@@ -437,23 +437,40 @@ void MainWindow::OnPaint()
 			{
 				float sX = newWidth / origWidth, sY = newHeight / origHeight;
 
+				DOMNode *frontMostNode;
+				int largestZIndex = -1;
 				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 				{
 					DOMNode *node = selRegion->shapes[i]->node;
 					if (node)
 					{
-						D2D1_RECT_F *rect1 = &D2D1::RectF(node->x * sX, node->y * sY, (node->x + node->width) * sX, (node->y + node->height) * sY);
-						pRenderTarget->DrawRectangle(rect1, redBrush);
+						if (node->get_zindex() > largestZIndex) {
+							largestZIndex = node->get_zindex();
+						}
+					}
+				}
 
-						D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
+				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
+				{
+					DOMNode *node = selRegion->shapes[i]->node;
+					if (node)
+					{
+						if (node->get_zindex() >= (largestZIndex - 1)) {
+							D2D1_RECT_F *rect1 = &D2D1::RectF(node->x * sX, node->y * sY, (node->x + node->width) * sX, (node->y + node->height) * sY);
+							pRenderTarget->DrawRectangle(rect1, redBrush);
 
-						D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0, 0.5);
-						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
+							/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
+							hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
 
-						//pRenderTarget->FillRectangle(nodeBorder, redBrush);
+							D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0, 0.5);
+							hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
 
-						color2 = D2D1::ColorF(255, 0, 0, 1.0);
-						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
+							//D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
+
+							if (node->get_zindex() >= largestZIndex) {
+								pRenderTarget->FillRectangle(rect1, redBrush);
+							}
+						}
 
 						//MessageBox(NULL, stringToLPCWSTR(node->get_text_content()), L"tag_name", MB_OK);
 

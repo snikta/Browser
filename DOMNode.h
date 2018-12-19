@@ -11,6 +11,7 @@ private:
 	int end;
 	int idx;
 	int childCount = 0;
+	int zIndex = 1;
 
 public:
 	map<string, string> attributes;
@@ -51,6 +52,14 @@ public:
 	void set_tag_name(string newTagName)
 	{
 		this->tagName = newTagName;
+	};
+
+	void set_zindex(int newZIndex) {
+		this->zIndex = newZIndex;
+	};
+
+	int get_zindex() {
+		return this->zIndex;
 	};
 
 	string get_tag_name()

@@ -17,6 +17,8 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 	bool closing, newNodeSet;
 	string openingTag, attributeSource, attrName, attrValue;
 
+	node.set_zindex(parentNode.get_zindex() + 1);
+
 	for (charIndex = start; charIndex < end; charIndex++)
 	{
 		chr = src[charIndex];
