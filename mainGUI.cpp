@@ -397,6 +397,15 @@ void MainWindow::OnPaint()
 					y2 = newShape->y2 = y + metrics.height;
 					newShape->node = nodesInOrder[i];
 
+					Shape *shapeShape = new Shape;
+					shapeShape->id = mySlabContainer.NextAvailableShapeId++;
+					shapeShape->x1 = nodesInOrder[i]->x;
+					shapeShape->x2 = nodesInOrder[i]->x + nodesInOrder[i]->width;
+					shapeShape->y1 = nodesInOrder[i]->y;
+					shapeShape->y2 = nodesInOrder[i]->y + nodesInOrder[i]->height;
+					shapeShape->node = nodesInOrder[i];
+
+					shapesToPreprocess.push_back(shapeShape);
 					shapesToPreprocess.push_back(newShape);
 
 					y += metrics.height;
@@ -427,20 +436,21 @@ void MainWindow::OnPaint()
 			if (MainWindow::success)
 			{
 				float sX = newWidth / origWidth, sY = newHeight / origHeight;
-				D2D1_RECT_F *rect1 = &D2D1::RectF(slabLeft * sX, regionTop * sY, slabRight * sX, regionBottom * sY);
-				pRenderTarget->DrawRectangle(rect1, redBrush);
 
 				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 				{
 					DOMNode *node = selRegion->shapes[i]->node;
 					if (node)
 					{
+						D2D1_RECT_F *rect1 = &D2D1::RectF(node->x * sX, node->y * sY, (node->x + node->width) * sX, (node->y + node->height) * sY);
+						pRenderTarget->DrawRectangle(rect1, redBrush);
+
 						D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
 
 						D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0, 0.5);
 						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
 
-						pRenderTarget->FillRectangle(nodeBorder, redBrush);
+						//pRenderTarget->FillRectangle(nodeBorder, redBrush);
 
 						color2 = D2D1::ColorF(255, 0, 0, 1.0);
 						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
