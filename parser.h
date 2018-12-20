@@ -19,7 +19,7 @@
 class Parser
 {
 private:
-	string location;
+	string location = "C:\\wamp\\www\\sterling\\stream";
 public:
 	DOMNode *rootNode;
 	string output;

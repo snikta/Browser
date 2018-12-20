@@ -291,7 +291,7 @@ void MainWindow::OnPaint()
 					// Retrieve the size of the bitmap.
 					D2D1_SIZE_F size = m_pBitmap->GetSize();
 
-					D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(0.0, 0.0);
+					D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(0.0, 15.0);
 
 					// Draw a bitmap.
 					pRenderTarget->DrawBitmap(
@@ -305,6 +305,19 @@ void MainWindow::OnPaint()
 
 					SafeRelease(&m_pBitmap);
 				}
+			}
+
+			if (SUCCEEDED(hr))
+			{
+				//std::wstring widestr = std::wstring(myParser.get_location().begin(), myParser.get_location().end());
+				pRenderTarget->DrawText(
+					stringToLPCWSTR(myParser.get_location()),//widestr.c_str(),
+					myParser.get_location().length(),
+					m_pTextFormat,
+					D2D1::RectF(0 * viewportScaleX, 0 * 0.6, renderTargetSize.width * viewportScaleX, 15 * viewportScaleY),
+					pBrush,
+					D2D1_DRAW_TEXT_OPTIONS_CLIP
+				);
 			}
 
 			vector<Shape*> shapesToPreprocess;
