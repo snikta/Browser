@@ -19,8 +19,9 @@
 class Parser
 {
 private:
-	string location = "C:\\wamp\\www\\sterling\\stream";
+	string location = "C:\\c++\\Browser\\layout.html";
 public:
+	boolean set = true;
 	DOMNode *rootNode;
 	string output;
 	string cssFilename;

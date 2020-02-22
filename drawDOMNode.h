@@ -71,9 +71,9 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 			node.x = node.previousSibling->x;
 			//if (node.previousSibling->style["display"].find("inline") != -1)
 			{
-				string s1 = to_string(node.previousSibling->width);
+				/*string s1 = to_string(node.previousSibling->width);
 				std::wstring widestr = std::wstring(s1.begin(), s1.end());
-				OutputDebugStringW(widestr.c_str());
+				OutputDebugStringW(widestr.c_str());*/
 				node.x += node.previousSibling->width;
 			}
 			/*if (node.get_tag_name() == "TextNode")
@@ -97,7 +97,6 @@ void drawDOMNode(DOMNode &node, ID2D1HwndRenderTarget *pRenderTarget, ID2D1Solid
 		}
 
 		node.style["display"] = "inline";
-		//node.style["color"] = "rgb(0,255,0)";
 
 		if (true || (node.attributes).size()) {
 			map<string, string>::iterator it;

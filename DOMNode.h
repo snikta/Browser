@@ -24,120 +24,125 @@ public:
 	DOMNode *parentNode;
 	string type;
 	bool expand = true;
-	double width = 0;
-	double height = 0;
-	double x = 0;
-	double y = 0;
-	double marginX = 0;
-	double marginY = 0;
+	double width = 0.0;
+	double height = 0.0;
+	double x = 0.0;
+	double y = 0.0;
+	double marginX = 0.0;
+	double marginY = 0.0;
 	bool x_set = false;
 	bool y_set = false;
 	bool width_set = false;
 	bool height_set = false;
-	DOMNode(string tagName, string textContent, int start, int end, int idx) : idx(0)
+	DOMNode(string tagName = "", string textContent = "", int start = 0, int end = 0, int idx = 0) : tagName(tagName), textContent(textContent), start(start), end(end), idx(0)
 	{
-		//this->parentNode = &parentNode;
-		this->tagName = tagName;
-		this->textContent = textContent;
-		this->start = start;
-		this->end = end;
-		//this->idx = idx;
 	};
 
 	void set_parent_node(DOMNode &node)
 	{
-		this->parentNode = &node;
+		parentNode = &node;
 	}
 
 	void set_tag_name(string newTagName)
 	{
-		this->tagName = newTagName;
+		tagName = newTagName;
 	};
 
 	void set_zindex(int newZIndex) {
-		this->zIndex = newZIndex;
+		zIndex = newZIndex;
 	};
 
 	int get_zindex() {
-		return this->zIndex;
+		return zIndex;
 	};
 
 	string get_tag_name()
 	{
-		return this->tagName;
+		return tagName;
 	};
 
 	string get_text_content()
 	{
-		return this->textContent;
+		return textContent;
 	};
 
 	void clear_text_content()
 	{
-		this->textContent = "";
+		textContent = "";
 	};
 
 	void set_id(string newId)
 	{
-		this->id = newId;
+		id = newId;
 	};
 
 	string get_id()
 	{
-		return this->id;
+		return id;
 	};
 
 	int get_start()
 	{
-		return this->start;
+		return start;
 	};
 
 	int get_end()
 	{
-		return this->end;
+		return end;
 	};
 
 	int get_idx()
 	{
-		return this->idx;
+		return idx;
 	};
 
 	void set_idx(int newIdx)
 	{
-		this->idx = newIdx;
+		idx = newIdx;
+	};
+
+	void set_start(int newStart)
+	{
+		start = newStart;
 	};
 
 	void set_end(int newEnd)
 	{
-		this->end = newEnd;
+		end = newEnd;
+	};
+
+	void set_text_content(string newTextContent) {
+		textContent = newTextContent;
 	};
 
 	void append_text_content_char(char newChar)
 	{
-		this->textContent += newChar;
+		textContent += newChar;
 	};
 
 	void appendChild(DOMNode &childNode)
 	{
-		if (this->childCount)
+		//childNodes.push_back(childNode);
+		//OutputDebugStringA(childNode.tagName.c_str());
+		if (childCount)
 		{
-			childNode.previousSibling = this->lastChild;
+			childNode.previousSibling = lastChild;
 			childNode.nextSibling = NULL;
-			this->lastChild->nextSibling = &childNode;
-			this->lastChild = &childNode;
+			lastChild->nextSibling = &childNode;
+			lastChild = &childNode;
 		}
 		else
 		{
-			this->firstChild = &childNode;
-			this->lastChild = &childNode;
+			firstChild = &childNode;
+			lastChild = &childNode;
 		}
 
-		this->childCount++;
+		childCount++;
 	};
 
 	int get_child_count()
 	{
-		return this->childCount;
+		return childCount;
 	};
 };
 

@@ -26,7 +26,7 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 		newNodeSet = false;
 		if (chr == '<')
 		{
-			DOMNode *newNode;
+			DOMNode* newNode;
 			if (node.get_text_content() != "")
 			{
 				newNode = new DOMNode("TextNode", node.get_text_content(), charIndex + 1, end, 0);
@@ -107,6 +107,7 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 				node.appendChild(*newNode);
 				newNode->set_idx(node.get_child_count() - 1);
 				newNode->set_tag_name(lcase(openingTag));
+				//OutputDebugStringA(openingTag.c_str());
 
 				elsByTagName[newNode->get_tag_name()].push_back(newNode);
 

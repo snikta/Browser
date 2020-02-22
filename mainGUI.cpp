@@ -84,7 +84,7 @@ public:
 	{
 		//MessageBox(m_hwnd, L"Hello this is a test for the world (hello world)!", L"So yeah this is a caption", MB_OK);
 
-		myParser.set_location("C:\\wamp\\www\\sterling\\stream");
+		myParser.set_location("C:\\c++\\Browser\\layout.html");
 
 		/*string fname = "layout.html";
 		string src;
@@ -489,6 +489,17 @@ void MainWindow::OnPaint()
 						}
 
 						//MessageBox(NULL, stringToLPCWSTR(node->get_text_content()), L"tag_name", MB_OK);
+
+						ID2D1SolidColorBrush* whitebrush;
+						D2D1_RECT_F* rectwhite = &D2D1::RectF(renderTargetSize.width * viewportScaleX, renderTargetSize.height * 0.6, renderTargetSize.width, renderTargetSize.height);
+
+						/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
+						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
+
+						D2D1_COLOR_F colorwhite = D2D1::ColorF(255, 255, 255, 1.0);
+						hr = pRenderTarget->CreateSolidColorBrush(colorwhite, &whitebrush);
+
+						pRenderTarget->FillRectangle(rectwhite, whitebrush);
 
 						myParser.output = myParser.printElementAttributes(*node);
 						std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
