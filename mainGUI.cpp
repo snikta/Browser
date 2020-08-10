@@ -9,7 +9,7 @@
 
 #include "basewin.h"
 #include "WICViewerD2D.h"
-#include "text.h"
+#include "readTextFile.h"
 #include "parser.h"
 #include "parseCSS.h"
 #include "parseHTML.h"
@@ -18,8 +18,18 @@
 #include "drawDOMNode.h"
 #include "RedBlackTree.h"
 #include "SlabDecomposition.h"
-#include "deleteShape.h"
 #include "fileWatcher.h"
+
+map<string, DOMNode*> elsById;
+map<string, vector<DOMNode*>> elsByTagName;
+map<string, vector<DOMNode*>> elsByClassName;
+
+IDWriteFactory* m_pDWriteFactory;
+IDWriteTextFormat* m_pTextFormat;
+
+ID2D1SolidColorBrush* m_pBlackBrush;
+
+Parser myParser;
 
 std::ofstream ffile;
 bool firstWatch = true;

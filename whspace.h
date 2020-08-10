@@ -1,6 +1,3 @@
 #pragma once
 
-bool whspace( char chr )
-{
-	return chr == '\r' || chr == '\n' || chr == '\t' || chr == ' ';
-}
+bool whspace(char chr);

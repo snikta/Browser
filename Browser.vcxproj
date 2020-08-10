@@ -143,16 +143,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="drawDOMNode.cpp" />
+    <ClCompile Include="lcase.cpp" />
+    <ClCompile Include="LoadBitmapFromFile.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainGUI.cpp" />
+    <ClCompile Include="parseCSS.cpp" />
+    <ClCompile Include="parseHTML.cpp" />
+    <ClCompile Include="parser.cpp" />
+    <ClCompile Include="readTextFile.cpp" />
+    <ClCompile Include="RedBlackTree.cpp" />
+    <ClCompile Include="SlabDecomposition.cpp" />
+    <ClCompile Include="splitString.cpp" />
+    <ClCompile Include="substrReplace.cpp" />
+    <ClCompile Include="whspace.cpp" />
+    <ClCompile Include="WICViewerD2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basewin.h" />
-    <ClInclude Include="deleteShape.h" />
     <ClInclude Include="DOMNode.h" />
     <ClInclude Include="drawDOMNode.h" />
     <ClInclude Include="fileWatcher.h" />
     <ClInclude Include="lcase.h" />
+    <ClInclude Include="LoadBitmapFromFile.h" />
     <ClInclude Include="parseCSS.h" />
     <ClInclude Include="parseHTML.h" />
     <ClInclude Include="parser.h" />
@@ -162,7 +175,6 @@
     <ClInclude Include="SlabDecomposition.h" />
     <ClInclude Include="splitString.h" />
     <ClInclude Include="substrReplace.h" />
-    <ClInclude Include="text.h" />
     <ClInclude Include="WICViewerD2D.h" />
     <ClInclude Include="whspace.h" />
   </ItemGroup>

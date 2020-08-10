@@ -1,5 +1,9 @@
 #pragma once
+#include <map>
+#include <vector>
+#include <string>
 /* "DOMNode.h" */
+using namespace std;
 
 class DOMNode
 {
@@ -146,6 +150,6 @@ public:
 	};
 };
 
-map<string, DOMNode*> elsById;
-map<string, vector<DOMNode*>> elsByTagName;
-map<string, vector<DOMNode*>> elsByClassName;
+extern map<string, DOMNode*> elsById;
+extern map<string, vector<DOMNode*>> elsByTagName;
+extern map<string, vector<DOMNode*>> elsByClassName;

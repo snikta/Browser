@@ -1,11 +1,5 @@
 #pragma once
-#include <dwrite.h>
-#pragma comment(lib, "Dwrite")
-
-IDWriteFactory * m_pDWriteFactory;
-IDWriteTextFormat* m_pTextFormat;
-
-ID2D1SolidColorBrush * m_pBlackBrush;
+#include "WICViewerD2D.h"
 
 // Create resources which are not bound
 // to any device. Their lifetime effectively extends for the

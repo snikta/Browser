@@ -9,6 +9,18 @@
 
 #include "Resource.h" 
 
+#include <windows.h>
+#include <wincodec.h> 
+#include <commdlg.h> 
+#include <Windowsx.h>
+#include <fstream>
+#include <d2d1.h>
+#pragma comment(lib, "d2d1")
+
+#include "basewin.h"
+#include <dwrite.h>
+#pragma comment(lib, "Dwrite")
+
 const float DEFAULT_DPI = 96.f;   // Default DPI that maps image resolution directly to screen resoltuion 
 
 								  /******************************************************************
@@ -46,3 +58,8 @@ private:
 	ID2D1Bitmap            *m_pD2DBitmap;
 	IWICFormatConverter    *m_pConvertedSourceBitmap;
 };
+
+extern IDWriteFactory* m_pDWriteFactory;
+extern IDWriteTextFormat* m_pTextFormat;
+
+extern ID2D1SolidColorBrush* m_pBlackBrush;
