@@ -24,6 +24,8 @@ map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
 map<string, vector<DOMNode*>> elsByClassName;
 
+vector<DOMNode*> nodesInOrder;
+
 IDWriteFactory* m_pDWriteFactory;
 IDWriteTextFormat* m_pTextFormat;
 
@@ -211,20 +213,6 @@ void MainWindow::OnPaint()
 		pRenderTarget->BeginDraw();
 		pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
-		string fname = myParser.get_location();
-		string src;
-		int len = readTextFile(fname, src);
-
-		string emptyStr = "";
-		string root = "root";
-
-		mySlabContainer = *(new SlabContainer);
-
-		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
-		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
-
-		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
-		parseCSS(myParser.cssFilename);
 		hr = DemoApp::CreateDeviceIndependentResources();
 		if (SUCCEEDED(hr))
 		{
@@ -329,24 +317,7 @@ void MainWindow::OnPaint()
 					D2D1_DRAW_TEXT_OPTIONS_CLIP
 				);
 			}
-
-			vector<Shape*> shapesToPreprocess;
-			int x = 0, xDiff = 107 * viewportScaleX;
-			for (int i = 0, len = 5; i < len; i++)
-			{
-				int shapeId = mySlabContainer.NextAvailableShapeId++;
-				int x1, x2, y1, y2;
-				Shape *newShape = new Shape;
-				newShape->id = shapeId;
-				x1 = newShape->x1 = x;
-				x2 = newShape->x2 = x + xDiff;
-				y1 = newShape->y1 = 0;
-				y2 = newShape->y2 = 107 * viewportScaleY;
-
-				shapesToPreprocess.push_back(newShape);
-
-				x += xDiff;
-			}
+ 
 			//mySlabContainer.preprocessSubdivision(iconShapes, 'x', nilSlab);
 
 			//...
@@ -363,7 +334,10 @@ void MainWindow::OnPaint()
 				&m_pTextFormat
 			);
 
-			vector<DOMNode*> nodesInOrder;
+			if (myParser.rootNode == nullptr) {
+				return;
+			}
+
 			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
 
 			if (!MainWindow::nodeToExpand)
@@ -389,70 +363,6 @@ void MainWindow::OnPaint()
 				D2D1_DRAW_TEXT_OPTIONS_CLIP
 			);
 
-			if (!mySlabContainer.ShapeMembers.size())
-			{
-				vector<string> outputByLine;
-
-				splitString(myParser.output, '\n', outputByLine);
-				int y = 0;
-				for (int i = 0, len = nodesInOrder.size(); i < len; i++)
-				{
-					int shapeId = mySlabContainer.NextAvailableShapeId++;
-					int x1, x2, y1, y2;
-
-					IDWriteTextLayout *pTextLayout_;
-					string tName = nodesInOrder[i]->get_tag_name();
-					std::wstring widestr = std::wstring(tName.begin(), tName.end());
-
-					HRESULT hr = m_pDWriteFactory->CreateTextLayout(
-						widestr.c_str(),      // The string to be laid out and formatted.
-						tName.length(),  // The length of the string.
-						m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
-						renderTargetSize.width,         // The width of the layout box.
-						renderTargetSize.height,        // The height of the layout box.
-						&pTextLayout_  // The IDWriteTextLayout interface pointer.
-					);
-
-					DWRITE_TEXT_METRICS metrics;
-					pTextLayout_->GetMetrics(&metrics);
-
-					Shape *newShape = new Shape;
-					newShape->id = shapeId;
-					x1 = newShape->x1 = renderTargetSize.width * viewportScaleX;
-					x2 = newShape->x2 = renderTargetSize.width;
-					y1 = newShape->y1 = y;
-					y2 = newShape->y2 = y + metrics.height;
-					newShape->node = nodesInOrder[i];
-
-					Shape *shapeShape = new Shape;
-					shapeShape->id = mySlabContainer.NextAvailableShapeId++;
-					shapeShape->x1 = nodesInOrder[i]->x;
-					shapeShape->x2 = nodesInOrder[i]->x + nodesInOrder[i]->width;
-					shapeShape->y1 = nodesInOrder[i]->y;
-					shapeShape->y2 = nodesInOrder[i]->y + nodesInOrder[i]->height;
-					shapeShape->node = nodesInOrder[i];
-
-					shapesToPreprocess.push_back(shapeShape);
-					shapesToPreprocess.push_back(newShape);
-
-					y += metrics.height;
-				}
-				mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
-
-				/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
-				MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);
-				map<int, Slab*>::iterator SlabIt;
-				for (SlabIt = mySlabContainer.SlabLinesByLeft.begin(); SlabIt != mySlabContainer.SlabLinesByLeft.end(); ++SlabIt)
-				{
-				//int _x1 = mySlabContainer.ShapeMembers[i + 1]->x1;
-				//if (mySlabContainer.SlabLinesByLeft.find(_x1) != mySlabContainer.SlabLinesByLeft.end())
-				//{
-				MainWindow::visualize(SlabIt->second->RBTRegions, *(SlabIt->second->RBTRegions->root), 0, true);
-				ffile << endl << "-------" << endl;
-				//}
-				}
-				ffile.close();*/
-			}
 
 			/*map<int, Shape*>::iterator ShapeIt;
 			for (ShapeIt = mySlabContainer.ShapeMembers.begin(); ShapeIt != mySlabContainer.ShapeMembers.end(); ++ShapeIt)
@@ -460,7 +370,7 @@ void MainWindow::OnPaint()
 			pRenderTarget->FillRectangle(*(ShapeIt->second->rect), pBrush);
 			}*/
 
-			if (MainWindow::success)
+			if (MainWindow::success && selRegion != nullptr)
 			{
 				float sX = newWidth / origWidth, sY = newHeight / origHeight;
 				int largestZIndex = -1;
@@ -626,6 +536,12 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 
 void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 {
+	if (pRenderTarget == nullptr) {
+		OutputDebugStringW(L"pRenderTarget was nullptr");
+		return;
+	}
+	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
+
 	//if (flags & MK_LBUTTON)
 	//{
 	const D2D1_POINT_2F dips = DPIScale::PixelsToDips(pixelX, pixelY);
@@ -638,10 +554,121 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
 
-	RedBlackTree *rbt = &(mySlabContainer.RBTSlabLines);
-	RedBlackNode *node = rbt->closest(x2);
-	Slab *slab = &nilSlab;
+	if (myParser.rootNode == nullptr)
+	{
+		string fname = myParser.get_location();
+		string src;
+		int len = readTextFile(fname, src);
+
+		string emptyStr = "";
+		string root = "root";
+
+		mySlabContainer = *(new SlabContainer);
+
+		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
+		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
+
+		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
+		parseCSS(myParser.cssFilename);
+	}
+	
+	if (mySlabContainer.ShapeMembers.size() < 6)
+	{
+		vector<Shape*> shapesToPreprocess;
+		int x = 0, xDiff = 107 * viewportScaleX;
+		for (int i = 0, len = 5; i < len; i++)
+		{
+			int shapeId = mySlabContainer.NextAvailableShapeId++;
+			int x1, x2, y1, y2;
+			Shape* newShape = new Shape;
+			newShape->id = shapeId;
+			x1 = newShape->x1 = x;
+			x2 = newShape->x2 = x + xDiff;
+			y1 = newShape->y1 = 0;
+			y2 = newShape->y2 = 107 * viewportScaleY;
+
+			shapesToPreprocess.push_back(newShape);
+
+			x += xDiff;
+		}
+
+		//if (!mySlabContainer.ShapeMembers.size())
+		{
+			vector<string> outputByLine;
+
+			//std::wstring widestr = std::wstring(s1.begin(), s1.end());
+			//OutputDebugStringW(widestr.c_str());
+
+			splitString(myParser.output, '\n', outputByLine);
+			int y = 0;
+			for (int i = 0, len = nodesInOrder.size(); i < len; i++)
+			{
+				int shapeId = mySlabContainer.NextAvailableShapeId++;
+				int x1, x2, y1, y2;
+
+				IDWriteTextLayout* pTextLayout_;
+				string tName = nodesInOrder[i]->get_tag_name();
+				std::wstring widestr = std::wstring(tName.begin(), tName.end());
+
+				HRESULT hr = m_pDWriteFactory->CreateTextLayout(
+					widestr.c_str(),      // The string to be laid out and formatted.
+					tName.length(),  // The length of the string.
+					m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+					renderTargetSize.width,         // The width of the layout box.
+					renderTargetSize.height,        // The height of the layout box.
+					&pTextLayout_  // The IDWriteTextLayout interface pointer.
+				);
+
+				DWRITE_TEXT_METRICS metrics;
+				pTextLayout_->GetMetrics(&metrics);
+
+				Shape* newShape = new Shape;
+				newShape->id = shapeId;
+				x1 = newShape->x1 = renderTargetSize.width * viewportScaleX;
+				x2 = newShape->x2 = renderTargetSize.width;
+				y1 = newShape->y1 = y;
+				y2 = newShape->y2 = y + metrics.height;
+				newShape->node = nodesInOrder[i];
+
+				Shape* shapeShape = new Shape;
+				shapeShape->id = mySlabContainer.NextAvailableShapeId++;
+				shapeShape->x1 = nodesInOrder[i]->x;
+				shapeShape->x2 = nodesInOrder[i]->x + nodesInOrder[i]->width;
+				shapeShape->y1 = nodesInOrder[i]->y;
+				shapeShape->y2 = nodesInOrder[i]->y + nodesInOrder[i]->height;
+				shapeShape->node = nodesInOrder[i];
+
+				shapesToPreprocess.push_back(shapeShape);
+				shapesToPreprocess.push_back(newShape);
+
+				y += metrics.height;
+			}
+			mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
+
+			/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
+			MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);
+			map<int, Slab*>::iterator SlabIt;
+			for (SlabIt = mySlabContainer.SlabLinesByLeft.begin(); SlabIt != mySlabContainer.SlabLinesByLeft.end(); ++SlabIt)
+			{
+			//int _x1 = mySlabContainer.ShapeMembers[i + 1]->x1;
+			//if (mySlabContainer.SlabLinesByLeft.find(_x1) != mySlabContainer.SlabLinesByLeft.end())
+			//{
+			MainWindow::visualize(SlabIt->second->RBTRegions, *(SlabIt->second->RBTRegions->root), 0, true);
+			ffile << endl << "-------" << endl;
+			//}
+			}
+			ffile.close();*/
+		}
+	}
+
+	RedBlackTree* rbt = &(mySlabContainer.RBTSlabLines);
+	RedBlackNode* node = rbt->closest(x2);
+	Slab* slab = &nilSlab;
 	bool success = false, slabExists = false;
+
+	/*string s1 = "x2: " + std::to_string(x2) + " closest: " + std::to_string(node->key) + "\n"
+	std::wstring widestr = std::wstring(s1.begin(), s1.end());
+	OutputDebugStringW(widestr.c_str());*/
 
 	MainWindow::success = false;
 
@@ -733,7 +760,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_PAINT:
-		OnPaint();
+		//OnPaint();
 		return 0;
 
 	case WM_SIZE:
@@ -749,6 +776,20 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_MOUSEMOVE:
+		/*selRegion = nullptr;
+		mySlabContainer.RBTSlabLines.deleteAllNodes();
+		for (auto it = mySlabContainer.SlabLinesByLeft.begin(); it != mySlabContainer.SlabLinesByLeft.end(); it++) {
+			it->second->RBTRegions->deleteAllNodes();
+			for (auto itRegion = it->second->RegionsByTop.begin(); itRegion != it->second->RegionsByTop.end(); itRegion++) {
+				delete itRegion->second;
+			}
+		}
+		mySlabContainer.SlabLinesByLeft.clear();
+		for (auto it = mySlabContainer.ShapeMembers.begin(); it != mySlabContainer.ShapeMembers.end(); it++) {
+			delete it->second->rect;
+			delete it->second;
+		}
+		mySlabContainer.ShapeMembers.clear();*/
 		OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (DWORD)wParam);
 		OnPaint();
 		return 0;

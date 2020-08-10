@@ -2,11 +2,13 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <vector>
 using std::cout;
 using std::cin;
 using std::endl;
 using std::string;
 using std::to_string;
+using std::vector;
 
 enum RedBlackColor { red, black };
 class RedBlackNode
@@ -33,7 +35,10 @@ class RedBlackTree
 public:
 	RedBlackNode *root;
 	RedBlackNode *nil = new RedBlackNode;
+	
 	RedBlackTree();
+	vector<RedBlackNode*> nodes;
+	void deleteAllNodes();
 	RedBlackNode* closest(int key);
 	RedBlackNode* search(int key);
 	RedBlackNode* search(int key, bool closest);

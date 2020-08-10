@@ -17,7 +17,7 @@ private:
 	string location = "C:\\c++\\Browser\\layout.html";
 public:
 	bool set = true;
-	DOMNode *rootNode;
+	DOMNode *rootNode = nullptr;
 	string output;
 	string cssFilename;
 	map<string, map<string, string>> styles;

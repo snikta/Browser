@@ -105,6 +105,7 @@ RedBlackNode* RedBlackTree::binaryInsert(int newKey)
 	RedBlackNode* z = new RedBlackNode(*(this->nil), newKey); // delete later?
 	RedBlackNode* y = this->nil;
 	RedBlackNode* x = this->root;
+	this->nodes.push_back(z);
 	while (x != this->nil)
 	{
 		y = x;
@@ -358,5 +359,16 @@ RedBlackNode* RedBlackTree::deleteNode(RedBlackNode& z)
 	{
 		deleteNodeFixup(x);
 	}
+
+	delete &z;
+
 	return y;
+};
+
+void RedBlackTree::deleteAllNodes()
+{
+	for (int i = 0, len = nodes.size(); i < len; i++) {
+		deleteNode(*nodes[i]);
+	}
+	nodes.clear();
 };
