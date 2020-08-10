@@ -66,6 +66,9 @@
     <ClInclude Include="LoadBitmapFromFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="JSExec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mainGUI.cpp">
@@ -111,6 +114,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RedBlackTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="JSExec.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

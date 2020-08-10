@@ -19,6 +19,7 @@
 #include "RedBlackTree.h"
 #include "SlabDecomposition.h"
 #include "fileWatcher.h"
+#include "JSExec.h"
 
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
@@ -35,6 +36,40 @@ Parser myParser;
 
 std::ofstream ffile;
 bool firstWatch = true;
+
+void testJSExec() {
+	globalVariables.ScopeArray["Object"] = ASTNode();
+	globalVariables.ScopeArray["me"] = ASTNode();
+	(*globalVariables.ScopeArray["me"].ASTArray)["firstName"] = new ASTNode(string("Josh"));
+	(*globalVariables.ScopeArray["me"].ASTArray)["lastName"] = new ASTNode(string("Atkins"));
+	(*globalVariables.ScopeArray["me"].ASTArray)["middleNames"] = new ASTNode();
+	(*(*globalVariables.ScopeArray["me"].ASTArray)["middleNames"]->ASTArray)["first"] = new ASTNode(string("Benjamin"));
+	(*(*globalVariables.ScopeArray["me"].ASTArray)["middleNames"]->ASTArray)["second"] = new ASTNode(string("Mark"));
+	(*globalVariables.ScopeArray["me"].ASTArray)["dateOfBirth"] = new ASTNode();
+	(*(*globalVariables.ScopeArray["me"].ASTArray)["dateOfBirth"]->ASTArray)["date"] = new ASTNode(string("15"));
+	(*(*globalVariables.ScopeArray["me"].ASTArray)["dateOfBirth"]->ASTArray)["monthName"] = new ASTNode(string("April"));
+	(*(*globalVariables.ScopeArray["me"].ASTArray)["dateOfBirth"]->ASTArray)["year"] = new ASTNode(string("1994"));
+
+	globalVariables.ScopeArray["currentYear"] = ASTNode(string("2020"));
+	globalVariables.ScopeArray["yearOfBirth"] = ASTNode(string("1994"));
+	globalVariables.ScopeArray["spacemission"] = ASTNode(string("Apollo 11"));
+	globalVariables.ScopeArray["missionsByYear"] = ASTNode();
+	(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1961"] = new ASTNode();
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1961"]->ASTArray)["0"] = new ASTNode(string("Gagarin"));
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1961"]->ASTArray)["1"] = new ASTNode(string("Shepard"));
+	(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1968"] = new ASTNode();
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1968"]->ASTArray)["0"] = new ASTNode(string("Apollo 7"));
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1968"]->ASTArray)["1"] = new ASTNode(string("Apollo 8"));
+	(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1969"] = new ASTNode();
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1969"]->ASTArray)["0"] = new ASTNode(string("Apollo 11"));
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1969"]->ASTArray)["1"] = new ASTNode(string("Apollo 12"));
+	(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1970"] = new ASTNode();
+	(*(*globalVariables.ScopeArray["missionsByYear"].ASTArray)["1970"]->ASTArray)["0"] = new ASTNode(string("Apollo 13"));
+
+	/*globalVariables.ScopeArray["k"] = ASTNode(37.0L);
+	globalVariables.ScopeArray["j"] = ASTNode(22.0L);
+	globalVariables.ScopeArray["i"] = ASTNode(15.0L);*/
+}
 
 class MainWindow : public BaseWindow<MainWindow>
 {
@@ -95,6 +130,8 @@ public:
 		ptMouse(D2D1::Point2F())
 	{
 		//MessageBox(m_hwnd, L"Hello this is a test for the world (hello world)!", L"So yeah this is a caption", MB_OK);
+
+		testJSExec();
 
 		myParser.set_location("C:\\c++\\Browser\\layout.html");
 

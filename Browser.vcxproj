@@ -144,6 +144,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="drawDOMNode.cpp" />
+    <ClCompile Include="JSExec.cpp" />
     <ClCompile Include="lcase.cpp" />
     <ClCompile Include="LoadBitmapFromFile.cpp" />
     <ClCompile Include="main.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="DOMNode.h" />
     <ClInclude Include="drawDOMNode.h" />
     <ClInclude Include="fileWatcher.h" />
+    <ClInclude Include="JSExec.h" />
     <ClInclude Include="lcase.h" />
     <ClInclude Include="LoadBitmapFromFile.h" />
     <ClInclude Include="parseCSS.h" />

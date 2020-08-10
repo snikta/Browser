@@ -6,6 +6,8 @@
 #include "splitString.h"
 #include "lcase.h"
 #include "parser.h"
+#include "JSExec.h"
+#include "readTextFile.h"
 /* "parseHTML.cpp" */
 using namespace std;
 
@@ -130,6 +132,12 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 
 				if (newNode->get_tag_name() == "link" && newNode->attributes["rel"] == "stylesheet") {
 					myParser.cssFilename = newNode->attributes["href"];
+				}
+				if (newNode->get_tag_name() == "script" && newNode->attributes["src"] != "") {
+					string scriptSrc;
+					int scriptLen = readTextFile(newNode->attributes["src"], scriptSrc);
+					ParseNode scriptAST = generateAST(scriptSrc);
+					execAST(scriptAST, globalVariables);
 				}
 			}
 		}
