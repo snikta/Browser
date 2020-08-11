@@ -4,6 +4,9 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include "DOMNode.h"
+
+class DOMNode;
 
 using std::cout;
 using std::endl;
@@ -24,6 +27,7 @@ struct ParseNode;
 enum ASTNodeType { ASTStringNode, ASTNumberNode, ASTBoolNode, ASTFuncNode, ASTInstanceNode };
 class ASTNode {
 public:
+	DOMNode* ptrDOMNode = nullptr;
 	int runtimeId = -1;
 	ASTNodeType ASTNodeType = ASTBoolNode;
 	map<string, ASTNode*>* ASTArray = new map<string, ASTNode*>;

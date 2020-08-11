@@ -756,19 +756,33 @@ ASTNode PredefinedCreatePrototype(vector<ASTNode> args, Scope& scope) {
 ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
 	string tagName = resolveString(args[0].getString());
 	DOMNode* newElementNode = new DOMNode(tagName, "", 0, 0, 0);
-	DOMNode* newTextNode = new DOMNode("TextNode", "My New Text Node", 0, 0, 0);
 	ASTNode astHTMLElement;
-	newTextNode->set_idx(0);
 	newElementNode->ptrASTArray = astHTMLElement.ASTArray;
-	newElementNode->appendChild(*newTextNode);
-	newTextNode->set_parent_node(*newElementNode);
 	newElementNode->set_parent_node(*elsByTagName["body"][0]);
 	elsByTagName["body"][0]->appendChild(*newElementNode);
 	(*astHTMLElement.ASTArray)["style"] = new ASTNode;
 	int runtimeObjId = runtimeObjects.size();
 	astHTMLElement.runtimeId = runtimeObjId;
+	astHTMLElement.ptrDOMNode = newElementNode;
 	runtimeObjects.push_back(astHTMLElement);
 	return ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>'));
+}
+
+ASTNode PredefinedAppendChild(vector<ASTNode> args, Scope& scope) {
+	DOMNode* newChild = resolveRuntimeObject(args[1]).ptrDOMNode;
+	DOMNode* newParent = resolveRuntimeObject(args[0]).ptrDOMNode;
+	if (newChild->previousSibling != nullptr) {
+		newChild->previousSibling->nextSibling = newChild->nextSibling;
+	}
+	if (newChild->nextSibling != nullptr) {
+		newChild->nextSibling->previousSibling = newChild->previousSibling;
+	}
+	newChild->previousSibling = nullptr;
+	newChild->nextSibling = nullptr;
+	newChild->parentNode->set_child_count(newChild->parentNode->get_child_count() - 1);
+	newChild->set_parent_node(*newParent);
+	newParent->appendChild(*newChild);
+	return ASTNode();
 }
 
 map<string, predefinedFunction> predefinedFunctions = {
@@ -779,7 +793,8 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"Log", &PredefinedLog},
 	{"isset", &PredefinedIsset},
 	{"createPrototype", &PredefinedCreatePrototype},
-	{"createElement", &PredefinedCreateElement}
+	{"createElement", &PredefinedCreateElement},
+	{"appendChild", &PredefinedAppendChild}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
@@ -886,7 +901,7 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 	}
 	if (ast.size() == 1) {
 		ASTNode retval = resolve(ast[0], args);
-		if (retval.ASTNodeFunc != nullptr || retval.getType() == ASTFuncNode || retval.getType() == ASTInstanceNode) {
+		if (retval.ASTNodeFunc != nullptr || retval.getType() == ASTFuncNode || retval.getType() == ASTInstanceNode || retval.runtimeId != -1) {
 			int runtimeObjId = runtimeObjects.size();
 			if (retval.runtimeId == -1) {
 				retval.runtimeId = runtimeObjId;
@@ -1089,10 +1104,10 @@ ParseNode* parseLine(string line) {
 		retval->type = FunctionNode;
 		retval->name = functionName;
 	}
-	else if (line.substr(0, 3) == "for") {
+	else if (line.substr(0, 4) == "for ") {
 		retval->type = ForNode;
 	}
-	else if (line.substr(0, 6) == "switch") {
+	else if (line.substr(0, 7) == "switch ") {
 		retval->type = SwitchNode;
 		int i = string("switch").size();
 		int len = line.size();
@@ -1102,12 +1117,12 @@ ParseNode* parseLine(string line) {
 			return retval_other;
 		}
 	}
-	else if (line.substr(0, 4) == "case") {
+	else if (line.substr(0, 5) == "case ") {
 		retval->type = SwitchCaseNode;
 		retval->switchCase = trim(line.substr(4));
 		retval->switchCase = retval->switchCase.substr(0, retval->switchCase.size() - 1);
 	}
-	else if (line.substr(0, 2) == "if") {
+	else if (line.substr(0, 3) == "if ") {
 		retval->type = IfNode;
 		int i = string("if").size();
 		int len = line.size();
@@ -1127,7 +1142,7 @@ ParseNode* parseLine(string line) {
 			return retval_other;
 		}
 	}
-	else if (line.substr(0, 4) == "else") {
+	else if (line.substr(0, 5) == "else ") {
 		retval->type = ElseNode;
 	}
 	else if (line.substr(0, 4) == "var ") {
@@ -1138,14 +1153,14 @@ ParseNode* parseLine(string line) {
 		retval->name = varName;
 		retval->expr = trim(line.substr(eqIdx + 1));
 	}
-	else if (line.substr(0, 6) == "return") {
+	else if (line.substr(0, 7) == "return ") {
 		retval->type = ReturnNode;
 		retval->statement = trim(line.substr(6));
 	}
-	else if (line.substr(0, 2) == "do") {
+	else if (line.substr(0, 3) == "do ") {
 		retval->type = DoWhileNode;
 	}
-	else if (line.substr(0, 5) == "while") {
+	else if (line.substr(0, 6) == "while ") {
 		retval->type = WhileNode;
 	}
 	else {

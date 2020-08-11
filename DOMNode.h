@@ -128,19 +128,19 @@ public:
 
 	void appendChild(DOMNode &childNode)
 	{
-		//childNodes.push_back(childNode);
-		//OutputDebugStringA(childNode.tagName.c_str());
 		if (childCount)
 		{
 			childNode.previousSibling = lastChild;
 			childNode.nextSibling = nullptr;
 			lastChild->nextSibling = &childNode;
 			lastChild = &childNode;
+			childNode.set_idx(childCount);
 		}
 		else
 		{
 			firstChild = &childNode;
 			lastChild = &childNode;
+			childNode.set_idx(0);
 		}
 
 		childCount++;

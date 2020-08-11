@@ -42,6 +42,27 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	node.y_set = false;
 
 	if (node.ptrASTArray != nullptr) {
+		if (node.ptrASTArray->find("id") != node.ptrASTArray->end()) {
+			node.set_id((*node.ptrASTArray)["id"]->getString());
+		}
+
+		if (node.ptrASTArray->find("src") != node.ptrASTArray->end()) {
+			node.attributes["src"] = (*node.ptrASTArray)["src"]->getString();
+		}
+
+		if (node.ptrASTArray->find("width") != node.ptrASTArray->end()) {
+			node.attributes["width"] = (*node.ptrASTArray)["width"]->getString();
+		}
+
+		if (node.ptrASTArray->find("height") != node.ptrASTArray->end()) {
+			node.attributes["height"] = (*node.ptrASTArray)["height"]->getString();
+		}
+
+		if (node.ptrASTArray->find("class") != node.ptrASTArray->end()) {
+			node.attributes["class"] = (*node.ptrASTArray)["class"]->getString();
+			splitString((*node.ptrASTArray)["class"]->getString(), ' ', node.classList);
+		}
+
 		for (auto it = (*node.ptrASTArray)["style"]->ASTArray->begin(); it != (*node.ptrASTArray)["style"]->ASTArray->end(); it++) {
 			node.style[it->first] = it->second->getString();
 		}
@@ -59,12 +80,12 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			}
 			DOMNode* newTextNode = new DOMNode("TextNode", (*node.ptrASTArray)["textContent"]->getString(), 0, 0, 0);
 			newTextNode->set_parent_node(node);
+			node.set_child_count(0);
 			node.appendChild(*newTextNode);
 			newTextNode->previousSibling = nullptr;
 			newTextNode->nextSibling = nullptr;
 			node.firstChild = newTextNode;
 			node.lastChild = newTextNode;
-			node.set_child_count(1);
 		}
 	}
 
