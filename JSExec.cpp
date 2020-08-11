@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include "DOMNode.h"
 #include "JSExec.h"
 #include <windows.h>
 
@@ -608,14 +609,6 @@ ASTNode Dot(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 
 	ASTNode retval;
 
-	/*do {
-		if (ptrScope->ScopeArray.find(op1Str) != ptrScope->ScopeArray.end()) {
-			if (ptrScope->__parent == nullptr) {
-			}
-			return *((*resolveRuntimeObject(ptrScope->ScopeArray[op1Str]).ASTArray)[op2Str]);
-		}
-	} while (ptrScope->__parent != nullptr && (ptrScope = ptrScope->__parent));*/
-
 	if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
 		retval.scopeBox = new ScopeContainer;
 		retval.scopeBox->scope__ = &scope;
@@ -633,6 +626,27 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
 
+	op1 = resolveRuntimeObject(op1);
+	op2 = parseParens(op2.getString(), scope);
+
+	ASTNode retval;
+
+	if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
+		retval.scopeBox = new ScopeContainer;
+		retval.scopeBox->scope__ = &scope;
+		retval.scopeBox->op1__ = op1;
+		retval.scopeBox->op2__ = op2;
+	}
+	else {
+		retval = *((*op1.ASTArray)[resolveString(op2.getString())]);
+	}
+
+	return retval;
+
+	/*if (op1.scopeBox != nullptr) {
+		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
+	}
+
 	op2 = parseParens(op2.getString(), scope);
 
 	ASTNode retval;
@@ -647,7 +661,7 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 		retval = *((*op1.ASTArray)[resolveString(op2.getString())]);
 	}
 
-	return retval;
+	return retval;*/
 }
 ASTNode InOperator(ASTNode op2, ASTNode op1, Scope& scope, AbstractSyntaxTree& ast) {
 	op1 = ASTNode(resolveString(op1.getString()));
@@ -739,6 +753,24 @@ ASTNode PredefinedCreatePrototype(vector<ASTNode> args, Scope& scope) {
 	return ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>'));
 }
 
+ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
+	string tagName = resolveString(args[0].getString());
+	DOMNode* newElementNode = new DOMNode(tagName, "", 0, 0, 0);
+	DOMNode* newTextNode = new DOMNode("TextNode", "My New Text Node", 0, 0, 0);
+	ASTNode astHTMLElement;
+	newTextNode->set_idx(0);
+	newElementNode->ptrASTArray = astHTMLElement.ASTArray;
+	newElementNode->appendChild(*newTextNode);
+	newTextNode->set_parent_node(*newElementNode);
+	newElementNode->set_parent_node(*elsByTagName["body"][0]);
+	elsByTagName["body"][0]->appendChild(*newElementNode);
+	(*astHTMLElement.ASTArray)["style"] = new ASTNode;
+	int runtimeObjId = runtimeObjects.size();
+	astHTMLElement.runtimeId = runtimeObjId;
+	runtimeObjects.push_back(astHTMLElement);
+	return ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>'));
+}
+
 map<string, predefinedFunction> predefinedFunctions = {
 	{"Add", &PredefinedAdd},
 	{"Multiply", &PredefinedMultiply},
@@ -746,7 +778,8 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"Divide", &PredefinedDivide},
 	{"Log", &PredefinedLog},
 	{"isset", &PredefinedIsset},
-	{"createPrototype", &PredefinedCreatePrototype}
+	{"createPrototype", &PredefinedCreatePrototype},
+	{"createElement", &PredefinedCreateElement}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
@@ -921,60 +954,60 @@ ParseNode::ParseNode() {};
 map<string, ParseNode*> userDefinedFunctions;
 
 void printParseNode(ParseNode* node, string indent) {
-	cout << indent << "ParseNode(type=" << node->type;
+	LOut(indent + "ParseNode(type=" + std::to_string(node->type));
 	if (node->name != "") {
-		cout << ",name=" << node->name;
+		LOut(",name=" + node->name);
 	}
 	if (node->expr != "") {
-		cout << ",expr=" << node->expr;
+		LOut(",expr=" + node->expr);
 	}
 	if (node->exprNode != nullptr) {
-		cout << ",exprNode=" << endl;
+		LOut(",exprNode=\n");
 		printParseNode(node->exprNode, indent + "    ");
-		cout << indent;
+		LOut(indent);
 	}
 	if (node->statement != "") {
-		cout << ",statement=" << node->statement;
+		LOut(",statement=" + node->statement);
 	}
 	if (node->switchCase != "") {
-		cout << ",switchCase=" << node->switchCase;
+		LOut(",switchCase=" + node->switchCase);
 	}
-	cout << ")" << endl;
+	LOut(")\n");
 	if (node->line != "") {
-		cout << indent << "    \"" << node->line << "\"" << endl;
+		LOut(indent + "    \"" + node->line + "\"\n");
 	}
 	if (node->parameters.size()) {
-		cout << indent << "    parameters:" << endl;
+		LOut(indent + "    parameters:\n");
 		for (int i = 0, len = node->parameters.size(); i < len; i++) {
-			cout << indent << "    " << node->parameters[i] << endl;
+			LOut(indent + "    " + node->parameters[i] + "\n");
 		}
 	}
 	if (node->childNodes.size()) {
-		cout << indent << "    childNodes:" << endl;
+		LOut(indent + "    childNodes:\n");
 		for (int i = 0, len = node->childNodes.size(); i < len; i++) {
 			printParseNode(node->childNodes[i], indent + "        ");
 		}
 	}
 	if (node->cases.size()) {
-		cout << indent << "    cases:" << endl;
+		LOut(indent + "    cases:\n");
 		for (int i = 0, len = node->cases.size(); i < len; i++) {
 			printParseNode(node->cases[i], indent + "        ");
 		}
 	}
 	if (node->elseIfs.size()) {
-		cout << indent << "    elseIfs:" << endl;
+		LOut(indent + "    elseIfs:\n");
 		for (int i = 0, len = node->elseIfs.size(); i < len; i++) {
 			printParseNode(node->elseIfs[i], indent + "        ");
 		}
 	}
 	if (node->condition.size()) {
-		cout << indent << "    condition:" << endl;
+		LOut(indent + "    condition:\n");
 		for (int i = 0, len = node->condition.size(); i < len; i++) {
 			printParseNode(node->condition[i], indent + "        ");
 		}
 	}
 	if (node->elseNode != nullptr) {
-		cout << indent << "    elseNode:" << endl;
+		LOut(indent + "    elseNode:" + "\n");
 		printParseNode(node->elseNode, indent + "        ");
 	}
 }
@@ -1454,9 +1487,8 @@ ParseNode generateAST(string src) {
 				comment += src[i];
 				i++;
 			}
-			comment += '*/';
+			comment += "*/";
 			i++;
-			curParent->childNodes.push_back(new ParseNode(comment));
 			curLine = "";
 		}
 		else if (i > 0 && trim(curLine) == "\/\/" && src[i] == '\/' && src[i - 1] == '\/') {

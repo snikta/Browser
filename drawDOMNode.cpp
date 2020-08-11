@@ -41,6 +41,33 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	node.x_set = false;
 	node.y_set = false;
 
+	if (node.ptrASTArray != nullptr) {
+		for (auto it = (*node.ptrASTArray)["style"]->ASTArray->begin(); it != (*node.ptrASTArray)["style"]->ASTArray->end(); it++) {
+			node.style[it->first] = it->second->getString();
+		}
+
+		if (node.ptrASTArray->find("textContent") != node.ptrASTArray->end()) {
+			DOMNode* curChild = node.firstChild;
+			while (curChild != nullptr) {
+				DOMNode* nextSibling = curChild->nextSibling;
+				if (nextSibling == nullptr || nextSibling == curChild) {
+					delete curChild;
+					break;
+				}
+				delete curChild;
+				curChild = nextSibling;
+			}
+			DOMNode* newTextNode = new DOMNode("TextNode", (*node.ptrASTArray)["textContent"]->getString(), 0, 0, 0);
+			newTextNode->set_parent_node(node);
+			node.appendChild(*newTextNode);
+			newTextNode->previousSibling = nullptr;
+			newTextNode->nextSibling = nullptr;
+			node.firstChild = newTextNode;
+			node.lastChild = newTextNode;
+			node.set_child_count(1);
+		}
+	}
+
 	if (node.get_tag_name() != "root" && node.get_tag_name() != "TextNode")
 	{
 		nodesInOrder.push_back(&node);

@@ -2,6 +2,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include "JSExec.h"
 /* "DOMNode.h" */
 using namespace std;
 
@@ -18,13 +19,14 @@ private:
 	int zIndex = 1;
 
 public:
+	map<string, ASTNode*>* ptrASTArray = nullptr;
 	map<string, string> attributes;
 	map<string, string> style;
 	vector<string> classList;
-	DOMNode *firstChild; // these should
-	DOMNode *lastChild; // all
-	DOMNode *previousSibling; // be
-	DOMNode *nextSibling; // private -- invert case (camelCase becomes _ and vice versa)
+	DOMNode *firstChild = nullptr; // these should
+	DOMNode *lastChild = nullptr; // all
+	DOMNode *previousSibling = nullptr; // be
+	DOMNode *nextSibling = nullptr; // private -- invert case (camelCase becomes _ and vice versa)
 	DOMNode *parentNode;
 	string type;
 	bool expand = true;
@@ -131,7 +133,7 @@ public:
 		if (childCount)
 		{
 			childNode.previousSibling = lastChild;
-			childNode.nextSibling = NULL;
+			childNode.nextSibling = nullptr;
 			lastChild->nextSibling = &childNode;
 			lastChild = &childNode;
 		}
@@ -148,6 +150,10 @@ public:
 	{
 		return childCount;
 	};
+
+	void set_child_count(int newChildCount) {
+		childCount = newChildCount;
+	}
 };
 
 extern map<string, DOMNode*> elsById;

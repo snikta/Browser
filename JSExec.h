@@ -151,7 +151,7 @@ struct ParseNode {
 	Scope* arguments = nullptr;
 	ParseNode* parent = nullptr;
 	vector<ParseNode*> childNodes;
-	ParseNodeType type;
+	ParseNodeType type = OtherNode;
 	string expr;
 	ParseNode* exprNode = nullptr;
 	vector<ParseNode*> condition;
@@ -163,7 +163,7 @@ struct ParseNode {
 	vector<ParseNode*> cases;
 	ParseNode* elseNode = nullptr;
 	ParseNode* forNode = nullptr;
-	string line;
+	string line = "";
 	ASTNode retval;
 	ParseNode(string line);
 	ParseNode();
