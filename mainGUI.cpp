@@ -27,7 +27,11 @@ map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
 map<string, vector<DOMNode*>> elsByClassName;
 
+vector<vector<ASTNode>> eventListenersToBindArgs;
+vector<Scope> eventListenersToBindScopes;
+vector<ParseNode> scriptsToRunOnLoad;
 vector<DOMNode*> nodesInOrder;
+bool pageLoaded = false;
 
 IDWriteFactory* m_pDWriteFactory;
 IDWriteTextFormat* m_pTextFormat;
@@ -575,9 +579,6 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	dX = ptMouse.x - x1;
 	dY = ptMouse.y - y1;
 
-	ParseNode *clickFunc = resolveRuntimeObject(eventListeners["click"]).ASTNodeFunc;
-	execAST(*clickFunc, globalVariables);
-
 	if (MainWindow::success)
 	{
 		int largestZIndex = -1;
@@ -602,8 +603,16 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 
 		for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 		{
+			if (i >= selRegion->shapes.size()) {
+				break;
+			}
 			DOMNode *node = selRegion->shapes[i]->node;
-			if (node)
+			vector<ASTNode> clickFuncs = selRegion->shapes[i]->eventHandlers["click"];
+			for (int j = 0, jLen = clickFuncs.size(); j < jLen; j++) {
+				ASTNode astFunc = resolveRuntimeObject(clickFuncs[j]);
+				execAST(*astFunc.ASTNodeFunc, globalVariables);
+			}
+			if (node && node != nullptr)
 			{
 				if (node->get_tag_name() == "a" && node->get_zindex() >= (largestZIndex - 1)) {
 					MessageBox(NULL, stringToLPCWSTR("Navigating to \"" + node->attributes["href"] + "\""), L"<a>.href", MB_OK);
@@ -731,6 +740,13 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 				y += metrics.height;
 			}
 			mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
+
+			if (mySlabContainer.ShapeMembers.size() > 5) {
+				pageLoaded = true;
+				for (int i = 0, len = eventListenersToBindArgs.size(); i < len; i++) {
+					predefinedFunctions["addEventListener"](eventListenersToBindArgs[i], eventListenersToBindScopes[i]);
+				}
+			}
 
 			/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
 			MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);

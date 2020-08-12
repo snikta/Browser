@@ -1,4 +1,4 @@
-var header = createElement("div")
+var header = createElement ("div")
 header.id = "header"
 var theSpan = createElement("span")
 theSpan.textContent = "the "
@@ -141,6 +141,16 @@ appendChild(footer, footerLeftColumn)
 appendChild(footer, footerRightColumn)
 
 var clickHandler = function (e) {
-	Alert("You pressed the mouse button down")
+	Alert("You clicked on the Apollo image")
 }
-addEventListener('click', clickHandler)
+addEventListener(imgApollo, 'click', clickHandler)
+
+var clickHandlerMusk = function (e) {
+	Alert("You clicked on Elon Musk's email address")
+}
+addEventListener(tdMuskEmail, 'click', clickHandlerMusk)
+
+var clickHandlerFox = function (e) {
+	Alert("You clicked on the word fox")
+}
+addEventListener(foxSpan, 'click', clickHandlerFox)

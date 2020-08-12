@@ -736,7 +736,18 @@ ASTNode PredefinedAlert(vector <ASTNode> args, Scope& scope) {
 }
 map<string, ASTNode> eventListeners;
 ASTNode PredefinedAddEventListener(vector <ASTNode> args, Scope& scope) {
-	eventListeners[resolveString(args[0].getString())] = args[1];
+	if (pageLoaded == false) {
+		eventListenersToBindArgs.push_back(args);
+		eventListenersToBindScopes.push_back(scope);
+		return ASTNode();
+	}
+	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
+	Shape* ptrShape = astHTMLElement.ptrDOMNode->SlabDecompShape;
+	string handlerName = resolveString(args[1].getString());
+	if (ptrShape->eventHandlers.find(handlerName) == ptrShape->eventHandlers.end()) {
+		ptrShape->eventHandlers[handlerName] = {};
+	}
+	ptrShape->eventHandlers[handlerName].push_back(args[2]);
 	return ASTNode();
 }
 ASTNode PredefinedLog(vector <ASTNode> args, Scope& scope) {

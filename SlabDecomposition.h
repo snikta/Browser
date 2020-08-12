@@ -49,6 +49,7 @@ extern Slab nilSlab;
 class Shape
 {
 public:
+	map<string, vector<ASTNode>> eventHandlers;
 	vector<Slab*> slabs; // must delete Slabs later
 	int id, x1, x2, y1, y2;
 	D2D1_RECT_F *rect;
