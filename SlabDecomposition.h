@@ -91,3 +91,5 @@ public:
 	verticalLineCheckResponse checkIfVerticalLineLiesInExistingSlab(int lineX);
 	void prepareBoundLineGivenXPoint(int lineX, bool isLeftOfBBox, int edgeWeMightNeed, int shapeId);
 };
+
+extern SlabContainer mySlabContainer;

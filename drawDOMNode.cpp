@@ -31,6 +31,10 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
 
+	if (node.get_tag_name() == "script") {
+		return;
+	}
+
 	//node.expand = false;
 	node.x = 0;
 	node.y = 107 * newHeight / origHeight;
@@ -40,6 +44,21 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	node.height_set = false;
 	node.x_set = false;
 	node.y_set = false;
+
+	if (node.get_child_count()) {
+		DOMNode* childNode = node.firstChild;
+		while (childNode != nullptr) {
+			childNode->x = 0;
+			childNode->y = 107 * newHeight / origHeight;
+			childNode->width = 0;
+			childNode->height = 0;
+			childNode->width_set = false;
+			childNode->height_set = false;
+			childNode->x_set = false;
+			childNode->y_set = false;
+			childNode = childNode->nextSibling;
+		}
+	}
 
 	if (node.ptrASTArray != nullptr) {
 		if (node.ptrASTArray->find("id") != node.ptrASTArray->end()) {
@@ -78,6 +97,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				delete curChild;
 				curChild = nextSibling;
 			}
+			curChild = nullptr;
 			DOMNode* newTextNode = new DOMNode("TextNode", (*node.ptrASTArray)["textContent"]->getString(), 0, 0, 0);
 			newTextNode->set_parent_node(node);
 			node.set_child_count(0);
@@ -384,7 +404,13 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			}
 		}
 	}
-	else if (node.get_child_count())
+	
+	node._x = node.x;
+	node._y = node.y;
+	node._width = node.width;
+	node._height = node.height;
+	
+	if (node.get_child_count())
 	{
 		if (node.parentNode->get_tag_name() != "root")
 		{
@@ -478,4 +504,9 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			SafeRelease(pTextLayout_);
 		}
 	}
+
+	/*node.x = min(node.x, renderTargetSize.width * viewportScaleX);
+	node.y = min(node.y, renderTargetSize.height * viewportScaleY);
+	node.width = min(node.width, renderTargetSize.width * viewportScaleX);
+	node.height = min(node.height, renderTargetSize.height * viewportScaleY);*/
 }

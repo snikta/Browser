@@ -3,9 +3,11 @@
 #include <vector>
 #include <string>
 #include "JSExec.h"
+#include "SlabDecomposition.h"
 /* "DOMNode.h" */
 using namespace std;
 
+class Shape;
 class DOMNode
 {
 private:
@@ -19,6 +21,7 @@ private:
 	int zIndex = 1;
 
 public:
+	Shape* SlabDecompShape = nullptr;
 	map<string, ASTNode*>* ptrASTArray = nullptr;
 	map<string, string> attributes;
 	map<string, string> style;
@@ -40,6 +43,10 @@ public:
 	bool y_set = false;
 	bool width_set = false;
 	bool height_set = false;
+	double _x = 0.0;
+	double _y = 0.0;
+	double _width = 0.0;
+	double _height = 0.0;
 	DOMNode(string tagName = "", string textContent = "", int start = 0, int end = 0, int idx = 0) : tagName(tagName), textContent(textContent), start(start), end(end), idx(0)
 	{
 	};

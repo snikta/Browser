@@ -169,6 +169,10 @@ void Slab::deleteRegion(int topY)
 {
 	int oldRegionBottomY = this->RegionsByTop[topY]->bottomY;
 
+	if (this->RegionsByTop.find(oldRegionBottomY) != this->RegionsByTop.end()) {
+		LOut(std::to_string(oldRegionBottomY) + " vs . " + std::to_string(this->RegionsByTop[oldRegionBottomY]->topY));
+	}
+
 	this->RBTRegions->deleteNode(*(this->RBTRegions->search(topY)));
 	this->RBTRegions->deleteNode(*(this->RBTRegions->search(oldRegionBottomY))); // what if oldRegion.bottomY is topY of next region?
 

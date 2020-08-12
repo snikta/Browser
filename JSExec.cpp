@@ -713,6 +713,32 @@ ASTNode PredefinedSubtract(vector<ASTNode> args, Scope& scope) {
 ASTNode PredefinedDivide(vector<ASTNode> args, Scope& scope) {
 	return parseASTNode(&args[0])->getNumber() / parseASTNode(&args[1])->getNumber();
 }
+ASTNode PredefinedAlert(vector <ASTNode> args, Scope& scope) {
+	string retval = "";
+	for (int i = 0, iLen = args.size(); i < iLen; i++) {
+		string strToLog = resolve(args[i], scope).getString();
+		string replacedString = "";
+		for (int j = 0, len = strToLog.size(); j < len; j++) {
+			if (j < len - 1 && strToLog[j] == '\\' && strToLog[j + 1] == 'n') {
+				replacedString += "\n";
+				j++;
+			}
+			else {
+				replacedString += strToLog[j];
+			}
+		}
+		retval += replacedString;
+	}
+	string s1 = retval + "\n";
+	std::wstring widestr = std::wstring(s1.begin(), s1.end());
+	MessageBox(NULL, widestr.c_str(), L"Alert", MB_OK);
+	return ASTNode();
+}
+map<string, ASTNode> eventListeners;
+ASTNode PredefinedAddEventListener(vector <ASTNode> args, Scope& scope) {
+	eventListeners[resolveString(args[0].getString())] = args[1];
+	return ASTNode();
+}
 ASTNode PredefinedLog(vector <ASTNode> args, Scope& scope) {
 	string retval = "";
 	for (int i = 0, iLen = args.size(); i < iLen; i++) {
@@ -794,7 +820,9 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"isset", &PredefinedIsset},
 	{"createPrototype", &PredefinedCreatePrototype},
 	{"createElement", &PredefinedCreateElement},
-	{"appendChild", &PredefinedAppendChild}
+	{"appendChild", &PredefinedAppendChild},
+	{"Alert", &PredefinedAlert},
+	{"addEventListener", &PredefinedAddEventListener}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
@@ -1564,6 +1592,31 @@ ParseNode generateAST(string src) {
 						curParent.parent.childNodes.pop()
 						curParent.parent.childNodes.push(trimmed)*/
 					}
+					/*else {
+						curParent->parent->childNodes.erase(std::remove(curParent->parent->childNodes.begin(), curParent->parent->childNodes.end(), newParent));
+						ParseNode* curBraceNode = new ParseNode;
+						string func = curLine.substr(0, curLine.size() - 1);
+						while (i < len) {
+							func += src[i];
+							if (src[i] == '{') {
+								curBraceNode = new ParseNode;
+								curBraceNode->parent = curBraceNode;
+							}
+							else if (src[i] == '}') {
+								curBraceNode = curBraceNode->parent;
+								if (!(curBraceNode != nullptr && curBraceNode->parent != nullptr)) {
+									break;
+								}
+							}
+							i++;
+						}
+						i--;
+						ParseNode* ptrFuncLine = new ParseNode;
+						ptrFuncLine->type = OtherNode;
+						ptrFuncLine->line = func;
+						curParent->parent->childNodes.push_back(ptrFuncLine);
+						curLine = "";
+					}*/
 				}
 			}
 			else if (start->type == SwitchNode) {
@@ -1656,6 +1709,7 @@ ParseNode generateAST(string src) {
 					curLine = trim(curLine.substr(0, curLine.size() - 1));
 				}
 				ParseNode* start = parseLine(curLine);
+				printParseNode(start, "");
 				if (start->type == SwitchCaseNode) {
 					ParseNode* newParent = new ParseNode;
 					newParent->type = SwitchCaseNode;
@@ -1951,7 +2005,8 @@ ParseNode *parseFunction(string expr, int &i) {
 			else if (expr[i] == '}') {
 				braceNode = braceNode->parent;
 				if (braceNode == nullptr) {
-					return generateAST(expr.substr(startPos, i + 1 - startPos)).childNodes[0];
+					ParseNode *funcAST = generateAST(expr.substr(startPos, i + 1 - startPos)).childNodes[0];
+					return funcAST;
 				}
 			}
 			src += expr[i];
@@ -2116,7 +2171,14 @@ ASTNode parseParens(string expr, Scope& args) {
 				string argsToParse = "";
 				for (int i = 0, len = curParent->parent->childNodes.size(); i < len; i++) {
 					for (int j = 0, jLen = curParent->parent->childNodes[i]->childNodes.size(); j < jLen; j++) { // ???
-						argsToParse += parseASTNode(curParent->parent->childNodes[i]->childNodes[j])->getString();
+						ASTNode* node = parseASTNode(curParent->parent->childNodes[i]->childNodes[j]);
+						if (node->runtimeId != -1) {
+							LOut("<RuntimeObject#" + std::to_string(node->runtimeId) + '>');
+							argsToParse += "<RuntimeObject#" + std::to_string(node->runtimeId) + '>';
+						}
+						else {
+							argsToParse += node->getString();
+						}
 					}
 					argsToParse += ",";
 				}

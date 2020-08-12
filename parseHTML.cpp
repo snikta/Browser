@@ -137,6 +137,7 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 					string scriptSrc;
 					int scriptLen = readTextFile(newNode->attributes["src"], scriptSrc);
 					ParseNode scriptAST = generateAST(scriptSrc);
+					printParseNode(&scriptAST, "");
 					execAST(scriptAST, globalVariables);
 				}
 			}

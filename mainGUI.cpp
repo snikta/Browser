@@ -21,6 +21,8 @@
 #include "fileWatcher.h"
 #include "JSExec.h"
 
+SlabContainer mySlabContainer;
+
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
 map<string, vector<DOMNode*>> elsByClassName;
@@ -80,7 +82,6 @@ class MainWindow : public BaseWindow<MainWindow>
 	ID2D1SolidColorBrush    *redBrush;
 	D2D1_ELLIPSE            ellipse;
 	D2D1_POINT_2F           ptMouse;
-	SlabContainer			mySlabContainer;
 	SlabContainer			scToolbar;
 
 	void    CalculateLayout();
@@ -239,6 +240,20 @@ void MainWindow::DiscardGraphicsResources()
 	SafeRelease(&redBrush);
 }
 
+void setZIndexes(DOMNode& node) {
+	if (node.parentNode == nullptr) {
+		node.set_zindex(0);
+	}
+	else {
+		node.set_zindex(node.parentNode->get_zindex() + 1);
+	}
+	DOMNode* childNode = node.firstChild;
+	while (childNode != nullptr) {
+		setZIndexes(*childNode);
+		childNode = childNode->nextSibling;
+	}
+}
+
 void MainWindow::OnPaint()
 {
 	HRESULT hr = CreateGraphicsResources();
@@ -375,7 +390,34 @@ void MainWindow::OnPaint()
 				return;
 			}
 
+			myParser.rootNode->set_zindex(0);
+
+			nodesInOrder.clear();
+			nodesInOrder = {};
 			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+
+			setZIndexes(*myParser.rootNode);
+
+			int y = 0;
+
+			/*vector <Shape*> shapesToPreprocess;
+			for (int i = 0, len = nodesInOrder.size(); i < len; i++) {
+				DOMNode* node = nodesInOrder[i];
+
+				if (node->SlabDecompShape == nullptr && node->get_tag_name() != "TextNode") {
+					Shape* shapeShape = new Shape;
+					shapeShape->id = mySlabContainer.NextAvailableShapeId++;
+					shapeShape->x1 = rint(node->_x);
+					shapeShape->x2 = rint(node->_x) + rint(node->_width);
+					shapeShape->y1 = rint(node->_y);
+					shapeShape->y2 = rint(node->_y) + rint(node->_height);
+					shapeShape->node = node;
+					node->SlabDecompShape = shapeShape;
+
+					shapesToPreprocess.push_back(shapeShape);
+				}
+			}
+			mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);*/
 
 			if (!MainWindow::nodeToExpand)
 			{
@@ -533,6 +575,9 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	dX = ptMouse.x - x1;
 	dY = ptMouse.y - y1;
 
+	ParseNode *clickFunc = resolveRuntimeObject(eventListeners["click"]).ASTNodeFunc;
+	execAST(*clickFunc, globalVariables);
+
 	if (MainWindow::success)
 	{
 		int largestZIndex = -1;
@@ -640,6 +685,9 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 			int y = 0;
 			for (int i = 0, len = nodesInOrder.size(); i < len; i++)
 			{
+				if (nodesInOrder[i]->get_tag_name() == "TextNode") {
+					continue;
+				}
 				int shapeId = mySlabContainer.NextAvailableShapeId++;
 				int x1, x2, y1, y2;
 
@@ -674,6 +722,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 				shapeShape->y1 = nodesInOrder[i]->y;
 				shapeShape->y2 = nodesInOrder[i]->y + nodesInOrder[i]->height;
 				shapeShape->node = nodesInOrder[i];
+
+				nodesInOrder[i]->SlabDecompShape = shapeShape;
 
 				shapesToPreprocess.push_back(shapeShape);
 				shapesToPreprocess.push_back(newShape);
