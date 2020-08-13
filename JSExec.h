@@ -186,7 +186,7 @@ ASTNode* parseNode(ASTNode* node, Scope& args);
 ParseNode* parseFunction(string expr, int& i);
 ASTNode parseParens(string expr, Scope& args);
 vector<ASTNode> parseArguments(string argstring, Scope& scope);
-extern map<string, ASTNode> eventListeners;
+extern map<string, vector<ASTNode>> eventListeners;
 extern vector<ParseNode> scriptsToRunOnLoad;
 extern vector<vector<ASTNode>> eventListenersToBindArgs;
 extern vector<Scope> eventListenersToBindScopes;

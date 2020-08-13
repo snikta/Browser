@@ -20,6 +20,8 @@
 #include "SlabDecomposition.h"
 #include "fileWatcher.h"
 #include "JSExec.h"
+#include <cstdlib>
+#include <ctime>
 
 SlabContainer mySlabContainer;
 
@@ -136,6 +138,7 @@ public:
 	{
 		//MessageBox(m_hwnd, L"Hello this is a test for the world (hello world)!", L"So yeah this is a caption", MB_OK);
 
+		std::srand(std::time(nullptr));
 		testJSExec();
 
 		myParser.set_location("C:\\c++\\Browser\\layout.html");
@@ -832,6 +835,20 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		}
 	}
 	//}
+
+	for (int j = 0, jLen = eventListeners["mousemove"].size(); j < jLen; j++) {
+		ASTNode astFunc = resolveRuntimeObject(eventListeners["mousemove"][j]);
+		Scope myScope;
+		myScope.__parent = &globalVariables;
+		myScope.ScopeArray["pageX"] = ASTNode(string(std::to_string((double)MainWindow::x1 / (renderTargetSize.width * viewportScaleX) * 100) + '%'));
+		myScope.ScopeArray["pageY"] = ASTNode(string(std::to_string((double)MainWindow::y1 / (renderTargetSize.height * viewportScaleY) * 100) + '%'));
+		execAST(*astFunc.ASTNodeFunc, myScope);
+	}
+
+	/*ASTNode imgApolloStyle = resolveRuntimeObject(*(*resolveRuntimeObject(globalVariables.ScopeArray["imgApollo"]).ASTArray)["style"]);
+	for (auto it = imgApolloStyle.ASTArray->begin(); it != imgApolloStyle.ASTArray->end(); it++) {
+		LOut(it->first + ": " + it->second->getString());
+	}*/
 
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }

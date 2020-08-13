@@ -82,7 +82,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			splitString((*node.ptrASTArray)["class"]->getString(), ' ', node.classList);
 		}
 
-		for (auto it = (*node.ptrASTArray)["style"]->ASTArray->begin(); it != (*node.ptrASTArray)["style"]->ASTArray->end(); it++) {
+		for (auto it = resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray->begin(); it != resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray->end(); it++) {
 			node.style[it->first] = it->second->getString();
 		}
 
@@ -201,6 +201,12 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				if (node.style["position"] == "absolute") {
 					node.y = parentNode->y + stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * parentNode->height;
 				}
+
+				if (node.style["position"] == "fixed") {
+					node.x = stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * renderTargetSize.width * viewportScaleX;
+					node.y = stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * renderTargetSize.height * viewportScaleY;
+				}
+
 				//}
 				//if (!width_set)
 				//{

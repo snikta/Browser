@@ -6,6 +6,8 @@
 #include "DOMNode.h"
 #include "JSExec.h"
 #include <windows.h>
+#include <cstdlib>
+#include <ctime>
 
 void LOut(string str) {
 	string s1 = str + "\n";
@@ -208,6 +210,16 @@ ASTNode resolveFunc(ScopeContainer* scopeBox, bool newvalExists, ASTNode newval)
 		}
 	}*/
 
+	op1 = resolveRuntimeObject(op1);
+	if (op1.ASTArray->size()) {
+		if (!newvalExists) {
+			ASTNode* ptrRetval = (*op1.ASTArray)[op2Str];
+			if (ptrRetval != nullptr) {
+				return *ptrRetval;
+			}
+		}
+	}
+
 	do {
 		if (ptrScope->ScopeArray.find(op1Str) != ptrScope->ScopeArray.end()) {
 			if (ptrScope->__parent == nullptr) {
@@ -216,7 +228,7 @@ ASTNode resolveFunc(ScopeContainer* scopeBox, bool newvalExists, ASTNode newval)
 				ASTNode astFound = resolveRuntimeObject(ptrScope->ScopeArray[op1Str]);
 				do {
 					if ((*astFound.ASTArray).find(op2Str) != (*astFound.ASTArray).end()) {
-						return *((*astFound.ASTArray)[op2Str]);
+						return resolveRuntimeObject(*((*astFound.ASTArray)[op2Str]));
 					}
 					if ((*astFound.ASTArray).find("prototype") != (*astFound.ASTArray).end()) {
 						astFound = *((*astFound.ASTArray)["prototype"]);
@@ -230,7 +242,7 @@ ASTNode resolveFunc(ScopeContainer* scopeBox, bool newvalExists, ASTNode newval)
 		}
 	} while (ptrScope->__parent != nullptr && (ptrScope = ptrScope->__parent));
 
-	return *((*(op1.ASTArray))[op2Str] = new ASTNode(newval));
+	return *((*(resolveRuntimeObject(op1).ASTArray))[op2Str] = new ASTNode(newval));
 }
 
 ASTNode* parseASTNode(ASTNode* node) {
@@ -241,14 +253,14 @@ ASTNode* parseASTNode(ASTNode* node) {
 }
 
 ASTNode resolve(ASTNode& op, Scope& scope) {
-	if (op.ASTArray->size()) {
-		return op;
+	if (op.scopeBox != nullptr) {
+		return resolveFunc(op.scopeBox, false, ASTNode());
 	}
 	if (op.getString()[0] == '"' && op.getString()[op.getString().size() - 1] == '"') {
 		return ASTNode(string(resolveString(op.getString())));
 	}
-	if (op.scopeBox != nullptr) {
-		return resolveFunc(op.scopeBox, false, ASTNode());
+	if (op.ASTArray->size()) {
+		return op;
 	}
 
 	Scope* ptrScope = &scope;
@@ -604,20 +616,20 @@ ASTNode Dot(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
 
-	op1 = resolveRuntimeObject(op1);
-	op2 = parseParens(op2.getString(), scope);
+	//op1 = resolveRuntimeObject(op1);
+	//op2 = parseParens(op2.getString(), scope);
 
 	ASTNode retval;
 
-	if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
+	//if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
 		retval.scopeBox = new ScopeContainer;
 		retval.scopeBox->scope__ = &scope;
 		retval.scopeBox->op1__ = op1;
 		retval.scopeBox->op2__ = op2;
-	}
+	/*}
 	else {
 		retval = *((*op1.ASTArray)[resolveString(op2.getString())]);
-	}
+	}*/
 
 	return retval;
 }
@@ -734,20 +746,33 @@ ASTNode PredefinedAlert(vector <ASTNode> args, Scope& scope) {
 	MessageBox(NULL, widestr.c_str(), L"Alert", MB_OK);
 	return ASTNode();
 }
-map<string, ASTNode> eventListeners;
+map<string, vector<ASTNode>> eventListeners;
+ASTNode PredefinedRandom(vector <ASTNode> args, Scope& scope) {
+	long double randomNumber = round(((double) std::rand() / (RAND_MAX)) * args[0].getNumber());
+	return ASTNode(randomNumber);
+}
 ASTNode PredefinedAddEventListener(vector <ASTNode> args, Scope& scope) {
 	if (pageLoaded == false) {
 		eventListenersToBindArgs.push_back(args);
 		eventListenersToBindScopes.push_back(scope);
 		return ASTNode();
 	}
-	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
-	Shape* ptrShape = astHTMLElement.ptrDOMNode->SlabDecompShape;
-	string handlerName = resolveString(args[1].getString());
-	if (ptrShape->eventHandlers.find(handlerName) == ptrShape->eventHandlers.end()) {
-		ptrShape->eventHandlers[handlerName] = {};
+	if (args.size() == 2) {
+		string handlerName = resolveString(args[0].getString());
+		if (eventListeners.find(handlerName) == eventListeners.end()) {
+			eventListeners[handlerName] = {};
+		}
+		eventListeners[handlerName].push_back(args[1]);
 	}
-	ptrShape->eventHandlers[handlerName].push_back(args[2]);
+	else if (args.size() == 3) {
+		ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
+		Shape* ptrShape = astHTMLElement.ptrDOMNode->SlabDecompShape;
+		string handlerName = resolveString(args[1].getString());
+		if (ptrShape->eventHandlers.find(handlerName) == ptrShape->eventHandlers.end()) {
+			ptrShape->eventHandlers[handlerName] = {};
+		}
+		ptrShape->eventHandlers[handlerName].push_back(args[2]);
+	}
 	return ASTNode();
 }
 ASTNode PredefinedLog(vector <ASTNode> args, Scope& scope) {
@@ -833,7 +858,8 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"createElement", &PredefinedCreateElement},
 	{"appendChild", &PredefinedAppendChild},
 	{"Alert", &PredefinedAlert},
-	{"addEventListener", &PredefinedAddEventListener}
+	{"addEventListener", &PredefinedAddEventListener},
+	{"random", &PredefinedRandom}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
@@ -849,6 +875,10 @@ void evaluateOperatorListNode(OperatorListNode* obj, Scope& args, AbstractSyntax
 		obj->op2.ASTNodeString = trim(obj->op2.ASTNodeString);
 	}
 	ASTNode val = operatorFunctions[obj->operatorName](obj->op1, obj->op2, args, ast);
+	/*if (val.scopeBox != nullptr) {
+		val = resolveFunc(val.scopeBox, false, ASTNode());
+		LOut("hmm: " + val.getString());
+	}*/
 	obj->value = val;
 	if (obj->prev) {
 		obj->prev->op2 = val;
@@ -1720,7 +1750,6 @@ ParseNode generateAST(string src) {
 					curLine = trim(curLine.substr(0, curLine.size() - 1));
 				}
 				ParseNode* start = parseLine(curLine);
-				printParseNode(start, "");
 				if (start->type == SwitchCaseNode) {
 					ParseNode* newParent = new ParseNode;
 					newParent->type = SwitchCaseNode;
@@ -1935,7 +1964,9 @@ ASTNode* parseNode(ASTNode* node, Scope& args) {
 	retval = parseASTNode(retval);
 	//if (typeof node=='string') return '"' + node + '"'
 	if (retval->scopeBox != nullptr) {
-		retval = &resolveFunc(retval->scopeBox, false, ASTNode());
+		while (retval->scopeBox != nullptr) {
+			retval = &resolveFunc(retval->scopeBox, false, ASTNode());
+		}
 	}
 	retval = parseASTNode(retval);
 	if (retval->childNodes.size()) {
@@ -2184,7 +2215,6 @@ ASTNode parseParens(string expr, Scope& args) {
 					for (int j = 0, jLen = curParent->parent->childNodes[i]->childNodes.size(); j < jLen; j++) { // ???
 						ASTNode* node = parseASTNode(curParent->parent->childNodes[i]->childNodes[j]);
 						if (node->runtimeId != -1) {
-							LOut("<RuntimeObject#" + std::to_string(node->runtimeId) + '>');
 							argsToParse += "<RuntimeObject#" + std::to_string(node->runtimeId) + '>';
 						}
 						else {
@@ -2384,7 +2414,10 @@ ASTNode parseParens(string expr, Scope& args) {
 							joined += "<RuntimeObject#" + std::to_string(runtimeObjId) + '>';
 						}
 						else if (node->scopeBox != nullptr) {
-							joined += parseASTNode(&resolveFunc(node->scopeBox, false, ASTNode()))->getString();
+							while (node->scopeBox != nullptr) {
+								node = &resolveFunc(node->scopeBox, false, ASTNode());
+							}
+							joined += parseASTNode(node)->getString();
 						}
 						else {
 							joined += node->getString();

@@ -73,8 +73,6 @@ appendChild(main, sidebar)
 imgApollo.src = "apollo.jpg"
 imgApollo.width = "233"
 imgApollo.height = "155"
-imgApollo.id = "astronautLEM"
-appendChild(sidebar, imgApollo)
 
 content.id = 'content'
 
@@ -140,10 +138,19 @@ appendChild(content, contentFooter)
 appendChild(footer, footerLeftColumn)
 appendChild(footer, footerRightColumn)
 
-var clickHandler = function (e) {
-	Alert("You clicked on the Apollo image")
+imgApollo.style.left = '10%'
+imgApollo.style.top = '10%'
+imgApollo.style.display = 'block'
+imgApollo.style.position = 'fixed'
+
+var mouseMoveHandler = function (e) {
+	imgApollo.style.left = pageX
+	imgApollo.style.top = pageY
 }
-addEventListener(imgApollo, 'click', clickHandler)
+
+var clickHandler = function (e) {
+}
+addEventListener('mousemove', mouseMoveHandler)
 
 var clickHandlerMusk = function (e) {
 	Alert("You clicked on Elon Musk's email address")
