@@ -855,6 +855,16 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 void MainWindow::OnLButtonUp()
 {
+	for (int j = 0, jLen = eventListeners["mouseup"].size(); j < jLen; j++) {
+		ASTNode astFunc = resolveRuntimeObject(eventListeners["mouseup"][j]);
+		Scope myScope;
+		myScope.__parent = &globalVariables;
+		if (astFunc.ASTNodeFunc == nullptr) {
+			continue;
+		}
+		execAST(*astFunc.ASTNodeFunc, myScope);
+	}
+
 	ReleaseCapture();
 }
 

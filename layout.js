@@ -138,8 +138,6 @@ appendChild(content, contentFooter)
 appendChild(footer, footerLeftColumn)
 appendChild(footer, footerRightColumn)
 
-imgApollo.style.left = '10%'
-imgApollo.style.top = '10%'
 imgApollo.style.display = 'block'
 imgApollo.style.position = 'fixed'
 
@@ -147,10 +145,18 @@ var mouseMoveHandler = function (e) {
 	imgApollo.style.left = pageX
 	imgApollo.style.top = pageY
 }
+var mouseUpHandler = function (e) {
+	Log("mouseUpHandler invoked")
+	removeEventListener('mousemove', mouseMoveHandler)
+	removeEventListener('mouseup', mouseUpHandler)
+}
 
 var clickHandler = function (e) {
+	Log("click handler invoked")
+	addEventListener('mousemove', mouseMoveHandler)
+	addEventListener('mouseup', mouseUpHandler)
 }
-addEventListener('mousemove', mouseMoveHandler)
+addEventListener(imgApollo, 'click', clickHandler)
 
 var clickHandlerMusk = function (e) {
 	Alert("You clicked on Elon Musk's email address")

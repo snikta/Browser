@@ -751,6 +751,25 @@ ASTNode PredefinedRandom(vector <ASTNode> args, Scope& scope) {
 	long double randomNumber = round(((double) std::rand() / (RAND_MAX)) * args[0].getNumber());
 	return ASTNode(randomNumber);
 }
+ASTNode PredefinedRemoveEventListener(vector <ASTNode> args, Scope& scope) {
+	if (args.size() == 2) {
+		string handlerName = resolveString(args[0].getString());
+		while (true) {
+			bool found = false;
+			for (int i = 0, len = eventListeners[handlerName].size(); i < len; i++) {
+				if (eventListeners[handlerName][i].ASTNodeString == args[1].ASTNodeString) {
+					found = true;
+					eventListeners[handlerName].erase(eventListeners[handlerName].begin() + i);
+					break;
+				}
+			}
+			if (!found) {
+				break;
+			}
+		}
+	}
+	return ASTNode();
+}
 ASTNode PredefinedAddEventListener(vector <ASTNode> args, Scope& scope) {
 	if (pageLoaded == false) {
 		eventListenersToBindArgs.push_back(args);
@@ -859,6 +878,7 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"appendChild", &PredefinedAppendChild},
 	{"Alert", &PredefinedAlert},
 	{"addEventListener", &PredefinedAddEventListener},
+	{"removeEventListener", &PredefinedRemoveEventListener},
 	{"random", &PredefinedRandom}
 };
 
