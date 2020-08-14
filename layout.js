@@ -141,9 +141,14 @@ appendChild(footer, footerRightColumn)
 imgApollo.style.display = 'block'
 imgApollo.style.position = 'fixed'
 
+var startX = 0
+var startY = 0
+
 var mouseMoveHandler = function (e) {
-	imgApollo.style.left = pageX
-	imgApollo.style.top = pageY
+	imgApollo.style.left = (getLeft(imgApollo) / innerWidth * 100 + (pageX - startX) / innerWidth * 100) + '%'
+	imgApollo.style.top = (getTop(imgApollo) / innerHeight * 100 + (pageY - startY) / innerHeight * 100) + '%'
+	startX = pageX
+	startY = pageY
 }
 var mouseUpHandler = function (e) {
 	Log("mouseUpHandler invoked")
@@ -152,6 +157,8 @@ var mouseUpHandler = function (e) {
 }
 
 var clickHandler = function (e) {
+	startX = pageX
+	startY = pageY
 	Log("click handler invoked")
 	addEventListener('mousemove', mouseMoveHandler)
 	addEventListener('mouseup', mouseUpHandler)

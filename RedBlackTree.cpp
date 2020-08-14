@@ -360,7 +360,7 @@ RedBlackNode* RedBlackTree::deleteNode(RedBlackNode& z)
 		deleteNodeFixup(x);
 	}
 
-	delete &z;
+	//delete &z;
 
 	return y;
 };

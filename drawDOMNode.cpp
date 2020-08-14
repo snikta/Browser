@@ -27,9 +27,11 @@ const vector<string> styleSkipList = { "box-shadow", "margin", "position", "disp
 float viewportScaleX, viewportScaleY;
 
 void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*>& nodesInOrder, int level) {
+	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 	DOMNode* parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
+	bool shouldRecreateSlabDecompShape = false;
 
 	if (node.get_tag_name() == "script") {
 		return;
@@ -71,10 +73,12 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 		if (node.ptrASTArray->find("width") != node.ptrASTArray->end()) {
 			node.attributes["width"] = (*node.ptrASTArray)["width"]->getString();
+			node.style["width"] = std::to_string(stod(node.attributes["width"]) / node.parentNode->width * viewportScaleX * 100) + '%';
 		}
 
 		if (node.ptrASTArray->find("height") != node.ptrASTArray->end()) {
 			node.attributes["height"] = (*node.ptrASTArray)["height"]->getString();
+			node.style["height"] = std::to_string(stod(node.attributes["height"]) / node.parentNode->height * viewportScaleY * 100) + '%';
 		}
 
 		if (node.ptrASTArray->find("class") != node.ptrASTArray->end()) {
@@ -82,7 +86,21 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			splitString((*node.ptrASTArray)["class"]->getString(), ' ', node.classList);
 		}
 
-		for (auto it = resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray->begin(); it != resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray->end(); it++) {
+		map<string, ASTNode*> *ptrStyle = resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray;
+		string oldLeft = "";
+		if (ptrStyle->find("left") != ptrStyle->end()) {
+			oldLeft = (*ptrStyle)["left"]->getString();
+		}
+		string oldTop = "";
+		if (ptrStyle->find("top") != ptrStyle->end()) {
+			oldTop = (*ptrStyle)["top"]->getString();
+		}
+
+		if ((oldLeft != "" && oldLeft != node.style["left"]) || (oldTop != "" && oldTop != node.style["top"])) {
+			shouldRecreateSlabDecompShape = true;
+		}
+
+		for (auto it = ptrStyle->begin(); it != ptrStyle->end(); it++) {
 			node.style[it->first] = it->second->getString();
 		}
 
@@ -115,7 +133,6 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	}
 
 	string tagName = node.get_tag_name();
-	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 
 	//ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
 	//ctx.shadowColor = "transparent";
@@ -415,6 +432,28 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	node._y = node.y;
 	node._width = node.width;
 	node._height = node.height;
+
+	if (shouldRecreateSlabDecompShape) {
+		selRegion = nullptr;
+
+		Shape* newShape = new Shape;
+		newShape->eventHandlers = node.SlabDecompShape->eventHandlers;
+
+		mySlabContainer.deleteShape(*node.SlabDecompShape);
+		delete node.SlabDecompShape;
+
+		int newShapeId = mySlabContainer.NextAvailableShapeId++;
+		newShape->id = newShapeId;
+		newShape->x1 = node.x;
+		newShape->x2 = node.x + node.width;
+		newShape->y1 = node.y;
+		newShape->y2 = node.y + node.height;
+		newShape->node = &node;
+		
+		mySlabContainer.ShapeMembers[newShapeId] = newShape;
+		mySlabContainer.addShape(*newShape);
+		node.SlabDecompShape = newShape;
+	}
 	
 	if (node.get_child_count())
 	{

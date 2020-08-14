@@ -167,16 +167,17 @@ void Slab::prepareBoundLineGivenYPoint(int lineY, bool isTopOfBBox, int edgeWeMi
 };
 void Slab::deleteRegion(int topY)
 {
+	//LOut("topY to delete: " + std::to_string(topY));
 	int oldRegionBottomY = this->RegionsByTop[topY]->bottomY;
 
-	if (this->RegionsByTop.find(oldRegionBottomY) != this->RegionsByTop.end()) {
-		LOut(std::to_string(oldRegionBottomY) + " vs . " + std::to_string(this->RegionsByTop[oldRegionBottomY]->topY));
-	}
+	/*if (this->RegionsByTop.find(oldRegionBottomY) != this->RegionsByTop.end()) {
+		oldRegionBottomY == this->RegionsByTop[oldRegionBottomY]->topY
+	}*/
+
+	this->RegionsByTop.erase(topY);
 
 	this->RBTRegions->deleteNode(*(this->RBTRegions->search(topY)));
 	this->RBTRegions->deleteNode(*(this->RBTRegions->search(oldRegionBottomY))); // what if oldRegion.bottomY is topY of next region?
-
-	this->RegionsByTop.erase(topY);
 }
 void Slab::splitRegion(int topY, int splitY)
 {

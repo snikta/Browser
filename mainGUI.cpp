@@ -24,6 +24,7 @@
 #include <ctime>
 
 SlabContainer mySlabContainer;
+Region* selRegion;
 
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
@@ -97,7 +98,6 @@ class MainWindow : public BaseWindow<MainWindow>
 	void    Resize();
 
 public:
-	Region * selRegion;
 	DOMNode *nodeToExpand;
 	bool success;
 	float slabLeft, slabRight, regionTop, regionBottom;
@@ -474,7 +474,7 @@ void MainWindow::OnPaint()
 				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 				{
 					DOMNode *node = selRegion->shapes[i]->node;
-					if (node)
+					if (node && node != nullptr)
 					{
 
 						if (node->get_zindex() >= (largestZIndex - 1)) {
@@ -577,10 +577,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 
 void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 {
+	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 	SetCapture(m_hwnd);
 	ptMouse = DPIScale::PixelsToDips(pixelX, pixelY);
 	dX = ptMouse.x - x1;
 	dY = ptMouse.y - y1;
+
+	const D2D1_POINT_2F dips = DPIScale::PixelsToDips(pixelX, pixelY);
+	const float x1 = -dX + dips.x;
+	const float y1 = -dY + dips.y;
+
+	MainWindow::x1 = x1;
+	MainWindow::y1 = y1;
 
 	if (MainWindow::success)
 	{
@@ -613,7 +621,11 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 			vector<ASTNode> clickFuncs = selRegion->shapes[i]->eventHandlers["click"];
 			for (int j = 0, jLen = clickFuncs.size(); j < jLen; j++) {
 				ASTNode astFunc = resolveRuntimeObject(clickFuncs[j]);
-				execAST(*astFunc.ASTNodeFunc, globalVariables);
+				Scope myScope;
+				myScope.__parent = &globalVariables;
+				myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
+				myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
+				execAST(*astFunc.ASTNodeFunc, myScope);
 			}
 			if (node && node != nullptr)
 			{
@@ -635,6 +647,9 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		return;
 	}
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
+
+	globalVariables.ScopeArray["innerWidth"] = ASTNode((long double)renderTargetSize.width * viewportScaleX);
+	globalVariables.ScopeArray["innerHeight"] = ASTNode((long double)renderTargetSize.height * viewportScaleY);
 
 	//if (flags & MK_LBUTTON)
 	//{
@@ -823,7 +838,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 		if (regionExists && y2 >= region->topY && y2 <= region->bottomY)
 		{
-			MainWindow::selRegion = region;
+			selRegion = region;
 
 			MainWindow::slabLeft = slab->leftX;
 			MainWindow::slabRight = slab->rightX;
@@ -840,8 +855,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mousemove"][j]);
 		Scope myScope;
 		myScope.__parent = &globalVariables;
-		myScope.ScopeArray["pageX"] = ASTNode(string(std::to_string((double)MainWindow::x1 / (renderTargetSize.width * viewportScaleX) * 100) + '%'));
-		myScope.ScopeArray["pageY"] = ASTNode(string(std::to_string((double)MainWindow::y1 / (renderTargetSize.height * viewportScaleY) * 100) + '%'));
+		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
 		execAST(*astFunc.ASTNodeFunc, myScope);
 	}
 

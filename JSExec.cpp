@@ -748,7 +748,7 @@ ASTNode PredefinedAlert(vector <ASTNode> args, Scope& scope) {
 }
 map<string, vector<ASTNode>> eventListeners;
 ASTNode PredefinedRandom(vector <ASTNode> args, Scope& scope) {
-	long double randomNumber = round(((double) std::rand() / (RAND_MAX)) * args[0].getNumber());
+	long double randomNumber = ((double) std::rand() / (RAND_MAX));
 	return ASTNode(randomNumber);
 }
 ASTNode PredefinedRemoveEventListener(vector <ASTNode> args, Scope& scope) {
@@ -866,6 +866,16 @@ ASTNode PredefinedAppendChild(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
+ASTNode PredefinedGetLeft(vector<ASTNode> args, Scope& scope) {
+	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
+	return ASTNode((long double) astHTMLElement.ptrDOMNode->x);
+}
+
+ASTNode PredefinedGetTop(vector<ASTNode> args, Scope& scope) {
+	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
+	return ASTNode((long double) astHTMLElement.ptrDOMNode->y);
+}
+
 map<string, predefinedFunction> predefinedFunctions = {
 	{"Add", &PredefinedAdd},
 	{"Multiply", &PredefinedMultiply},
@@ -879,7 +889,9 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"Alert", &PredefinedAlert},
 	{"addEventListener", &PredefinedAddEventListener},
 	{"removeEventListener", &PredefinedRemoveEventListener},
-	{"random", &PredefinedRandom}
+	{"random", &PredefinedRandom},
+	{"getLeft", &PredefinedGetLeft},
+	{"getTop", &PredefinedGetTop}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
@@ -949,6 +961,10 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 
 	if (ast.size() == 0) {
 		return "";
+	}
+
+	if (ast.size() == 1 && ast[0].getType() == ASTNumberNode) {
+		return ast[0];
 	}
 
 	if (ast.size() == 1 && ast[0].ASTNodeString.find("<RuntimeObject#") != string::npos) {

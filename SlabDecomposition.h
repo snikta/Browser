@@ -94,3 +94,4 @@ public:
 };
 
 extern SlabContainer mySlabContainer;
+extern Region* selRegion;
