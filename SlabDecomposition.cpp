@@ -170,14 +170,13 @@ void Slab::deleteRegion(int topY)
 	//LOut("topY to delete: " + std::to_string(topY));
 	int oldRegionBottomY = this->RegionsByTop[topY]->bottomY;
 
-	/*if (this->RegionsByTop.find(oldRegionBottomY) != this->RegionsByTop.end()) {
-		oldRegionBottomY == this->RegionsByTop[oldRegionBottomY]->topY
-	}*/
-
 	this->RegionsByTop.erase(topY);
 
 	this->RBTRegions->deleteNode(*(this->RBTRegions->search(topY)));
-	this->RBTRegions->deleteNode(*(this->RBTRegions->search(oldRegionBottomY))); // what if oldRegion.bottomY is topY of next region?
+
+	if (!(this->RegionsByTop.find(oldRegionBottomY) != this->RegionsByTop.end() && oldRegionBottomY == this->RegionsByTop[oldRegionBottomY]->topY)) {
+		this->RBTRegions->deleteNode(*(this->RBTRegions->search(oldRegionBottomY))); // what if oldRegion.bottomY is topY of next region?
+	}
 }
 void Slab::splitRegion(int topY, int splitY)
 {
@@ -622,6 +621,9 @@ void SlabContainer::deleteShape(Shape& shape)
 			for (int j = 0, jLen = slab->shapeCount; j < jLen; j++)
 			{
 				Shape* sh = this->ShapeMembers[slab->shapeIds[j]];
+				if (sh == nullptr) {
+					continue;
+				}
 				vector<Slab*>::iterator it2 = find(sh->slabs.begin(), sh->slabs.end(), slab);
 				if (it2 != sh->slabs.end())
 				{
@@ -692,6 +694,12 @@ void SlabContainer::deleteShape(Shape& shape)
 
 			for (int j = 0, jLen = oSlab->shapeIds.size(); j < jLen; j++)
 			{
+				if (this->ShapeMembers.find(oSlab->shapeIds[j]) == this->ShapeMembers.end()) {
+					continue;
+				}
+				if (this->ShapeMembers[oSlab->shapeIds[j]] == nullptr) {
+					continue;
+				}
 				mySlab->addShape(*(this->ShapeMembers[oSlab->shapeIds[j]]));
 				this->ShapeMembers[oSlab->shapeIds[j]]->slabs.push_back(mySlab);
 			}

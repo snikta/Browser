@@ -71,3 +71,9 @@ a { color: blue; }
 	left: 50%;
 	background: rgb(30,144,255);
 }
+
+.handle {
+	background: rgb(255,0,0);
+	position: fixed;
+	display: block;
+}

@@ -157,16 +157,67 @@ var shapeMouseUp = function (e) {
 var shapeMouseMove = function (e) {
 	var oldLeft = getLeft(selectedElement) / innerWidth * 100
 	var oldTop = getTop(selectedElement) / innerHeight * 100 - getTop(header) / innerHeight * 100
+	
+	var left = getLeft(selectedElement) / innerWidth * 100
+	var top = getTop(selectedElement) / innerHeight * 100
+	var width = getWidth(selectedElement) / innerWidth * 100
+	var height = getHeight(selectedElement) / innerHeight * 100
+	
+	moveHandles(left, top, width, height)
+	
 	selectedElement.style.left = (oldLeft + ((pageX - startX) / innerWidth * 100)) + '%'
 	selectedElement.style.top = (oldTop + ((pageY - startY) / innerHeight * 100)) + '%'
+	
 	startX = pageX
 	startY = pageY
 }
 
+var nwHandle = createElement('div')
+var neHandle = createElement('div')
+var seHandle = createElement('div')
+var swHandle = createElement('div')
+
+nwHandle["class"] = 'handle'
+neHandle["class"] = 'handle'
+seHandle["class"] = 'handle'
+swHandle["class"] = 'handle'
+
+nwHandle.style.width = 10 / innerWidth * 100 + '%'
+nwHandle.style.height = 10 / innerHeight * 100 + '%'
+neHandle.style.width = 10 / innerWidth * 100 + '%'
+neHandle.style.height = 10 / innerHeight * 100 + '%'
+seHandle.style.width = 10 / innerWidth * 100 + '%'
+seHandle.style.height = 10 / innerHeight * 100 + '%'
+swHandle.style.width = 10 / innerWidth * 100 + '%'
+swHandle.style.height = 10 / innerHeight * 100 + '%'
+
+var moveHandles = function (left, top, width, height) {
+	nwHandle.style.left = (left - 5) + '%'
+	nwHandle.style.top = (top - 5) + '%'
+	
+	neHandle.style.left = (left + 5 + width) + '%'
+	neHandle.style.top = (top - 5) + '%'
+	
+	seHandle.style.left = (left + 5 + width) + '%'
+	seHandle.style.top = (top + 5 + height) + '%'
+	
+	swHandle.style.left = (left - 5) + '%'
+	swHandle.style.top = (top + 5 + height) + '%'
+}
+
 var shapeMouseDown = function (e) {
 	selectedElement = this
+	
+	var left = getLeft(selectedElement) / innerWidth * 100
+	var top = getTop(selectedElement) / innerHeight * 100
+	var width = getWidth(selectedElement) / innerWidth * 100
+	var height = getHeight(selectedElement) / innerHeight * 100
+	
 	startX = pageX
 	startY = pageY
+	
+	moveHandles(left, top, width, height)
+	
 	addEventListener('mousemove', shapeMouseMove)
 	addEventListener('mouseup', shapeMouseUp)
 }
@@ -185,14 +236,12 @@ var mouseMoveHandler = function (e) {
 	selectedElement.style.height = (height / innerHeight * 100) + '%'
 }
 var mouseUpHandler = function (e) {
-	Log("mouseUpHandler invoked")
 	addEventListener(selectedElement, 'mousedown', shapeMouseDown)
 	removeEventListener('mousemove', mouseMoveHandler)
 	removeEventListener('mouseup', mouseUpHandler)
 }
 
 function mouseDownHandler(e) {
-	Log("mouseDownHandler invoked")
 	selectedElement = createElement('div')
 	selectedElement.style.background = 'rgb(0,0,0)'
 	selectedElement.style.position = 'fixed'

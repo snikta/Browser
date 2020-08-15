@@ -868,6 +868,16 @@ ASTNode PredefinedAppendChild(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
+ASTNode PredefinedGetWidth(vector<ASTNode> args, Scope& scope) {
+	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
+	return ASTNode((long double)astHTMLElement.ptrDOMNode->width);
+}
+
+ASTNode PredefinedGetHeight(vector<ASTNode> args, Scope& scope) {
+	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
+	return ASTNode((long double)astHTMLElement.ptrDOMNode->height);
+}
+
 ASTNode PredefinedGetLeft(vector<ASTNode> args, Scope& scope) {
 	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
 	return ASTNode((long double) astHTMLElement.ptrDOMNode->x);
@@ -908,7 +918,9 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"removeEventListener", &PredefinedRemoveEventListener},
 	{"random", &PredefinedRandom},
 	{"getLeft", &PredefinedGetLeft},
-	{"getTop", &PredefinedGetTop}
+	{"getTop", &PredefinedGetTop},
+	{"getWidth", &PredefinedGetWidth},
+	{"getHeight", &PredefinedGetHeight}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
