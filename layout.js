@@ -177,32 +177,89 @@ var neHandle = createElement('div')
 var seHandle = createElement('div')
 var swHandle = createElement('div')
 
+nwHandle.id = 'nwHandle'
+neHandle.id = 'neHandle'
+seHandle.id = 'seHandle'
+swHandle.id = 'swHandle'
+
 nwHandle["class"] = 'handle'
 neHandle["class"] = 'handle'
 seHandle["class"] = 'handle'
 swHandle["class"] = 'handle'
 
-nwHandle.style.width = 10 / innerWidth * 100 + '%'
-nwHandle.style.height = 10 / innerHeight * 100 + '%'
-neHandle.style.width = 10 / innerWidth * 100 + '%'
-neHandle.style.height = 10 / innerHeight * 100 + '%'
-seHandle.style.width = 10 / innerWidth * 100 + '%'
-seHandle.style.height = 10 / innerHeight * 100 + '%'
-swHandle.style.width = 10 / innerWidth * 100 + '%'
-swHandle.style.height = 10 / innerHeight * 100 + '%'
+nwHandle.style.width = 8 / innerWidth * 100 + '%'
+nwHandle.style.height = 8 / innerHeight * 100 + '%'
+neHandle.style.width = 8 / innerWidth * 100 + '%'
+neHandle.style.height = 8 / innerHeight * 100 + '%'
+seHandle.style.width = 8 / innerWidth * 100 + '%'
+seHandle.style.height = 8 / innerHeight * 100 + '%'
+swHandle.style.width = 8 / innerWidth * 100 + '%'
+swHandle.style.height = 8 / innerHeight * 100 + '%'
+
+var anchorHandle = nwHandle
+var clickedHandle = seHandle
+
+var selectHandle = function (e) {
+	clickedHandle = this
+	
+	if (clickedHandle.id == 'nwHandle') {
+		anchorHandle = seHandle
+	} else if (clickedHandle.id == 'neHandle') {
+		anchorHandle = swHandle
+	} else if (clickedHandle.id == 'seHandle') {
+		anchorHandle = nwHandle
+	} else if (clickedHandle.id == 'swHandle') {
+		anchorHandle = neHandle
+	}
+	
+	addEventListener('mousemove', dragHandle)
+	addEventListener('mouseup', dropHandle)
+}
+
+var dragHandle = function (e) {
+	clickedHandle.style.left = ((pageX - 4) / innerWidth * 100) + '%'
+	clickedHandle.style.top = ((pageY - 4) / innerHeight * 100) + '%'
+	
+	var anchorLeft = getLeft(anchorHandle)
+	var anchorTop = getTop(anchorHandle)
+	var clickedLeft = getLeft(clickedHandle)
+	var clickedTop = getTop(clickedHandle)
+	
+	var left = min(anchorLeft, clickedLeft)
+	var top = min(anchorTop, clickedTop)
+	var right = max(anchorLeft, clickedLeft)
+	var bottom = max(anchorTop, clickedTop)
+	var width = right - left - 16 * 2
+	var height = bottom - top - 16 * 2
+	
+	selectedElement.style.left = ((left + 16) / innerWidth * 100 - getLeft(header) / innerWidth * 100) + '%'
+	selectedElement.style.top = ((top + 16) / innerHeight * 100 - getTop(header) / innerHeight * 100) + '%'
+	selectedElement.style.width = (width / innerWidth * 100) + '%'
+	selectedElement.style.height = (height / innerHeight * 100) + '%'
+}
+
+var dropHandle = function (e) {
+	removeEventListener('mousemove', dragHandle)
+	removeEventListener('mouseup', dropHandle)
+}
+
+addEventListener(nwHandle, 'mousedown', selectHandle)
+addEventListener(neHandle, 'mousedown', selectHandle)
+addEventListener(seHandle, 'mousedown', selectHandle)
+addEventListener(swHandle, 'mousedown', selectHandle)
 
 var moveHandles = function (left, top, width, height) {
-	nwHandle.style.left = (left - 5) + '%'
-	nwHandle.style.top = (top - 5) + '%'
+	nwHandle.style.left = (left - 16 / innerWidth * 100) + '%'
+	nwHandle.style.top = (top - 16 / innerHeight * 100) + '%'
 	
-	neHandle.style.left = (left + 5 + width) + '%'
-	neHandle.style.top = (top - 5) + '%'
+	neHandle.style.left = (left + 16 / innerWidth * 100 + width) + '%'
+	neHandle.style.top = (top - 16 / innerHeight * 100) + '%'
 	
-	seHandle.style.left = (left + 5 + width) + '%'
-	seHandle.style.top = (top + 5 + height) + '%'
+	seHandle.style.left = (left + 16 / innerWidth * 100 + width) + '%'
+	seHandle.style.top = (top + 16 / innerHeight * 100 + height) + '%'
 	
-	swHandle.style.left = (left - 5) + '%'
-	swHandle.style.top = (top + 5 + height) + '%'
+	swHandle.style.left = (left - 16 / innerWidth * 100) + '%'
+	swHandle.style.top = (top + 16 / innerHeight * 100 + height) + '%'
 }
 
 var shapeMouseDown = function (e) {
