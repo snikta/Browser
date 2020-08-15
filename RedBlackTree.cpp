@@ -311,12 +311,13 @@ void RedBlackTree::deleteNodeFixup(RedBlackNode* x)
 	}
 	x->color = black;
 };
-RedBlackNode* RedBlackTree::deleteNode(RedBlackNode& z)
+void RedBlackTree::deleteNode(RedBlackNode& z)
 {
+	RedBlackNode* nodeToDelete = &z;
 	RedBlackNode* x;
 	RedBlackNode* y;
 	if (&z == this->nil) {
-		return this->nil;
+		return;// this->nil;
 	}
 	if (z.left == this->nil || z.right == this->nil)
 	{
@@ -360,9 +361,9 @@ RedBlackNode* RedBlackTree::deleteNode(RedBlackNode& z)
 		deleteNodeFixup(x);
 	}
 
-	//delete &z;
+	//delete nodeToDelete;
 
-	return y;
+	return;// y;
 };
 
 void RedBlackTree::deleteAllNodes()

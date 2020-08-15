@@ -838,6 +838,7 @@ ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
 	string tagName = resolveString(args[0].getString());
 	DOMNode* newElementNode = new DOMNode(tagName, "", 0, 0, 0);
 	ASTNode astHTMLElement;
+	newElementNode->SlabDecompShape = new Shape;
 	newElementNode->ptrASTArray = astHTMLElement.ASTArray;
 	newElementNode->set_parent_node(*elsByTagName["body"][0]);
 	elsByTagName["body"][0]->appendChild(*newElementNode);
@@ -845,6 +846,7 @@ ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
 	int runtimeObjId = runtimeObjects.size();
 	astHTMLElement.runtimeId = runtimeObjId;
 	astHTMLElement.ptrDOMNode = newElementNode;
+	newElementNode->astRuntimeId = runtimeObjId;
 	runtimeObjects.push_back(astHTMLElement);
 	return ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>'));
 }
@@ -876,7 +878,22 @@ ASTNode PredefinedGetTop(vector<ASTNode> args, Scope& scope) {
 	return ASTNode((long double) astHTMLElement.ptrDOMNode->y);
 }
 
+ASTNode PredefinedAbs(vector<ASTNode> args, Scope& scope) {
+	return ASTNode(abs(args[0].getNumber()));
+}
+
+ASTNode PredefinedMin(vector<ASTNode> args, Scope& scope) {
+	return ASTNode(min(args[0].getNumber(), args[1].getNumber()));
+}
+
+ASTNode PredefinedMax(vector<ASTNode> args, Scope& scope) {
+	return ASTNode(max(args[0].getNumber(), args[1].getNumber()));
+}
+
 map<string, predefinedFunction> predefinedFunctions = {
+	{"abs", &PredefinedAbs},
+	{"min", &PredefinedMin},
+	{"max", &PredefinedMax},
 	{"Add", &PredefinedAdd},
 	{"Multiply", &PredefinedMultiply},
 	{"Subtract", &PredefinedSubtract},

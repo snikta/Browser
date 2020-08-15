@@ -1,4 +1,4 @@
-var header = createElement ("div")
+/*var header = createElement ("div")
 header.id = "header"
 var theSpan = createElement("span")
 theSpan.textContent = "the "
@@ -16,7 +16,6 @@ lazyEl.textContent = "lazy"
 var dogSpan = createElement("span")
 var main = createElement("div")
 var sidebar = createElement("div")
-var imgApollo = createElement("img")
 var content = createElement("div")
 var tableContainer = createElement('div')
 var tableEl = createElement('table')
@@ -70,9 +69,6 @@ appendChild(header, dogSpan)
 main.id = "main"
 sidebar.id = "sidebar"
 appendChild(main, sidebar)
-imgApollo.src = "apollo.jpg"
-imgApollo.width = "233"
-imgApollo.height = "155"
 
 content.id = 'content'
 
@@ -136,41 +132,75 @@ tdMuskEmail.textContent = 'elon@musk.com'
 
 appendChild(content, contentFooter)
 appendChild(footer, footerLeftColumn)
-appendChild(footer, footerRightColumn)
+appendChild(footer, footerRightColumn)*/
 
+var header = createElement ("div")
+header.id = "header"
+
+/*var imgApollo = createElement("img")
+
+imgApollo.src = "apollo.jpg"
+imgApollo.width = "233"
+imgApollo.height = "155"
 imgApollo.style.display = 'block'
-imgApollo.style.position = 'fixed'
+imgApollo.style.position = 'fixed'*/
 
 var startX = 0
 var startY = 0
+var selectedElement = header
 
-var mouseMoveHandler = function (e) {
-	imgApollo.style.left = (getLeft(imgApollo) / innerWidth * 100 + (pageX - startX) / innerWidth * 100) + '%'
-	imgApollo.style.top = (getTop(imgApollo) / innerHeight * 100 + (pageY - startY) / innerHeight * 100) + '%'
+var shapeMouseUp = function (e) {
+	removeEventListener('mousemove', shapeMouseMove)
+	removeEventListener('mouseup', shapeMouseUp)
+}
+
+var shapeMouseMove = function (e) {
+	var oldLeft = getLeft(selectedElement) / innerWidth * 100
+	var oldTop = getTop(selectedElement) / innerHeight * 100 - getTop(header) / innerHeight * 100
+	selectedElement.style.left = (oldLeft + ((pageX - startX) / innerWidth * 100)) + '%'
+	selectedElement.style.top = (oldTop + ((pageY - startY) / innerHeight * 100)) + '%'
 	startX = pageX
 	startY = pageY
 }
+
+var shapeMouseDown = function (e) {
+	selectedElement = this
+	startX = pageX
+	startY = pageY
+	addEventListener('mousemove', shapeMouseMove)
+	addEventListener('mouseup', shapeMouseUp)
+}
+
+var mouseMoveHandler = function (e) {
+	var minX = min(pageX, startX)
+	var minY = min(pageY, startY)
+	var maxX = max(pageX, startX)
+	var maxY = max(pageY, startY)
+	var width = abs(maxX - minX)
+	var height = abs(maxY - minY)
+	
+	selectedElement.style.left = (minX / innerWidth * 100 - getLeft(header) / innerWidth * 100) + '%'
+	selectedElement.style.top = (minY / innerHeight * 100 - getTop(header) / innerHeight * 100) + '%'
+	selectedElement.style.width = (width / innerWidth * 100) + '%'
+	selectedElement.style.height = (height / innerHeight * 100) + '%'
+}
 var mouseUpHandler = function (e) {
 	Log("mouseUpHandler invoked")
+	addEventListener(selectedElement, 'mousedown', shapeMouseDown)
 	removeEventListener('mousemove', mouseMoveHandler)
 	removeEventListener('mouseup', mouseUpHandler)
 }
 
-var clickHandler = function (e) {
+function mouseDownHandler(e) {
+	Log("mouseDownHandler invoked")
+	selectedElement = createElement('div')
+	selectedElement.style.background = 'rgb(0,0,0)'
+	selectedElement.style.position = 'fixed'
+	selectedElement.style.display = 'block'
 	startX = pageX
 	startY = pageY
-	Log("click handler invoked")
 	addEventListener('mousemove', mouseMoveHandler)
 	addEventListener('mouseup', mouseUpHandler)
 }
-addEventListener(imgApollo, 'click', clickHandler)
 
-var clickHandlerMusk = function (e) {
-	Alert("You clicked on Elon Musk's email address")
-}
-addEventListener(tdMuskEmail, 'click', clickHandlerMusk)
-
-var clickHandlerFox = function (e) {
-	Alert("You clicked on the word fox")
-}
-addEventListener(foxSpan, 'click', clickHandlerFox)
+addEventListener('mousedown', mouseDownHandler)

@@ -437,10 +437,12 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		selRegion = nullptr;
 
 		Shape* newShape = new Shape;
-		newShape->eventHandlers = node.SlabDecompShape->eventHandlers;
 
-		mySlabContainer.deleteShape(*node.SlabDecompShape);
-		delete node.SlabDecompShape;
+		if (node.SlabDecompShape != nullptr) {
+			newShape->eventHandlers = node.SlabDecompShape->eventHandlers;
+			mySlabContainer.deleteShape(*node.SlabDecompShape);
+			delete node.SlabDecompShape;
+		}
 
 		int newShapeId = mySlabContainer.NextAvailableShapeId++;
 		newShape->id = newShapeId;

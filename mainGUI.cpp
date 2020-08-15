@@ -618,14 +618,16 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 				break;
 			}
 			DOMNode *node = selRegion->shapes[i]->node;
-			vector<ASTNode> clickFuncs = selRegion->shapes[i]->eventHandlers["click"];
+			vector<ASTNode> clickFuncs = selRegion->shapes[i]->eventHandlers["mousedown"];
 			for (int j = 0, jLen = clickFuncs.size(); j < jLen; j++) {
 				ASTNode astFunc = resolveRuntimeObject(clickFuncs[j]);
 				Scope myScope;
 				myScope.__parent = &globalVariables;
+				myScope.ScopeArray["this"] = runtimeObjects[node->astRuntimeId];
 				myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
 				myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
 				execAST(*astFunc.ASTNodeFunc, myScope);
+				return;
 			}
 			if (node && node != nullptr)
 			{
@@ -635,6 +637,18 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 				}
 			}
 		}
+	}
+
+	for (int j = 0, jLen = eventListeners["mousedown"].size(); j < jLen; j++) {
+		ASTNode astFunc = resolveRuntimeObject(eventListeners["mousedown"][j]);
+		Scope myScope;
+		myScope.__parent = &globalVariables;
+		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
+		if (astFunc.ASTNodeFunc == nullptr) {
+			continue;
+		}
+		execAST(*astFunc.ASTNodeFunc, myScope);
 	}
 
 	InvalidateRect(m_hwnd, NULL, FALSE);

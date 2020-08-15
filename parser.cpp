@@ -81,7 +81,7 @@ string Parser::printChildTagNames(DOMNode& node, int level, bool last)
 		curChild = node.firstChild;
 		int i = 0, len = node.get_child_count();
 		string newPath;
-		while (i < len)
+		while (i < len && curChild != nullptr)
 		{
 			tagTree += printChildTagNames(*curChild, level + 1, i == len - 1);
 			curChild = curChild->nextSibling;

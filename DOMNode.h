@@ -22,6 +22,7 @@ private:
 
 public:
 	Shape* SlabDecompShape = nullptr;
+	int astRuntimeId = -1;
 	map<string, ASTNode*>* ptrASTArray = nullptr;
 	map<string, string> attributes;
 	map<string, string> style;
