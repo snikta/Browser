@@ -26,8 +26,17 @@ LPCWSTR stringToLPCWSTR(string str) {
 const vector<string> styleSkipList = { "box-shadow", "margin", "position", "display", "left", "top", "width", "height" };
 float viewportScaleX, viewportScaleY;
 
+double pxToPc(string px, double denominator) {
+	if (px.size() >= 2 && px.substr(px.size() - 2, px.size()) == "px") {
+		return stod(px.substr(0, px.size() - 2));/* / denominator * 100;*/
+	}
+	return stod(px);
+}
+
 void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*>& nodesInOrder, int level) {
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
+	double innerWidth = renderTargetSize.width;
+	double innerHeight = renderTargetSize.height;
 	DOMNode* parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
@@ -214,24 +223,54 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			if (node.style["display"] == "block") {
 				//if (!(x_set && y_set))
 				//{
-				node.x = parentNode->x + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
+				if (node.style["left"].find("px") != string::npos) {
+					node.x = pxToPc(node.style["left"], innerWidth);
+				}
+				else {
+					node.x = parentNode->x + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
+				}
 				if (node.style["position"] == "absolute") {
-					node.y = parentNode->y + stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * parentNode->height;
+					if (node.style["top"].find("px") != string::npos) {
+						node.y = pxToPc(node.style["top"], innerHeight);
+					}
+					else {
+						node.y = parentNode->y + stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * parentNode->height;
+					}
 				}
 
 				if (node.style["position"] == "fixed") {
-					node.x = stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * renderTargetSize.width * viewportScaleX;
-					node.y = stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * renderTargetSize.height * viewportScaleY;
+					if (node.style["left"].find("px") != string::npos) {
+						node.x = pxToPc(node.style["left"], innerWidth);
+					}
+					else {
+						node.x = stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * renderTargetSize.width * viewportScaleX;
+					}
+					if (node.style["top"].find("px") != string::npos) {
+						node.y = pxToPc(node.style["top"], innerHeight);
+					}
+					else {
+						node.y = stod(substrReplace(node.style["top"] == "" ? "0" : node.style["top"], "%", "")) / 100 * renderTargetSize.height * viewportScaleY;
+					}
 				}
 
 				//}
 				//if (!width_set)
 				//{
-				node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * parentNode->width;
+				if (node.style["width"].find("px") != string::npos) {
+					node.width = pxToPc(node.style["width"], innerWidth);
+				}
+				else {
+					node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * parentNode->width;
+				}
 				//}
 				//if (!height_set)
 				//{
-				node.height = node.style["height"] == "" ? 12 : (stod(substrReplace(node.style["height"] == "" ? "0" : node.style["height"], "%", "")) / 100 * parentNode->height);
+				if (node.style["height"].find("px") != string::npos) {
+					node.height = pxToPc(node.style["height"], innerHeight);
+				}
+				else {
+					node.height = node.style["height"] == "" ? 12 : (stod(substrReplace(node.style["height"] == "" ? "0" : node.style["height"], "%", "")) / 100 * parentNode->height);
+				}
 				//}
 				node.x_set = node.y_set = node.width_set = node.height_set = true;
 			}
@@ -262,8 +301,18 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	if (!node.height_set) { node.height = parentNode->height; }
 
 	if (node.style["display"].find("block") != string::npos && node.style["margin"] != "") {
-		node.marginX = node.marginX || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->width;
-		node.marginY = node.marginY || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->height;
+		if (node.style["margin"].find("px") != string::npos) {
+			node.marginX = pxToPc(node.style["margin"], innerWidth);
+		}
+		else {
+			node.marginX = node.marginX || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->width;
+		}
+		if (node.style["margin"].find("px") != string::npos) {
+			node.marginY = pxToPc(node.style["margin"], innerHeight);
+		}
+		else {
+			node.marginY = node.marginY || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->height;
+		}
 	}
 
 	if (node.get_tag_name() == "div") {
@@ -281,8 +330,15 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			);
 			if (bg.find(lg) == string::npos) {
 				vector<string> rgbValues;
-				splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(4), ',', rgbValues);
-				D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+				D2D1_COLOR_F color;
+				if (node.style["background"].find("rgba") == string::npos) {
+					splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(4), ',', rgbValues);
+					color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+				}
+				else {
+					splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(5), ',', rgbValues);
+					color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255, stof(rgbValues[3]));
+				}
 				pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 				pRenderTarget->FillRectangle(&rect1, pBrush);
 			}
@@ -313,8 +369,14 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				for (int i = 1; i < len; i++)
 				{
 					vector<string> rgbValues;
-					splitString(colors[i].substr(0, colors[i].length() - 1).substr(4), ',', rgbValues);
-					gradStops[i - 1].color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+					if (colors[i].find("rgba") == string::npos) {
+						splitString(colors[i].substr(0, colors[i].length() - 1).substr(4), ',', rgbValues);
+						gradStops[i - 1].color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+					}
+					else {
+						splitString(colors[i].substr(0, colors[i].length() - 1).substr(5), ',', rgbValues);
+						gradStops[i - 1].color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255, stof(rgbValues[3]));
+					}
 					gradStops[i - 1].position = (float(i) - 1) / (float(len) - 2);
 				}
 				HRESULT hr = pRenderTarget->CreateGradientStopCollection(
@@ -324,20 +386,24 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 					D2D1_EXTEND_MODE_CLAMP,
 					&pGradientStops
 				);
-				if (SUCCEEDED(hr))
+				if (SUCCEEDED(hr) && node.width && node.height)
 				{
+					bool horiz = bg.find("to right") != string::npos;
 					hr = pRenderTarget->CreateLinearGradientBrush(
 						D2D1::LinearGradientBrushProperties(
-							D2D1::Point2F(node.x, node.y),
-							D2D1::Point2F(node.x + node.width, node.y)),
+							D2D1::Point2F(node.x, node.y + (horiz ? 0 : node.height)),
+							D2D1::Point2F(node.x + (horiz ? node.width : 0), node.y)),
 						pGradientStops,
 						&m_pLinearGradientBrush
 					);
 					//m_pLinearGradientBrush->Release();
-					pRenderTarget->FillRectangle(&rect1, m_pLinearGradientBrush);
+					if (SUCCEEDED(hr)) {
+						pRenderTarget->FillRectangle(&rect1, m_pLinearGradientBrush);
+					}
+
+					SafeRelease(m_pLinearGradientBrush);
 				}
 				SafeRelease(pGradientStops);
-				SafeRelease(m_pLinearGradientBrush);
 				delete[] gradStops;
 			}
 		}
@@ -462,12 +528,22 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		if (node.parentNode->get_tag_name() != "root")
 		{
 			if (node.style["display"] == "block" || node.style["display"] == "inline-block") {
-				node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * node.parentNode->width;
+				if (node.style["width"].find("px") != string::npos) {
+					node.width = pxToPc(node.style["width"], innerWidth);
+				}
+				else {
+					node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * node.parentNode->width;
+				}
 				node.width_set = true;
 			}
 			if (node.style["display"] == "block")
 			{
-				node.height = stod(substrReplace(node.style["height"] == "" ? "100" : node.style["height"], "%", "")) / 100 * node.parentNode->height;
+				if (node.style["height"].find("px") != string::npos) {
+					node.height = pxToPc(node.style["height"], innerHeight);
+				}
+				else {
+					node.height = stod(substrReplace(node.style["height"] == "" ? "100" : node.style["height"], "%", "")) / 100 * node.parentNode->height;
+				}
 				node.height_set = true;
 			}
 		}
@@ -485,11 +561,21 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			while (child)
 			{
 				if (child->style["width"] != "") {
-					child->width = stod(substrReplace(child->style["width"] == "" ? "0" : child->style["width"], "%", "")) / 100 * node.width;
+					if (child->style["width"].find("px") != string::npos) {
+						child->width = pxToPc(child->style["width"], innerWidth);
+					}
+					else {
+						child->width = stod(substrReplace(child->style["width"] == "" ? "0" : child->style["width"], "%", "")) / 100 * node.width;
+					}
 					child->width_set = true;
 				}
 				if (child->style["height"] != "") {
-					child->height = stod(substrReplace(child->style["height"] == "" ? "0" : child->style["height"], "%", "")) / 100 * node.height;
+					if (child->style["height"].find("px") != string::npos) {
+						child->height = pxToPc(child->style["height"], innerHeight);
+					}
+					else {
+						child->height = stod(substrReplace(child->style["height"] == "" ? "0" : child->style["height"], "%", "")) / 100 * node.height;
+					}
 					child->height_set = true;
 				}
 				drawDOMNode(*child, pRenderTarget, pBrush, newHeight, origHeight, newWidth, origWidth, xy, nodesInOrder, level + 1);

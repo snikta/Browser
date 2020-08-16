@@ -490,7 +490,7 @@ void MainWindow::OnPaint()
 							//D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
 
 							if (node->get_zindex() >= largestZIndex) {
-								pRenderTarget->FillRectangle(rect1, redBrush);
+								//pRenderTarget->FillRectangle(rect1, redBrush);
 							}
 						}
 
@@ -590,7 +590,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x1 = x1;
 	MainWindow::y1 = y1;
 
-	if (MainWindow::success)
+	if (MainWindow::success && selRegion != nullptr)
 	{
 		int largestZIndex = -1;
 		for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
@@ -642,7 +642,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	for (int j = 0, jLen = eventListeners["mousedown"].size(); j < jLen; j++) {
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mousedown"][j]);
 		Scope myScope;
-		myScope.__parent = &globalVariables;
+		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
 		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
 		if (astFunc.ASTNodeFunc == nullptr) {
@@ -693,6 +693,10 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
 		parseCSS(myParser.cssFilename);
+
+		for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
+			execAST(scriptsToRunOnLoad[i], globalVariables);
+		}
 	}
 	
 	if (mySlabContainer.ShapeMembers.size() < 6)
@@ -773,12 +777,12 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 			}
 			mySlabContainer.preprocessSubdivision(shapesToPreprocess, 'x', nilSlab);
 
-			if (mySlabContainer.ShapeMembers.size() > 5) {
+			/*if (mySlabContainer.ShapeMembers.size() > 5) {
 				pageLoaded = true;
 				for (int i = 0, len = eventListenersToBindArgs.size(); i < len; i++) {
 					predefinedFunctions["addEventListener"](eventListenersToBindArgs[i], eventListenersToBindScopes[i]);
 				}
-			}
+			}*/
 
 			/*				ffile.open("RBT.txt", std::ios_base::in | std::ios_base::trunc);
 			MainWindow::visualize(&mySlabContainer.RBTSlabLines, *(mySlabContainer.RBTSlabLines.root), 0, true);
@@ -800,10 +804,6 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	RedBlackNode* node = rbt->closest(x2);
 	Slab* slab = &nilSlab;
 	bool success = false, slabExists = false;
-
-	/*string s1 = "x2: " + std::to_string(x2) + " closest: " + std::to_string(node->key) + "\n"
-	std::wstring widestr = std::wstring(s1.begin(), s1.end());
-	OutputDebugStringW(widestr.c_str());*/
 
 	MainWindow::success = false;
 
@@ -868,16 +868,11 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	for (int j = 0, jLen = eventListeners["mousemove"].size(); j < jLen; j++) {
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mousemove"][j]);
 		Scope myScope;
-		myScope.__parent = &globalVariables;
+		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
 		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
 		execAST(*astFunc.ASTNodeFunc, myScope);
 	}
-
-	/*ASTNode imgApolloStyle = resolveRuntimeObject(*(*resolveRuntimeObject(globalVariables.ScopeArray["imgApollo"]).ASTArray)["style"]);
-	for (auto it = imgApolloStyle.ASTArray->begin(); it != imgApolloStyle.ASTArray->end(); it++) {
-		LOut(it->first + ": " + it->second->getString());
-	}*/
 
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }
@@ -887,7 +882,7 @@ void MainWindow::OnLButtonUp()
 	for (int j = 0, jLen = eventListeners["mouseup"].size(); j < jLen; j++) {
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mouseup"][j]);
 		Scope myScope;
-		myScope.__parent = &globalVariables;
+		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		if (astFunc.ASTNodeFunc == nullptr) {
 			continue;
 		}

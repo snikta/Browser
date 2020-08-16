@@ -48,7 +48,7 @@ a { color: blue; }
 	left: 0;
 	width: 100%;
 	height: 20%;
-	background: linear-gradient(to right, rgb(255,0,0), rgb(255,255,0), rgb(191,255,0), rgb(0,255,255), rgb(0,0,255), rgb(255,0,255), rgb(255,0,0));
+	background: linear-gradient(to right,rgb(255,0,0),rgb(255,255,0),rgb(191,255,0),rgb(0,255,255),rgb(0,0,255),rgb(255,0,255),rgb(255,0,0));
 }
 
 #footer {
@@ -76,4 +76,26 @@ a { color: blue; }
 	background: rgb(255,0,0);
 	position: fixed;
 	display: block;
+}
+
+#hueBar, #saturationValueBoxContainer { position: relative; height: 18px; border: 1px solid rgb(255, 255, 255); border-radius: 2px; box-shadow: 0px 0px 5px rgb(75, 75, 75); width: 320px; }
+#hueBar { position: fixed; left: 0px; top: 107px; z-index: 40; }
+#saturationValueBoxContainer { z-index: 40; width: 320px; height: 320px; }
+#satValInnerGrad { width: 320px; height: 320px; }
+#saturationValueBox { width: 320px; height: 320px; }
+#hexCodeContainer { position: relative; width: 100%; font: 80% Tahoma, Arial, Helvetica, sans-serif; z-index: 1; }
+#hexCode { width: 85%; display: block; background: rgb(255, 255, 255); text-align: center; }
+#satValVerticalLine, #opacityBarVerticalLine { width: 1px; position: absolute; top: 0; background: rgb(0, 0, 0); }
+#satValVerticalLine { height: 100%; }
+div#opacityBarVerticalLine { height: 15px; }
+#satValHorizontalLine { width: 100%; height: 1px; position: absolute; left: 0; background: rgb(0, 0, 0); }
+#hueBar button { margin-top: 0; }
+#hueBar button, #saturationValueBox button {
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border: 1px solid rgb(102, 102, 102);
+    background: rgb(128, 128, 128);
+    position: fixed;
 }

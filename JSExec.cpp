@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <cstdlib>
 #include <ctime>
+#include <sstream>
 
 void LOut(string str) {
 	string s1 = str + "\n";
@@ -596,6 +597,16 @@ ASTNode LessThanOrEqualTo(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntax
 	op2 = resolve(op2, scope);
 	return ASTNode(op1.getNumber() <= op2.getNumber() ? 1.0L : 0.0L);
 }
+ASTNode GreaterThan(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode(op1.getNumber() > op2.getNumber() ? 1.0L : 0.0L);
+}
+ASTNode LessThan(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode(op1.getNumber() < op2.getNumber() ? 1.0L : 0.0L);
+}
 ASTNode GreaterThanOrEqualTo(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	op1 = resolve(op1, scope);
 	op2 = resolve(op2, scope);
@@ -682,10 +693,21 @@ ASTNode InOperator(ASTNode op2, ASTNode op1, Scope& scope, AbstractSyntaxTree& a
 	op2 = resolve(op2, scope);
 	return ASTNode(op1.ASTArray->find(op2.getString()) != op1.ASTArray->end() ? 1.0L : 0.0L);
 }
+ASTNode Remainder(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	return ASTNode((long double) fmod(op1.getNumber(), op2.getNumber()));
+}
+ASTNode LogicalAnd(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = ASTNode(resolveString(op1.getString()));
+	op2 = ASTNode(resolveString(op2.getString()));
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode((op1.getNumber() == 1.0L && op2.getNumber() == 1.0L) ? 1.0L : 0.0L);
+}
 map<string, operatorFunction> operatorFunctions = {
 	{"+", &Add},
 	{"-", &Subtract},
 	{"*", &Multiply},
+	{"%", &Remainder},
 	{"/", &Divide},
 	{"[]", &Brackets},
 	{".", &Dot},
@@ -694,8 +716,11 @@ map<string, operatorFunction> operatorFunctions = {
 	{"-=", &MinusEquals},
 	{"*=", &TimesEquals},
 	{"/=", &DivideEquals},
+	{"&&", &LogicalAnd},
 	{"<=", &LessThanOrEqualTo},
 	{">=", &GreaterThanOrEqualTo},
+	{"<", &LessThan},
+	{">", &GreaterThan},
 	{"==", &EqualsEquals},
 	{",", &CommaOperator},
 	{" in ", &InOperator},
@@ -771,11 +796,11 @@ ASTNode PredefinedRemoveEventListener(vector <ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 ASTNode PredefinedAddEventListener(vector <ASTNode> args, Scope& scope) {
-	if (pageLoaded == false) {
+	/*if (pageLoaded == false) {
 		eventListenersToBindArgs.push_back(args);
 		eventListenersToBindScopes.push_back(scope);
 		return ASTNode();
-	}
+	}*/
 	if (args.size() == 2) {
 		string handlerName = resolveString(args[0].getString());
 		if (eventListeners.find(handlerName) == eventListeners.end()) {
@@ -893,17 +918,51 @@ ASTNode PredefinedAbs(vector<ASTNode> args, Scope& scope) {
 }
 
 ASTNode PredefinedMin(vector<ASTNode> args, Scope& scope) {
-	return ASTNode(min(args[0].getNumber(), args[1].getNumber()));
+	double min = args[0].getNumber();
+	for (int i = 1, len = args.size(); i < len; i++) {
+		double num = args[i].getNumber();
+		if (num < min) {
+			min = num;
+		}
+	}
+	return ASTNode((long double)min);
 }
 
 ASTNode PredefinedMax(vector<ASTNode> args, Scope& scope) {
-	return ASTNode(max(args[0].getNumber(), args[1].getNumber()));
+	double max = args[0].getNumber();
+	for (int i = 1, len = args.size(); i < len; i++) {
+		double num = args[i].getNumber();
+		if (num > max) {
+			max = num;
+		}
+	}
+	return ASTNode((long double)max);
+}
+
+ASTNode PredefinedRound(vector<ASTNode> args, Scope& scope) {
+	return ASTNode((long double)round(args[0].getNumber()));
+}
+
+ASTNode PredefinedLength(vector<ASTNode> args, Scope& scope) {
+	ASTNode astNode = resolveRuntimeObject(args[0]);
+	if (astNode.getType() == ASTStringNode) {
+		return ASTNode((long double) astNode.ASTNodeString.size());
+	}
+	return ASTNode((long double) astNode.ASTArray->size());
+}
+
+ASTNode PredefinedToHex(vector<ASTNode> args, Scope& scope) {
+	std::stringstream ss;
+	ss << std::hex << (int) args[0].getNumber(); // int decimal_value
+	std::string res(ss.str());
+	return ASTNode(string(res));
 }
 
 map<string, predefinedFunction> predefinedFunctions = {
 	{"abs", &PredefinedAbs},
 	{"min", &PredefinedMin},
 	{"max", &PredefinedMax},
+	{"round", &PredefinedRound},
 	{"Add", &PredefinedAdd},
 	{"Multiply", &PredefinedMultiply},
 	{"Subtract", &PredefinedSubtract},
@@ -920,7 +979,9 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"getLeft", &PredefinedGetLeft},
 	{"getTop", &PredefinedGetTop},
 	{"getWidth", &PredefinedGetWidth},
-	{"getHeight", &PredefinedGetHeight}
+	{"getHeight", &PredefinedGetHeight},
+	{"length", &PredefinedLength},
+	{"toHex", &PredefinedToHex}
 };
 
 OperatorListNode::OperatorListNode(string operatorName, ASTNode op1, ASTNode op2, int idx) : operatorName(operatorName), op1(op1), op2(op2), idx(idx) {};
@@ -1969,7 +2030,17 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 	int len = expr.size();
 	ASTNode* curElement = new ASTNode;
 	while (i < len) {
-		if (expr[i] == '{') {
+		if ((expr[i] == '\'' || expr[i] == '\"')) {
+			char quot = expr[i];
+			i++;
+			curElement->ASTNodeString = quot;
+			while (i < len && expr[i] != quot) {
+				curElement->ASTNodeString += expr[i];
+				i++;
+			}
+			curElement->ASTNodeString += quot;
+		}
+		else if (expr[i] == '{') {
 			(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = parseObjectLiteral(expr, i);
 		}
 		else if (expr[i] == '[') {
@@ -1984,7 +2055,11 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 			}
 			else if (/*trim(*/curElement->getString() != "") {
 				Scope args;
-				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(parseParens(curElement->getString(), args));
+				ASTNode retval = parseParens(curElement->ASTNodeString, args);
+				if (retval.ASTNodeString != "") {
+					retval = ASTNode(resolveString(retval.ASTNodeString));
+				}
+				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(retval);
 			}
 			curElement = new ASTNode;
 			if (curBracketNode->parent != nullptr) {
@@ -2000,7 +2075,11 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 			}
 			else if (/*trim(*/curElement->getString() != "") {
 				Scope args;
-				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(parseParens(curElement->getString(), args));
+				ASTNode retval = parseParens(curElement->ASTNodeString, args);
+				if (retval.ASTNodeString != "") {
+					retval = ASTNode(resolveString(retval.ASTNodeString));
+				}
+				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(retval);
 			}
 			curElement = new ASTNode;
 		}
@@ -2145,13 +2224,15 @@ ASTNode parseParens(string expr, Scope& args) {
 			printNode(*retval);
 		}
 		else if (expr[i] == '[' && !(expr[i - 1] >= 'A' && expr[i - 1] <= 'Z') && !(expr[i - 1] >= 'a' && expr[i - 1] <= 'z') && !(expr[i - 1] >= '0' && expr[i - 1] <= '9') && expr[i - 1] != '_' && expr[i - 1] != ']') {
-			ASTNode* retval = parseArrayLiteral(expr, i);
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
 			}
-			curParent->childNodes.push_back(retval);
+			ASTNode *ptrASTArray = parseArrayLiteral(expr, i);
+			int runtimeObjId = runtimeObjects.size();
+			ptrASTArray->runtimeId = runtimeObjId;
+			runtimeObjects.push_back(*ptrASTArray);
+			curParent->childNodes.push_back(new ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>')));
 			curChild = "";
-			printNode(*retval);
 		}
 		else if (expr[i] == '"' || expr[i] == '\'') {
 			char quotChar = expr[i];
