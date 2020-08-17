@@ -110,7 +110,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		}
 
 		for (auto it = ptrStyle->begin(); it != ptrStyle->end(); it++) {
-			node.style[it->first] = it->second->getString();
+			node.style[it->first] = resolveString(it->second->getString());
 		}
 
 		if (node.ptrASTArray->find("textContent") != node.ptrASTArray->end()) {

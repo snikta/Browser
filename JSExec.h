@@ -150,7 +150,7 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args);
 
 vector<ASTNode> parseArguments(string argstring, Scope& scope);
 
-enum ParseNodeType { FunctionNode, WhileNode, DoWhileNode, IfNode, ElseNode, ElseIfNode, SwitchNode, SwitchCaseNode, VarNode, ReturnNode, ForNode, OtherNode, BreakNode, ContinueNode };
+enum ParseNodeType { FunctionNode, WhileNode, DoWhileNode, IfNode, ElseNode, ElseIfNode, SwitchNode, SwitchCaseNode, VarNode, ReturnNode, ForNode, OtherNode, BreakNode, ContinueNode, ObjectLiteralNode };
 struct ParseNode {
 	Scope* arguments = nullptr;
 	ParseNode* parent = nullptr;

@@ -27,6 +27,7 @@ var ColorPicker = function () {
 			/*btnHueBarSlider.style.left = ((xDiff + getLeft(hueBar)) / innerWidth * 100) + '%'*/
 			var hsl = hsvToRgb((xDiff / hueBarWidth * 360), 1.0, 1.0)
 			saturationValueBox.style.background = 'linear-gradient(to right,rgb(255,255,255),' + hsl + ')'
+			selectedElement.style.background = hsl
 			hueBar.hue = round(xDiff / getWidth(hueBar) * 360)
 		}
 	}

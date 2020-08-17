@@ -1822,8 +1822,33 @@ ParseNode generateAST(string src) {
 
 				}
 				else {
-					curParent->childNodes.push_back(newParent);
-					curParent = newParent;
+					//start->type = ObjectLiteralNode;
+
+					ASTNode* curBraceNode = new ASTNode;
+					ASTNode* rootBraceNode = curBraceNode;
+					string curBraceStr = "";
+					i++;
+					int len = src.size();
+					string blockContents = "";
+					while (i < len) {
+						blockContents += src[i];
+						if (src[i] == '{') {
+							ASTNode* newBraceNode = new ASTNode;
+							newBraceNode->parent = curBraceNode;
+							curBraceNode = newBraceNode;
+						}
+						else if (src[i] == '}') {
+							if (curBraceNode->parent != nullptr) {
+								curBraceNode = curBraceNode->parent;
+							}
+							else {
+								break;
+							}
+						}
+						i++;
+					}
+					curLine += blockContents;
+					continue;
 				}
 			}
 			curLine = "";
@@ -1969,6 +1994,9 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 				if (value->ASTArray->size() != 0) {
 					(*curBraceNode->ASTArray)[key] = value;
 				}
+				else if (!isNaN(value->ASTNodeString)) {
+					(*curBraceNode->ASTArray)[key] = new ASTNode((long double)stod(value->ASTNodeString));
+				}
 				else if (/*trim(*/value->getString() != "") {
 					Scope args;
 					(*curBraceNode->ASTArray)[key] = new ASTNode(parseParens(value->getString(), args));
@@ -2001,6 +2029,9 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 			if (key != "") {
 				if (value->ASTArray->size() != 0) {
 					(*curBraceNode->ASTArray)[key] = value;
+				}
+				else if (!isNaN(value->ASTNodeString)) {
+					(*curBraceNode->ASTArray)[key] = new ASTNode((long double) stod(value->ASTNodeString));
 				}
 				else if (/*trim(*/value->getString() != "") {
 					Scope args;
@@ -2215,13 +2246,15 @@ ASTNode parseParens(string expr, Scope& args) {
 			curParent->childNodes.push_back(funcASTNode);
 		}
 		else if (expr[i] == '{') {
-			ASTNode* retval = parseObjectLiteral(expr, i);
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
 			}
-			curParent->childNodes.push_back(retval);
+			ASTNode* ptrASTArray = parseObjectLiteral(expr, i);
+			int runtimeObjId = runtimeObjects.size();
+			ptrASTArray->runtimeId = runtimeObjId;
+			runtimeObjects.push_back(*ptrASTArray);
+			curParent->childNodes.push_back(new ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>')));
 			curChild = "";
-			printNode(*retval);
 		}
 		else if (expr[i] == '[' && !(expr[i - 1] >= 'A' && expr[i - 1] <= 'Z') && !(expr[i - 1] >= 'a' && expr[i - 1] <= 'z') && !(expr[i - 1] >= '0' && expr[i - 1] <= '9') && expr[i - 1] != '_' && expr[i - 1] != ']') {
 			if (curChild != "") {

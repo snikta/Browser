@@ -696,6 +696,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 		for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
 			execAST(scriptsToRunOnLoad[i], globalVariables);
+			printParseNode(&scriptsToRunOnLoad[i], "");
 		}
 	}
 	
