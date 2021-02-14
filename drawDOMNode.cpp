@@ -388,7 +388,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				);
 				if (SUCCEEDED(hr) && node.width && node.height)
 				{
-					bool horiz = bg.find("to right") != string::npos;
+					bool horiz = bg.find("toright") != string::npos;
 					hr = pRenderTarget->CreateLinearGradientBrush(
 						D2D1::LinearGradientBrushProperties(
 							D2D1::Point2F(node.x, node.y + (horiz ? 0 : node.height)),

@@ -19,14 +19,14 @@ var ColorPicker = function () {
 	hexCode.id = 'hexCode'
 	hexCodeContainer.id = 'hexCodeContainer'
 	hueBar.id = 'hueBar'
-	hueBar.style.background = 'linear-gradient(to right,rgb(255,0,0),rgb(255,255,0),rgb(0,255,0),rgb(0,255,255),rgb(0,0,255),rgb(255,0,255),rgb(255,0,0))'
+	hueBar.style.background = 'linear-gradient(toright,rgb(255,0,0),rgb(255,255,0),rgb(0,255,0),rgb(0,255,255),rgb(0,0,255),rgb(255,0,255),rgb(255,0,0))'
 	var moveHueBarSlider = function (e) {
 		var hueBarWidth = getWidth(hueBar)
 		if (hueBarWidth > 0) {
 			var xDiff = clamp(pageX - getLeft(hueBar) - getWidth(btnHueBarSlider) / 2, 0, getWidth(hueBar) - getWidth(btnHueBarSlider))
 			/*btnHueBarSlider.style.left = ((xDiff + getLeft(hueBar)) / innerWidth * 100) + '%'*/
 			var hsl = hsvToRgb((xDiff / hueBarWidth * 360), 1.0, 1.0)
-			saturationValueBox.style.background = 'linear-gradient(to right,rgb(255,255,255),' + hsl + ')'
+			saturationValueBox.style.background = 'linear-gradient(toright,rgb(255,255,255),' + hsl + ')'
 			selectedElement.style.background = hsl
 			hueBar.hue = round(xDiff / getWidth(hueBar) * 360)
 		}
@@ -48,12 +48,12 @@ var ColorPicker = function () {
 	satValVerticalLine.id = 'satValVerticalLine'
 	satValHorizontalLine.id = 'satValHorizontalLine'
 	satValInnerGrad.id = 'satValInnerGrad'
-	satValInnerGrad.style.background = 'linear-gradient(to top,rgba(0,0,0,1.0),rgba(0,0,0,0.0))'
+	satValInnerGrad.style.background = 'linear-gradient(totop,rgba(0,0,0,1.0),rgba(0,0,0,0.0))'
 	appendChild(satValInnerGrad, satValVerticalLine)
 	appendChild(satValInnerGrad, satValHorizontalLine)
 	appendChild(saturationValueBox, satValInnerGrad)
 	saturationValueBox.id = 'saturationValueBox'
-	saturationValueBox.style.background = 'linear-gradient(to right,rgba(255,255,255,1.0),rgba(255,0,0,0.0))'
+	saturationValueBox.style.background = 'linear-gradient(toright,rgba(255,255,255,1.0),rgba(255,0,0,0.0))'
 	saturationValueBoxContainer.id = 'saturationValueBoxContainer'
 	/*saturationValueBoxContainer["class"] = 'invisible'*/
 	appendChild(saturationValueBoxContainer, saturationValueBox)

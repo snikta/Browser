@@ -703,6 +703,13 @@ ASTNode LogicalAnd(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& a
 	op2 = resolve(op2, scope);
 	return ASTNode((op1.getNumber() == 1.0L && op2.getNumber() == 1.0L) ? 1.0L : 0.0L);
 }
+ASTNode LogicalOr(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = ASTNode(resolveString(op1.getString()));
+	op2 = ASTNode(resolveString(op2.getString()));
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode((op1.getNumber() == 1.0L || op2.getNumber() == 1.0L) ? 1.0L : 0.0L);
+}
 map<string, operatorFunction> operatorFunctions = {
 	{"+", &Add},
 	{"-", &Subtract},
@@ -717,6 +724,7 @@ map<string, operatorFunction> operatorFunctions = {
 	{"*=", &TimesEquals},
 	{"/=", &DivideEquals},
 	{"&&", &LogicalAnd},
+	{"&&", &LogicalOr},
 	{"<=", &LessThanOrEqualTo},
 	{">=", &GreaterThanOrEqualTo},
 	{"<", &LessThan},
