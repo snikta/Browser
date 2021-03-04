@@ -724,7 +724,7 @@ map<string, operatorFunction> operatorFunctions = {
 	{"*=", &TimesEquals},
 	{"/=", &DivideEquals},
 	{"&&", &LogicalAnd},
-	{"&&", &LogicalOr},
+	{"||", &LogicalOr},
 	{"<=", &LessThanOrEqualTo},
 	{">=", &GreaterThanOrEqualTo},
 	{"<", &LessThan},

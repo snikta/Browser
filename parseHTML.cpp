@@ -11,7 +11,25 @@
 /* "parseHTML.cpp" */
 using namespace std;
 
-void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int end, string tagName)
+string tagHTML(DOMNode& tag) {
+	if (tag.get_tag_name() == "TextNode") {
+		return tag.get_text_content();
+	}
+	string html = "<" + tag.get_tag_name();
+	for (auto it = tag.attributes.begin(); it != tag.attributes.end(); it++) {
+		html += " " + it->first + "=\"" + it->second + "\"";
+	}
+	html += ">" + tag.get_text_content();
+	DOMNode *node = tag.firstChild;
+	while (node && node != nullptr) {
+		html += tagHTML(*node);
+		node = node->nextSibling;
+	}
+	html += "</" + tag.get_tag_name() + ">";
+	return html;
+}
+
+void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int end, string tagName, vector<DOMNode*> &htmlNodes)
 {
 	int charIndex, attrIndex, attrLen, firstSpace;
 	vector<string> classList;
@@ -19,15 +37,26 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 	bool closing, newNodeSet;
 	string openingTag, attributeSource, attrName, attrValue;
 
+	htmlNodes.push_back(&node);
 	node.set_zindex(parentNode.get_zindex() + 1);
+
+	string source = src;
 
 	for (charIndex = start; charIndex < end; charIndex++)
 	{
-		chr = src[charIndex];
+		chr = source[charIndex];
 
 		newNodeSet = false;
 		if (chr == '<')
 		{
+			if ((charIndex + 4) < source.size() && source.substr(charIndex, 4) == "<!--") {
+				string comment = "";
+				while ((charIndex + 3) < end && source.substr(charIndex, 3) != "-->") {
+					comment += source[charIndex];
+					charIndex += 1;
+				}
+				charIndex += 3;
+			}
 			DOMNode* newNode;
 			if (node.get_text_content() != "")
 			{
@@ -42,58 +71,88 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 			newNodeSet = true;
 			prevChr = chr;
 			openingTag = "";
-			chr = src[++charIndex];
+			chr = source[++charIndex];
 			closing = false;
 			while (charIndex < end && chr != '>')
 			{
+				if (chr == '\t' || chr == '\r' || chr == '\n') {
+					chr = ' ';
+				}
 				if (prevChr == '<' && chr == '/')
 				{
 					closing = true;
 					prevChr = chr;
-					chr = src[++charIndex];
+					chr = source[++charIndex];
 					continue;
 				}
 				openingTag += chr;
 				prevChr = chr;
-				chr = src[++charIndex];
+				chr = source[++charIndex];
 			};
-			int firstSpace = openingTag.find(" ");
+			size_t firstSpace = openingTag.find(" ");
 			//if (!closing)
 			//{
 			//}
-			if (firstSpace != string::npos)
+			if (firstSpace != string::npos && lcase(openingTag).find("doctype") == string::npos)
 			{
+				string s1 = firstSpace + ": " + std::to_string(firstSpace);
+				std::wstring widestr = std::wstring(s1.begin(), s1.end());
+				OutputDebugStringW(widestr.c_str());
 				attributeSource = openingTag.substr(firstSpace + 1);
 				openingTag = openingTag.substr(0, firstSpace);
 				for (attrIndex = 0, attrLen = attributeSource.length(); attrIndex < attrLen; attrIndex++)
 				{
 					attrName = "";
 					attrValue = "";
-					while ((attrChr = attributeSource[attrIndex]) != '"')
-					{
-						if (whspace(attrChr) || attrChr == '=')
-						{
-							attrIndex++;
-							continue;
+					while (attrIndex < attrLen) {
+						attrChr = attributeSource[attrIndex];
+						if (attrChr == '=') {
+							break;
 						}
-						attrName += attrChr;
-						attrIndex++;
-					}
-					attrIndex++;
-					while ((attrChr = attributeSource[attrIndex]) != '"')
-					{
-						if (whspace(attrChr) && attrChr != ' ')
-						{
-							attrIndex++;
-							continue;
+						if (attrChr == '"') {
+							attrIndex += 1;
+							attrChr = attributeSource[attrIndex];
+							while (attrChr != '"' && attrIndex < attrLen) {
+								attrName += attrChr;
+								attrIndex += 1;
+								attrChr = attributeSource[attrIndex];
+							}
 						}
-						attrValue += attrChr;
-						attrIndex++;
+						else {
+							attrName += attrChr;
+						}
+						attrIndex += 1;
 					}
-					newNode->attributes[attrName] = attrValue;
+					if (attrIndex < attrLen && attributeSource[attrIndex] == '=') {
+						attrIndex += 1;
+					}
+					while (attrIndex < attrLen) {
+						attrChr = attributeSource[attrIndex];
+						if (attrChr == '>') {
+							break;
+						}
+						if (attrChr == '"') {
+							attrIndex += 1;
+							attrChr = attributeSource[attrIndex];
+							while (attrChr != '"' && attrIndex < attrLen) {
+								attrValue += attrChr;
+								attrIndex += 1;
+								attrChr = attributeSource[attrIndex];
+							}
+						}
+						else if (whspace(attrChr)) {
+							break;
+						}
+						else {
+							attrValue += attrChr;
+						}
+						attrIndex += 1;
+					}
+					newNode->attributes[lcase(attrName)] = attrValue;
 				}
 			}
 
+			openingTag = lcase(openingTag);
 			if (closing)
 			{
 				if ((openingTag == tagName))
@@ -103,9 +162,12 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 					return;
 				}
 			}
+			else if (openingTag == "meta" || openingTag == "nextid") {
+
+			}
 			else {
 				// CAREFUL!!!
-				parseHTML(*newNode, node, src, charIndex + 1, end, openingTag);
+				parseHTML(*newNode, node, source, charIndex + 1, end, openingTag, htmlNodes);
 				node.appendChild(*newNode);
 				newNode->set_idx(node.get_child_count() - 1);
 				newNode->set_tag_name(lcase(openingTag));

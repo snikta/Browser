@@ -7,7 +7,7 @@ table, tr, div, li, ul, ol, img, p, div { display: block; }
 th, td { width: 20%; display: inline-block; }
 b { font-weight: bold; }
 i { font-style: italic; }
-a { color: blue; }
+a { color: #0000ff; }
 
 #header {
 	left: 0;
@@ -98,4 +98,9 @@ div#opacityBarVerticalLine { height: 15px; }
     border: 1px solid rgb(102, 102, 102);
     background: rgb(128, 128, 128);
     position: fixed;
+}
+
+#astronautLEM {
+	width: 233px;
+	height: 155px;
 }

@@ -134,13 +134,9 @@ appendChild(content, contentFooter)
 appendChild(footer, footerLeftColumn)
 appendChild(footer, footerRightColumn)
 
-var header = createElement ("div")
-header.id = "header"
-
 var imgApollo = createElement("img")
 
 imgApollo.src = "apollo.jpg"
 imgApollo.width = "233"
 imgApollo.height = "155"
-imgApollo.style.display = 'block'
-imgApollo.style.position = 'fixed'
+appendChild(sidebar, imgApollo)

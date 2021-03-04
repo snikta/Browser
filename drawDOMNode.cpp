@@ -33,6 +33,68 @@ double pxToPc(string px, double denominator) {
 	return stod(px);
 }
 
+void drawBitmap(std::wstring widestr, DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget) {
+	IWICImagingFactory* m_pWICFactory;
+	ID2D1Bitmap* m_pBitmap;
+
+	HRESULT hr = CoCreateInstance(
+		CLSID_WICImagingFactory,
+		nullptr,
+		CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(&m_pWICFactory)
+	);
+
+	if (SUCCEEDED(hr))
+	{
+		hr = LoadBitmapFromFile(
+			pRenderTarget,
+			m_pWICFactory,
+			widestr.c_str(),
+			0,
+			0,
+			&m_pBitmap
+		);
+
+		if (SUCCEEDED(hr))
+		{
+			// Retrieve the size of the bitmap.
+			D2D1_SIZE_F size = m_pBitmap->GetSize();
+
+			D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(node.x, node.y);
+
+			double aspectRatio = size.width / size.height;
+			double origWidth = size.width;
+			double origHeight = size.height;
+			double newWidth = node.width;
+			double newHeight = node.height;
+			if (origWidth < newWidth && origHeight < newHeight) {
+				newWidth = origWidth;
+				newHeight = origHeight;
+			}
+			else {
+				if (newWidth / newHeight > aspectRatio) {
+					newWidth = newHeight * aspectRatio;
+				}
+				else {
+					newHeight = newWidth / aspectRatio;
+				}
+			}
+
+			// Draw a bitmap.
+			pRenderTarget->DrawBitmap(
+				m_pBitmap,
+				D2D1::RectF(
+					upperLeftCorner.x,
+					upperLeftCorner.y,
+					upperLeftCorner.x + newWidth * viewportScaleX,
+					upperLeftCorner.y + newHeight * viewportScaleY)
+			);
+
+			SafeRelease(&m_pBitmap);
+		}
+	}
+}
+
 void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*>& nodesInOrder, int level) {
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 	double innerWidth = renderTargetSize.width;
@@ -95,7 +157,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			splitString((*node.ptrASTArray)["class"]->getString(), ' ', node.classList);
 		}
 
-		map<string, ASTNode*> *ptrStyle = resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray;
+		map<string, ASTNode*>* ptrStyle = resolveRuntimeObject(*(*node.ptrASTArray)["style"]).ASTArray;
 		string oldLeft = "";
 		if (ptrStyle->find("left") != ptrStyle->end()) {
 			oldLeft = (*ptrStyle)["left"]->getString();
@@ -142,6 +204,10 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	}
 
 	string tagName = node.get_tag_name();
+
+	if (tagName == "head" || tagName == "link" || tagName == "meta" || tagName == "title") {
+		return;
+	}
 
 	//ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
 	//ctx.shadowColor = "transparent";
@@ -315,7 +381,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		}
 	}
 
-	if (node.get_tag_name() == "div") {
+	if (true || node.get_tag_name() == "div") {
 		string bg = node.style["background"];
 		ID2D1LinearGradientBrush* m_pLinearGradientBrush;
 		if (bg != "")
@@ -329,18 +395,29 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				node.y + node.height
 			);
 			if (bg.find(lg) == string::npos) {
+				if (bg.find('url(') != string::npos) {
+					string src = bg.substr(4);
+					src = src.substr(0, src.size() - 1);
+					std::wstring widestr = std::wstring(src.begin(), src.end());
+					drawBitmap(widestr, node, pRenderTarget);
+				}
 				vector<string> rgbValues;
 				D2D1_COLOR_F color;
-				if (node.style["background"].find("rgba") == string::npos) {
+				bool hasColor = false;
+				if (node.style["background"].find("rgb") != string::npos) {
 					splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(4), ',', rgbValues);
 					color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+					hasColor = true;
 				}
-				else {
+				else if (node.style["background"].find("rgba") != string::npos) {
 					splitString(node.style["background"].substr(0, node.style["background"].length() - 1).substr(5), ',', rgbValues);
 					color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255, stof(rgbValues[3]));
+					hasColor = true;
 				}
-				pRenderTarget->CreateSolidColorBrush(color, &pBrush);
-				pRenderTarget->FillRectangle(&rect1, pBrush);
+				if (hasColor) {
+					pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					pRenderTarget->FillRectangle(&rect1, pBrush);
+				}
 			}
 			else {
 				bg = bg.substr(0, bg.length() - 1).substr(lg.length());
@@ -427,10 +504,10 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 		//MessageBox(NULL, stringToLPCWSTR(node.style["color"]), L"node.style.color", MB_OK);
 
-		/*if (node.style["color"] == "")
+		if (node.style.find("color") == node.style.end() || node.style["color"] == "")
 		{
 			node.style["color"] = "rgb(0,0,0)";
-		}*/
+		}
 
 		splitString(node.style["color"].substr(0, node.style["color"].length() - 1).substr(4), ',', rgbValues);
 		D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
@@ -450,50 +527,9 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 		// Create a bitmap from a file.
 		std::wstring widestr = std::wstring(node.attributes["src"].begin(), node.attributes["src"].end());
-
-		IWICImagingFactory* m_pWICFactory;
-		ID2D1Bitmap* m_pBitmap;
-
-		HRESULT hr = CoCreateInstance(
-			CLSID_WICImagingFactory,
-			nullptr,
-			CLSCTX_INPROC_SERVER,
-			IID_PPV_ARGS(&m_pWICFactory)
-		);
-
-		if (SUCCEEDED(hr))
-		{
-			hr = LoadBitmapFromFile(
-				pRenderTarget,
-				m_pWICFactory,
-				widestr.c_str(),
-				0,
-				0,
-				&m_pBitmap
-			);
-
-			if (SUCCEEDED(hr))
-			{
-				// Retrieve the size of the bitmap.
-				D2D1_SIZE_F size = m_pBitmap->GetSize();
-
-				D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(node.x, node.y);
-
-				// Draw a bitmap.
-				pRenderTarget->DrawBitmap(
-					m_pBitmap,
-					D2D1::RectF(
-						upperLeftCorner.x,
-						upperLeftCorner.y,
-						upperLeftCorner.x + size.width * viewportScaleX * newWidth / origWidth,
-						upperLeftCorner.y + size.height * viewportScaleY * newHeight / origHeight)
-				);
-
-				SafeRelease(&m_pBitmap);
-			}
-		}
+		drawBitmap(widestr, node, pRenderTarget);
 	}
-	
+
 	node._x = node.x;
 	node._y = node.y;
 	node._width = node.width;
@@ -517,12 +553,12 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		newShape->y1 = node.y;
 		newShape->y2 = node.y + node.height;
 		newShape->node = &node;
-		
+
 		mySlabContainer.ShapeMembers[newShapeId] = newShape;
 		mySlabContainer.addShape(*newShape);
 		node.SlabDecompShape = newShape;
 	}
-	
+
 	if (node.get_child_count())
 	{
 		if (node.parentNode->get_tag_name() != "root")

@@ -4,4 +4,5 @@
 #include "splitString.h"
 /* "parseHTML.h" */
 
-void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int end, string tagName);
+string tagHTML(DOMNode& tag);
+void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int end, string tagName, vector<DOMNode*> &htmlNodes);

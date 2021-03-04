@@ -141,7 +141,74 @@ public:
 		std::srand(std::time(nullptr));
 		testJSExec();
 
-		myParser.set_location("C:\\c++\\Browser\\layout.html");
+		myParser.set_location("C:\\c++\\Browser\\www\\TheProject.html");
+
+		if (myParser.rootNode == nullptr)
+		{
+			string fname = myParser.get_location();
+			string src;
+			int len = readTextFile(fname, src);
+
+			string emptyStr = "";
+			string root = "body";
+
+			mySlabContainer = *(new SlabContainer);
+
+			myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
+			(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
+
+			vector<DOMNode*> htmlNodes = {};
+			parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
+
+			for (int i = 0, len = htmlNodes.size(); i < len; i++) {
+				DOMNode* node = htmlNodes[i];
+				if (node == node->parentNode) {
+					break;
+				}
+				if ((node->get_tag_name() == "dd" || node->get_tag_name() == "dt") && node->parentNode && node->parentNode != nullptr) {
+					DOMNode* pNode = node;
+					while (pNode && pNode != nullptr && pNode != pNode->parentNode && pNode->get_tag_name() != "dl") {
+						pNode = pNode->parentNode;
+					}
+					if (pNode->get_tag_name() == "dl") {
+						if (pNode->firstChild && pNode->firstChild != nullptr) {
+							node->nextSibling = pNode->firstChild;
+							pNode->firstChild->previousSibling = node;
+						}
+						else {
+							node->nextSibling = nullptr;
+						}
+						node->parentNode = pNode;
+						pNode->firstChild = node;
+						if (node->previousSibling && node->previousSibling != nullptr) {
+							node->previousSibling->nextSibling = nullptr;
+						}
+					}
+				}
+			}
+			src = tagHTML(*myParser.rootNode);
+			std::wstring widestr = std::wstring(src.begin(), src.end());
+			OutputDebugStringW(widestr.c_str());
+			root = "root";
+			myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
+			(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
+			scriptsToRunOnLoad.clear();
+			htmlNodes.clear();
+			elsById.clear();
+			elsByTagName.clear();
+			elsByClassName.clear();
+			parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
+
+			string strCern = "www\\cern.css";
+			parseCSS(strCern);
+
+			myParser.rootNode->set_zindex(0);
+
+			nodesInOrder.clear();
+			nodesInOrder = {};
+			//drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+
+		}
 
 		/*string fname = "layout.html";
 		string src;
@@ -403,6 +470,13 @@ void MainWindow::OnPaint()
 			nodesInOrder = {};
 			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
 
+			if (!pageLoaded) {
+				for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
+					execAST(scriptsToRunOnLoad[i], globalVariables);
+				}
+				drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+			}
+
 			setZIndexes(*myParser.rootNode);
 
 			int y = 0;
@@ -520,6 +594,8 @@ void MainWindow::OnPaint()
 					}
 				}
 			}
+
+			pageLoaded = true;
 		}
 
 		hr = pRenderTarget->EndDraw();
@@ -676,28 +752,6 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
-
-	if (myParser.rootNode == nullptr)
-	{
-		string fname = myParser.get_location();
-		string src;
-		int len = readTextFile(fname, src);
-
-		string emptyStr = "";
-		string root = "root";
-
-		mySlabContainer = *(new SlabContainer);
-
-		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
-		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
-
-		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
-		parseCSS(myParser.cssFilename);
-
-		for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
-			execAST(scriptsToRunOnLoad[i], globalVariables);
-		}
-	}
 	
 	if (mySlabContainer.ShapeMembers.size() < 6)
 	{
