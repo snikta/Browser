@@ -38,7 +38,10 @@ bool pageLoaded = false;
 
 IDWriteFactory* m_pDWriteFactory;
 IDWriteTextFormat* m_pTextFormat;
+ID2D1Factory* pFactory = NULL;
 
+IWICBitmap* pWICBitmap = NULL;
+ID2D1RenderTarget* pRenderTarget2 = NULL;
 ID2D1SolidColorBrush* m_pBlackBrush;
 
 Parser myParser;
@@ -158,8 +161,8 @@ void loadPage(string url) {
 class MainWindow : public BaseWindow<MainWindow>
 {
 	IWICImagingFactory     *m_pWICFactory;
-	ID2D1Factory            *pFactory;
 	ID2D1HwndRenderTarget   *pRenderTarget;
+	ID2D1BitmapRenderTarget* pCompatibleRenderTarget = NULL;
 	ID2D1SolidColorBrush    *pBrush;
 	ID2D1SolidColorBrush    *redBrush;
 	D2D1_ELLIPSE            ellipse;
@@ -207,7 +210,7 @@ public:
 		}
 	};
 
-	MainWindow() : pFactory(NULL), pRenderTarget(NULL), pBrush(NULL), redBrush(NULL)/*,
+	MainWindow() : pRenderTarget(NULL), pBrush(NULL), redBrush(NULL)/*,
 																					ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
 		ptMouse(D2D1::Point2F())
 	{
@@ -274,6 +277,34 @@ HRESULT MainWindow::CreateGraphicsResources()
 			D2D1::RenderTargetProperties(),
 			D2D1::HwndRenderTargetProperties(m_hwnd, size),
 			&pRenderTarget);
+
+		IWICImagingFactory* pWICFactory = NULL;
+		HRESULT hr = CoCreateInstance(
+			CLSID_WICImagingFactory,
+			nullptr,
+			CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(&pWICFactory)
+		);
+
+		if (SUCCEEDED(hr))
+		{
+			hr = pWICFactory->CreateBitmap(
+				400,
+				400,
+				GUID_WICPixelFormat32bppRGB,
+				WICBitmapCacheOnLoad,
+				&pWICBitmap
+			);
+		}
+
+		if (SUCCEEDED(hr))
+		{
+			hr = pFactory->CreateWicBitmapRenderTarget(
+				pWICBitmap,
+				D2D1::RenderTargetProperties(),
+				&pRenderTarget2
+			);
+		}
 
 		if (SUCCEEDED(hr))
 		{
@@ -416,6 +447,18 @@ void MainWindow::OnPaint()
 				}
 			}
 
+			float yDiff = 10 * newHeight / origHeight;
+			hr = m_pDWriteFactory->CreateTextFormat(
+				L"Verdana",
+				NULL,
+				DWRITE_FONT_WEIGHT_NORMAL,
+				DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				yDiff,
+				L"", //locale
+				&m_pTextFormat
+			);
+
 			if (SUCCEEDED(hr))
 			{
 				//std::wstring widestr = std::wstring(myParser.get_location().begin(), myParser.get_location().end());
@@ -432,18 +475,6 @@ void MainWindow::OnPaint()
 			//mySlabContainer.preprocessSubdivision(iconShapes, 'x', nilSlab);
 
 			//...
-
-			float yDiff = 10 * newHeight / origHeight;
-			hr = m_pDWriteFactory->CreateTextFormat(
-				L"Verdana",
-				NULL,
-				DWRITE_FONT_WEIGHT_NORMAL,
-				DWRITE_FONT_STYLE_NORMAL,
-				DWRITE_FONT_STRETCH_NORMAL,
-				yDiff,
-				L"", //locale
-				&m_pTextFormat
-			);
 
 			if (myParser.rootNode == nullptr) {
 				return;

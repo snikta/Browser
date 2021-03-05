@@ -9,6 +9,16 @@
 #include <cstdlib>
 #include <ctime>
 #include <sstream>
+#include <wincodec.h> 
+#include <commdlg.h> 
+#include <Windowsx.h>
+#include <fstream>
+#include <d2d1.h>
+#include "SafeRelease.h"
+#pragma comment(lib, "d2d1")
+
+#include "basewin.h"
+#include "WICViewerD2D.h"
 
 void LOut(string str) {
 	string s1 = str + "\n";
@@ -889,10 +899,63 @@ ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	int x = int(resolveRuntimeObject(args[1]).getNumber());
 	int y = int(resolveRuntimeObject(args[2]).getNumber());
 	int idx = y * 400 * 4 + x * 4;
-	canvasEl->bitmap[idx] = (char)255;
-	canvasEl->bitmap[idx + 1] = (char)0;
-	canvasEl->bitmap[idx + 2] = (char)0;
-	canvasEl->bitmap[idx + 3] = (char)255;
+	canvasEl->bitmap[idx] = (BYTE)255;
+	canvasEl->bitmap[idx + 1] = (BYTE)0;
+	canvasEl->bitmap[idx + 2] = (BYTE)0;
+	canvasEl->bitmap[idx + 3] = (BYTE)255;
+	return ASTNode();
+}
+
+ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	float x1 = float(resolveRuntimeObject(args[1]).getNumber());
+	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
+	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
+	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+	
+	D2D1_SIZE_U size = D2D1::SizeU(400, 400);
+
+	pRenderTarget2->BeginDraw();
+	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White));
+
+	if (canvasEl->bitmap == nullptr) {
+		canvasEl->bitmap = new BYTE[400 * 400 * 4];
+	}
+
+	ID2D1Bitmap* pBitmap = NULL;
+	HRESULT hr = pRenderTarget2->CreateBitmap(D2D1::SizeU(400, 400), canvasEl->bitmap, 400 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+
+	// Draw a bitmap.
+	pRenderTarget2->DrawBitmap(
+		pBitmap,
+		D2D1::RectF(
+			0,
+			0,
+			400,
+			400
+		),
+		1.0
+	);
+
+	const D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0);
+	ID2D1SolidColorBrush* pBrush;
+	hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
+	pRenderTarget2->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), pBrush);
+	pRenderTarget2->EndDraw();
+	
+	if (SUCCEEDED(hr))
+	{
+		if (canvasEl->bitmap && canvasEl->bitmap != nullptr) {
+			delete[] canvasEl->bitmap;
+			canvasEl->bitmap = nullptr;
+		}
+		canvasEl->bitmap = new BYTE[400 * 400 * 4];
+		pWICBitmap->CopyPixels(NULL, 400 * 4, 400 * 400 * 4, canvasEl->bitmap);
+	}
+
+	SafeRelease(&pBrush);
+	SafeRelease(&pBitmap);
+
 	return ASTNode();
 }
 
@@ -992,6 +1055,7 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"createPrototype", &PredefinedCreatePrototype},
 	{"createElement", &PredefinedCreateElement},
 	{"SetPixel", &PredefinedSetPixel},
+	{"DrawLine", &PredefinedDrawLine},
 	{"appendChild", &PredefinedAppendChild},
 	{"Alert", &PredefinedAlert},
 	{"addEventListener", &PredefinedAddEventListener},

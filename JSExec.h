@@ -5,6 +5,19 @@
 #include <string>
 #include <algorithm>
 #include "DOMNode.h"
+#include <windows.h>
+#include <cstdlib>
+#include <ctime>
+#include <sstream>
+#include <wincodec.h> 
+#include <commdlg.h> 
+#include <Windowsx.h>
+#include <fstream>
+#include <d2d1.h>
+#pragma comment(lib, "d2d1")
+
+#include "basewin.h"
+#include "WICViewerD2D.h"
 
 class DOMNode;
 
@@ -173,6 +186,9 @@ struct ParseNode {
 	ParseNode();
 };
 
+extern IWICBitmap* pWICBitmap;
+extern ID2D1Factory* pFactory;
+extern ID2D1RenderTarget* pRenderTarget2;
 extern map<string, ParseNode*> userDefinedFunctions;
 void printParseNode(ParseNode* node, string indent);
 string parseBracketedLine(string line, int i, int len);

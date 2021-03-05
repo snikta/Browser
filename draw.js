@@ -6,6 +6,8 @@ canvasEl.style.display = 'block'
 canvasEl.style.position = 'absolute'
 
 var coords = createElement('h1')
+var prevX = 0
+var prevY = 0
 
 var canvasMouseUp = function (e) {
 	removeEventListener('mousemove', canvasMouseMove)
@@ -14,10 +16,14 @@ var canvasMouseUp = function (e) {
 
 var canvasMouseMove = function (e) {
 	coords.textContent = 'X: ' + pageX + ', Y: ' + pageY
-	SetPixel(canvasEl, pageX, pageY)
+	DrawLine(canvasEl, prevX, prevY, pageX, pageY)
+	prevX = pageX
+	prevY = pageY
 }
 
 var canvasMouseDown = function (e) {
+	prevX = pageX
+	prevY = pageY
 	addEventListener('mousemove', canvasMouseMove)
 	addEventListener('mouseup', canvasMouseUp)
 }

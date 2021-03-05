@@ -121,6 +121,12 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	node.x_set = false;
 	node.y_set = false;
 
+	if (node.get_tag_name() == "canvas") {
+		if (!node.bitmap || node.bitmap == nullptr) {
+			node.bitmap = new BYTE[400 * 400 * 4];
+		}
+	}
+
 	if (node.get_child_count()) {
 		DOMNode* childNode = node.firstChild;
 		while (childNode && childNode != nullptr) {
@@ -162,12 +168,6 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			}
 			else {
 				node.style["height"] = std::to_string(stod(node.attributes["height"]) / node.parentNode->height * viewportScaleY * 100) + '%';
-			}
-		}
-
-		if (node.get_tag_name() == "canvas") {
-			if (node.bitmap == nullptr) {
-				node.bitmap = new char[400 * 400 * 4];
 			}
 		}
 
