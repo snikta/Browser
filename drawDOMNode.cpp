@@ -27,6 +27,9 @@ const vector<string> styleSkipList = { "box-shadow", "margin", "position", "disp
 float viewportScaleX, viewportScaleY;
 
 double pxToPc(string px, double denominator) {
+	if (px.substr(px.size() - 1, 1) == "%") {
+		return stod(px.substr(0, px.size() - 1));
+	}
 	if (px.size() >= 2 && px.substr(px.size() - 2, px.size()) == "px") {
 		return stod(px.substr(0, px.size() - 2));/* / denominator * 100;*/
 	}
@@ -97,8 +100,8 @@ void drawBitmap(std::wstring widestr, DOMNode& node, ID2D1HwndRenderTarget* pRen
 
 void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*>& nodesInOrder, int level) {
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
-	double innerWidth = renderTargetSize.width;
-	double innerHeight = renderTargetSize.height;
+	double innerWidth = renderTargetSize.width * viewportScaleX;
+	double innerHeight = renderTargetSize.height * viewportScaleY;
 	DOMNode* parentNode = node.parentNode;
 	bool x_set = false, y_set = false, width_set = false, height_set = false;
 	double totalWidth, totalHeight;
@@ -120,7 +123,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 	if (node.get_child_count()) {
 		DOMNode* childNode = node.firstChild;
-		while (childNode != nullptr) {
+		while (childNode && childNode != nullptr) {
 			childNode->x = 0;
 			childNode->y = 107 * newHeight / origHeight;
 			childNode->width = 0;
@@ -212,32 +215,17 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	//ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
 	//ctx.shadowColor = "transparent";
 
-	if (tagName == "head") {
-		return;
-	}
-
-	if (parentNode->get_tag_name() != "root") {
+	if (parentNode != &node) {
 		if (node.get_idx() == 0)
 		{
-			node.x = parentNode->x;
+			node.x = parentNode->x + parentNode->marginX;
 			node.y = parentNode->y;
 		}
 		else
 		{
-			node.x = node.previousSibling->x;
-			//if (node.previousSibling->style["display"].find("inline") != -1)
-			{
-				/*string s1 = to_string(node.previousSibling->width);
-				std::wstring widestr = std::wstring(s1.begin(), s1.end());
-				OutputDebugStringW(widestr.c_str());*/
-				node.x += node.previousSibling->width;
-			}
-			/*if (node.get_tag_name() == "TextNode")
-			{
-			node.x_set = true;
-			node.y_set = true;
-			}*/
-			node.y = node.previousSibling->y;
+			node.x = node.previousSibling->getLeft();
+			node.x += node.previousSibling->width;
+			node.y = node.previousSibling->getTop();
 			if ((node.style["display"] == "block") || (node.previousSibling->style["display"] == "block"))
 			{
 				node.y += node.previousSibling->height;
@@ -293,7 +281,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 					node.x = pxToPc(node.style["left"], innerWidth);
 				}
 				else {
-					node.x = parentNode->x + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
+					node.x = parentNode->x + parentNode->marginX + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
 				}
 				if (node.style["position"] == "absolute") {
 					if (node.style["top"].find("px") != string::npos) {
@@ -361,23 +349,27 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		node.x_set = node.y_set = node.width_set = node.height_set = true;
 	}
 
-	if (!node.x_set) { node.x = parentNode->x; }
-	if (!node.y_set) { node.y = parentNode->y; }
+	if (!node.x_set) { node.x = parentNode->getLeft(); }
+	if (!node.y_set) { node.y = parentNode->getTop(); }
 	if (!node.width_set) { node.width = parentNode->width; }
 	if (!node.height_set) { node.height = parentNode->height; }
 
 	if (node.style["display"].find("block") != string::npos && node.style["margin"] != "") {
-		if (node.style["margin"].find("px") != string::npos) {
-			node.marginX = pxToPc(node.style["margin"], innerWidth);
+		if (node.style["margin-left"] != "") {
+			if (node.style["margin-left"].find("px") != string::npos) {
+				node.marginX = pxToPc(node.style["margin"], innerWidth);
+			}
+			else {
+				node.marginX = node.marginX || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->width;
+			}
 		}
-		else {
-			node.marginX = node.marginX || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->width;
-		}
-		if (node.style["margin"].find("px") != string::npos) {
-			node.marginY = pxToPc(node.style["margin"], innerHeight);
-		}
-		else {
-			node.marginY = node.marginY || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->height;
+		if (node.style["margin-top"] != "") {
+			if (node.style["margin"].find("px") != string::npos) {
+				node.marginY = pxToPc(node.style["margin"], innerHeight);
+			}
+			else {
+				node.marginY = node.marginY || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->height;
+			}
 		}
 	}
 
@@ -486,44 +478,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		}
 	}
 
-	if (node.get_tag_name() == "TextNode") {
-		float yDiff = 10 * newHeight / origHeight;
-		HRESULT hr = m_pDWriteFactory->CreateTextFormat(
-			L"Verdana",
-			NULL,
-			node.style["font-weight"] == "bold" ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
-			node.style["font-style"] == "italic" ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
-			DWRITE_FONT_STRETCH_NORMAL,
-			yDiff,
-			L"", //locale
-			&m_pTextFormat
-		);
-
-		//D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0, 1.0f);
-		vector<string> rgbValues;
-
-		//MessageBox(NULL, stringToLPCWSTR(node.style["color"]), L"node.style.color", MB_OK);
-
-		if (node.style.find("color") == node.style.end() || node.style["color"] == "")
-		{
-			node.style["color"] = "rgb(0,0,0)";
-		}
-
-		splitString(node.style["color"].substr(0, node.style["color"].length() - 1).substr(4), ',', rgbValues);
-		D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
-		pRenderTarget->CreateSolidColorBrush(color, &pBrush);
-
-		string txt = node.get_text_content();
-		std::wstring widestr = std::wstring(txt.begin(), txt.end());
-		pRenderTarget->DrawText(
-			widestr.c_str(),
-			txt.length(),
-			m_pTextFormat,
-			D2D1::RectF(node.x, node.y, node.x + node.width, node.y + node.height),
-			pBrush
-		);
-	}
-	else if (node.get_tag_name() == "img") {
+	if (node.get_tag_name() == "img") {
 
 		// Create a bitmap from a file.
 		std::wstring widestr = std::wstring(node.attributes["src"].begin(), node.attributes["src"].end());
@@ -585,9 +540,9 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		}
 		else
 		{
-			node.width = renderTargetSize.width * viewportScaleX;
-			node.height = renderTargetSize.height * viewportScaleY;
-			node.width_set = node.height_set = true;
+		node.width = renderTargetSize.width * viewportScaleX;
+		node.height = renderTargetSize.height * viewportScaleY;
+		node.width_set = node.height_set = true;
 		}
 
 		if (node.get_child_count())
@@ -624,27 +579,41 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		totalWidth = 0;
 		totalHeight = 0;
 		//console.log(node.tagName,node.width);
+		vector<double> widths = { 0.0 };
 		if (node.get_child_count())
 		{
 			DOMNode* child = node.firstChild;
+			double curWidth = 0.0;
 			int idx = 0;
 			while (child)
 			{
-				totalWidth += child->width;
-				if (child->style["display"] == "block" || idx == 0 || child->get_tag_name() == "TextNode")
+				double childWidth = 0.0;
+				childWidth = child->width;
+				if ((curWidth + childWidth) >= innerWidth) {
+					widths.push_back(curWidth);
+					curWidth = 0.0;
+				}
+				curWidth += childWidth;
+				if (totalHeight == 0.0 || child->style["display"] == "block" || idx == 0 || child->get_tag_name() == "TextNode")
 				{
-					totalHeight += child->height;
+					if (child->nextSibling && child->nextSibling != nullptr) {
+						totalHeight += child->nextSibling->getTop() - child->getTop();
+					}
+					else {
+						totalHeight += child->height;
+					}
 				}
 				idx++;
 				child = child->nextSibling;
 			}
+			widths.push_back(curWidth);
 		}
 		if (node.style["display"] == "inline")
 		{
-			node.width = totalWidth;
+			node.width = min(innerWidth, *std::max_element(widths.begin(), widths.end()));
 			node.width_set = true;
 		}
-		node.height = totalHeight;
+		node.height = min(innerHeight, totalHeight);
 		node.height_set = true;
 		//console.log(node.tagName,node.width);
 		//console.log('\n');
@@ -656,7 +625,18 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 			IDWriteTextLayout* pTextLayout_;
 
-			HRESULT hr = m_pDWriteFactory->CreateTextLayout(
+			HRESULT hr = m_pDWriteFactory->CreateTextFormat(
+				L"Verdana",
+				NULL,
+				node.style["font-weight"] == "bold" ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+				node.style["font-style"] == "italic" ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				10 * newHeight / origHeight,
+				L"", //locale
+				&m_pTextFormat
+			);
+
+			hr = m_pDWriteFactory->CreateTextLayout(
 				widestr.c_str(),      // The string to be laid out and formatted.
 				s3.length(),  // The length of the string.
 				m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
@@ -669,6 +649,77 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			pTextLayout_->GetMetrics(&metrics);
 			node.width = metrics.widthIncludingTrailingWhitespace;
 			node.height = metrics.height;
+
+			double x1 = node.getLeft();
+			double y1 = node.getTop();
+			double x2 = node.getLeft() + node.width;
+			double y2 = node.getTop() + node.height;
+
+			if ((node.getLeft() + node.width) >= innerWidth) {
+				DOMNode* leftNode = node.parentNode;
+				DOMNode* origNode = &node;
+				if (node.previousSibling && node.previousSibling != nullptr) {
+					node.y += node.previousSibling->height;
+				}
+				else {
+					node.y += metrics.height;
+				}
+				node.x = 0.0;
+				if (!(node.previousSibling && node.previousSibling != nullptr) && !(node.nextSibling && node.nextSibling != nullptr)) {
+					origNode = node.parentNode;
+				}
+				origNode->x = 0.0;
+				while (leftNode->style["display"] != "block" && leftNode->parentNode != leftNode) {
+					leftNode = leftNode->parentNode;
+				}
+				double xdiff = leftNode->x + leftNode->marginX;
+				node.x += xdiff;
+				int offset = 1;
+				while (origNode && origNode != nullptr) {
+					origNode->x += xdiff * offset;
+					origNode->width += xdiff;
+					if (origNode->previousSibling && origNode->previousSibling != nullptr) {
+						origNode->y += origNode->previousSibling->height;
+					}
+					else {
+						origNode->y += origNode->height;
+					}
+					origNode = origNode->nextSibling;
+					offset += 1;
+				}
+				node.width = min(innerWidth - node.getLeft(), metrics.width);
+
+				x1 = node.getLeft();
+				y1 = node.getTop();
+				x2 = node.getLeft() + node.width;
+				y2 = node.getTop() + node.height;
+			}
+
+			if (node.get_tag_name() == "TextNode") {
+				//D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0, 1.0f);
+				vector<string> rgbValues;
+
+				//MessageBox(NULL, stringToLPCWSTR(node.style["color"]), L"node.style.color", MB_OK);
+
+				if (node.style.find("color") == node.style.end() || node.style["color"] == "")
+				{
+					node.style["color"] = "rgb(0,0,0)";
+				}
+
+				splitString(node.style["color"].substr(0, node.style["color"].length() - 1).substr(4), ',', rgbValues);
+				D2D1_COLOR_F color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
+				pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+
+				string txt = node.get_text_content();
+				std::wstring widestr = std::wstring(txt.begin(), txt.end());
+				pRenderTarget->DrawText(
+					widestr.c_str(),
+					txt.length(),
+					m_pTextFormat,
+					D2D1::RectF(x1, y1, x2, y2),
+					pBrush
+				);
+			}
 
 			SafeRelease(pTextLayout_);
 		}

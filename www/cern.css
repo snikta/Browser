@@ -23,6 +23,10 @@ header, title {
 	height: 0;
 }
 
+dt {
+	font-weight: bold;
+}
+
 dd {
 	margin-left: 25px;
 }

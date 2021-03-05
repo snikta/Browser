@@ -163,7 +163,7 @@ public:
 			for (int i = 0, len = htmlNodes.size(); i < len; i++) {
 				DOMNode* node = htmlNodes[i];
 				if (node == node->parentNode) {
-					break;
+					continue;
 				}
 				if ((node->get_tag_name() == "dd" || node->get_tag_name() == "dt") && node->parentNode && node->parentNode != nullptr) {
 					DOMNode* pNode = node;
@@ -187,8 +187,6 @@ public:
 				}
 			}
 			src = tagHTML(*myParser.rootNode);
-			std::wstring widestr = std::wstring(src.begin(), src.end());
-			OutputDebugStringW(widestr.c_str());
 			root = "root";
 			myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
 			(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
@@ -197,10 +195,14 @@ public:
 			elsById.clear();
 			elsByTagName.clear();
 			elsByClassName.clear();
+			myParser.cssFilename = "";
 			parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
 
 			string strCern = "www\\cern.css";
-			parseCSS(strCern);
+			if (myParser.cssFilename == "") {
+				myParser.cssFilename = strCern;
+			}
+			parseCSS(myParser.cssFilename);
 
 			myParser.rootNode->set_zindex(0);
 

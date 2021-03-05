@@ -70,6 +70,14 @@ public:
 		return zIndex;
 	};
 
+	double getLeft() {
+		return x + marginX;
+	}
+
+	double getTop() {
+		return y + marginY;
+	}
+
 	string get_tag_name()
 	{
 		return tagName;
