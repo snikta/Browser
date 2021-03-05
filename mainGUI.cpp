@@ -101,6 +101,7 @@ void loadPage(string url) {
 		vector<DOMNode*> htmlNodes = {};
 		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
 
+		std::reverse(htmlNodes.begin(), htmlNodes.end());
 		for (int i = 0, len = htmlNodes.size(); i < len; i++) {
 			DOMNode* node = htmlNodes[i];
 			if (node == node->parentNode) {
@@ -210,8 +211,6 @@ public:
 																					ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
 		ptMouse(D2D1::Point2F())
 	{
-		//MessageBox(m_hwnd, L"Hello this is a test for the world (hello world)!", L"So yeah this is a caption", MB_OK);
-
 		std::srand(std::time(nullptr));
 		testJSExec();
 
@@ -226,14 +225,6 @@ public:
 
 void MainWindow::CalculateLayout()
 {
-	/*if (pRenderTarget != NULL)
-	{
-	D2D1_SIZE_F size = pRenderTarget->GetSize();
-	const float x = size.width / 2;
-	const float y = size.height / 2;
-	const float radius = min(x, y);
-	ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius);
-	}*/
 }
 
 class DPIScale
@@ -626,7 +617,7 @@ void MainWindow::Resize()
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 {
 	MainWindow win;
-	if (!win.Create(L"Snikta Browser 2018", WS_OVERLAPPEDWINDOW))
+	if (!win.Create(L"Snikta Browser 2021", WS_OVERLAPPEDWINDOW))
 	{
 		return 0;
 	}

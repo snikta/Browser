@@ -212,9 +212,6 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		return;
 	}
 
-	//ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
-	//ctx.shadowColor = "transparent";
-
 	if (parentNode != &node) {
 		if (node.get_idx() == 0)
 		{
@@ -250,10 +247,6 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			for (it = elStyles->begin(); it != elStyles->end(); ++it) {
 				node.style[it->first] = it->second;
 			}
-
-			/*if (node.get_tag_name() == "a") {
-				MessageBox(NULL, stringToLPCWSTR(node.style["color"]), L"DOM.document.body.node.style.color", MB_OK);
-			}*/
 
 			elStyles = &(myParser.styles[node.get_id()]);
 			for (it = elStyles->begin(); it != elStyles->end(); ++it) {
@@ -357,18 +350,18 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	if (node.style["display"].find("block") != string::npos && node.style["margin"] != "") {
 		if (node.style["margin-left"] != "") {
 			if (node.style["margin-left"].find("px") != string::npos) {
-				node.marginX = pxToPc(node.style["margin"], innerWidth);
+				node.marginX = pxToPc(node.style["margin-left"], innerWidth);
 			}
 			else {
-				node.marginX = node.marginX || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->width;
+				node.marginX = node.marginX || stod(substrReplace(node.style["margin-left"] == "" ? "0" : node.style["margin-left"], "%", "")) / 100 * node.parentNode->width;
 			}
 		}
 		if (node.style["margin-top"] != "") {
-			if (node.style["margin"].find("px") != string::npos) {
-				node.marginY = pxToPc(node.style["margin"], innerHeight);
+			if (node.style["margin-top"].find("px") != string::npos) {
+				node.marginY = pxToPc(node.style["margin-top"], innerHeight);
 			}
 			else {
-				node.marginY = node.marginY || stod(substrReplace(node.style["margin"] == "" ? "0" : node.style["margin"], "%", "")) / 100 * node.parentNode->height;
+				node.marginY = node.marginY || stod(substrReplace(node.style["margin-top"] == "" ? "0" : node.style["margin-top"], "%", "")) / 100 * node.parentNode->height;
 			}
 		}
 	}
@@ -578,7 +571,6 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	if (node.style["width"] == "" || node.style["height"] == "") {
 		totalWidth = 0;
 		totalHeight = 0;
-		//console.log(node.tagName,node.width);
 		vector<double> widths = { 0.0 };
 		if (node.get_child_count())
 		{
@@ -615,9 +607,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		}
 		node.height = min(innerHeight, totalHeight);
 		node.height_set = true;
-		//console.log(node.tagName,node.width);
-		//console.log('\n');
-
+		
 		if (node.get_tag_name() == "TextNode") {
 			// Create a text layout using the text format.
 			string s3 = node.get_text_content();
@@ -662,13 +652,13 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 					node.y += node.previousSibling->height;
 				}
 				else {
-					node.y += metrics.height;
+					node.y += 12;// metrics.height;
 				}
 				node.x = 0.0;
 				if (!(node.previousSibling && node.previousSibling != nullptr) && !(node.nextSibling && node.nextSibling != nullptr)) {
 					origNode = node.parentNode;
 				}
-				origNode->x = 0.0;
+				origNode->x = origNode->parentNode->x;
 				while (leftNode->style["display"] != "block" && leftNode->parentNode != leftNode) {
 					leftNode = leftNode->parentNode;
 				}
