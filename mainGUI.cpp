@@ -80,6 +80,80 @@ void testJSExec() {
 	globalVariables.ScopeArray["i"] = ASTNode(15.0L);*/
 }
 
+void loadPage(string url) {
+	pageLoaded = false;
+	myParser.set_location(url);
+
+	if (true)//(myParser.rootNode == nullptr)
+	{
+		string fname = myParser.get_location();
+		string src;
+		int len = readTextFile(fname, src);
+
+		string emptyStr = "";
+		string root = "body";
+
+		mySlabContainer = *(new SlabContainer);
+
+		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
+		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
+
+		vector<DOMNode*> htmlNodes = {};
+		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
+
+		for (int i = 0, len = htmlNodes.size(); i < len; i++) {
+			DOMNode* node = htmlNodes[i];
+			if (node == node->parentNode) {
+				continue;
+			}
+			if ((node->get_tag_name() == "dd" || node->get_tag_name() == "dt") && node->parentNode && node->parentNode != nullptr) {
+				DOMNode* pNode = node;
+				while (pNode && pNode != nullptr && pNode != pNode->parentNode && pNode->get_tag_name() != "dl") {
+					pNode = pNode->parentNode;
+				}
+				if (pNode->get_tag_name() == "dl") {
+					if (pNode->firstChild && pNode->firstChild != nullptr) {
+						node->nextSibling = pNode->firstChild;
+						pNode->firstChild->previousSibling = node;
+					}
+					else {
+						node->nextSibling = nullptr;
+					}
+					node->parentNode = pNode;
+					pNode->firstChild = node;
+					if (node->previousSibling && node->previousSibling != nullptr) {
+						node->previousSibling->nextSibling = nullptr;
+					}
+				}
+			}
+		}
+		src = tagHTML(*myParser.rootNode);
+		root = "root";
+		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
+		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
+		scriptsToRunOnLoad.clear();
+		htmlNodes.clear();
+		elsById.clear();
+		elsByTagName.clear();
+		elsByClassName.clear();
+		myParser.cssFilename = "";
+		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
+
+		string strCern = "www\\cern.css";
+		if (myParser.cssFilename == "") {
+			myParser.cssFilename = strCern;
+		}
+		parseCSS(myParser.cssFilename);
+
+		myParser.rootNode->set_zindex(0);
+
+		nodesInOrder.clear();
+		nodesInOrder = {};
+		//drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+
+	}
+}
+
 class MainWindow : public BaseWindow<MainWindow>
 {
 	IWICImagingFactory     *m_pWICFactory;
@@ -141,89 +215,7 @@ public:
 		std::srand(std::time(nullptr));
 		testJSExec();
 
-		myParser.set_location("C:\\c++\\Browser\\www\\TheProject.html");
-
-		if (myParser.rootNode == nullptr)
-		{
-			string fname = myParser.get_location();
-			string src;
-			int len = readTextFile(fname, src);
-
-			string emptyStr = "";
-			string root = "body";
-
-			mySlabContainer = *(new SlabContainer);
-
-			myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
-			(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
-
-			vector<DOMNode*> htmlNodes = {};
-			parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
-
-			for (int i = 0, len = htmlNodes.size(); i < len; i++) {
-				DOMNode* node = htmlNodes[i];
-				if (node == node->parentNode) {
-					continue;
-				}
-				if ((node->get_tag_name() == "dd" || node->get_tag_name() == "dt") && node->parentNode && node->parentNode != nullptr) {
-					DOMNode* pNode = node;
-					while (pNode && pNode != nullptr && pNode != pNode->parentNode && pNode->get_tag_name() != "dl") {
-						pNode = pNode->parentNode;
-					}
-					if (pNode->get_tag_name() == "dl") {
-						if (pNode->firstChild && pNode->firstChild != nullptr) {
-							node->nextSibling = pNode->firstChild;
-							pNode->firstChild->previousSibling = node;
-						}
-						else {
-							node->nextSibling = nullptr;
-						}
-						node->parentNode = pNode;
-						pNode->firstChild = node;
-						if (node->previousSibling && node->previousSibling != nullptr) {
-							node->previousSibling->nextSibling = nullptr;
-						}
-					}
-				}
-			}
-			src = tagHTML(*myParser.rootNode);
-			root = "root";
-			myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
-			(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
-			scriptsToRunOnLoad.clear();
-			htmlNodes.clear();
-			elsById.clear();
-			elsByTagName.clear();
-			elsByClassName.clear();
-			myParser.cssFilename = "";
-			parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
-
-			string strCern = "www\\cern.css";
-			if (myParser.cssFilename == "") {
-				myParser.cssFilename = strCern;
-			}
-			parseCSS(myParser.cssFilename);
-
-			myParser.rootNode->set_zindex(0);
-
-			nodesInOrder.clear();
-			nodesInOrder = {};
-			//drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
-
-		}
-
-		/*string fname = "layout.html";
-		string src;
-		int len = readTextFile(fname, src);
-
-		string emptyStr = "";
-		string root = "root";
-
-		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
-		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
-
-		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr);
-		parseCSS(myParser.cssFilename);*/
+		loadPage("C:\\c++\\Browser\\www\\TheProject.html");
 	}
 
 	PCWSTR  ClassName() const { return L"Browser Window Class"; }
@@ -711,7 +703,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 			{
 				if (node->get_tag_name() == "a" && node->get_zindex() >= (largestZIndex - 1)) {
 					MessageBox(NULL, stringToLPCWSTR("Navigating to \"" + node->attributes["href"] + "\""), L"<a>.href", MB_OK);
-					myParser.set_location(node->attributes["href"]);
+					loadPage("C:\\c++\\Browser\\www\\" + node->attributes["href"]);
 				}
 			}
 		}
@@ -778,9 +770,6 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		//if (!mySlabContainer.ShapeMembers.size())
 		{
 			vector<string> outputByLine;
-
-			//std::wstring widestr = std::wstring(s1.begin(), s1.end());
-			//OutputDebugStringW(widestr.c_str());
 
 			splitString(myParser.output, '\n', outputByLine);
 			int y = 0;

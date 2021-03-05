@@ -95,9 +95,6 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 			//}
 			if (firstSpace != string::npos && lcase(openingTag).find("doctype") == string::npos)
 			{
-				string s1 = firstSpace + ": " + std::to_string(firstSpace);
-				std::wstring widestr = std::wstring(s1.begin(), s1.end());
-				OutputDebugStringW(widestr.c_str());
 				attributeSource = openingTag.substr(firstSpace + 1);
 				openingTag = openingTag.substr(0, firstSpace);
 				for (attrIndex = 0, attrLen = attributeSource.length(); attrIndex < attrLen; attrIndex++)
@@ -171,7 +168,6 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 				node.appendChild(*newNode);
 				newNode->set_idx(node.get_child_count() - 1);
 				newNode->set_tag_name(lcase(openingTag));
-				//OutputDebugStringA(openingTag.c_str());
 
 				elsByTagName[newNode->get_tag_name()].push_back(newNode);
 
