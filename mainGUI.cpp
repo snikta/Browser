@@ -214,7 +214,7 @@ public:
 		std::srand(std::time(nullptr));
 		testJSExec();
 
-		loadPage("C:\\c++\\Browser\\www\\TheProject.html");
+		loadPage("C:\\c++\\Browser\\draw.html");
 	}
 
 	PCWSTR  ClassName() const { return L"Browser Window Class"; }
@@ -686,7 +686,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 				myScope.__parent = &globalVariables;
 				myScope.ScopeArray["this"] = runtimeObjects[node->astRuntimeId];
 				myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-				myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
+				myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
 				execAST(*astFunc.ASTNodeFunc, myScope);
 				return;
 			}
@@ -705,7 +705,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 		Scope myScope;
 		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
 		if (astFunc.ASTNodeFunc == nullptr) {
 			continue;
 		}
@@ -906,7 +906,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		Scope myScope;
 		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
 		execAST(*astFunc.ASTNodeFunc, myScope);
 	}
 

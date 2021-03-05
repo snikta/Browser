@@ -30,7 +30,7 @@ double pxToPc(string px, double denominator) {
 	if (px.substr(px.size() - 1, 1) == "%") {
 		return stod(px.substr(0, px.size() - 1));
 	}
-	if (px.size() >= 2 && px.substr(px.size() - 2, px.size()) == "px") {
+	if (px.size() >= 2 && px.substr(px.size() - 2, 2) == "px") {
 		return stod(px.substr(0, px.size() - 2));/* / denominator * 100;*/
 	}
 	return stod(px);
@@ -147,12 +147,28 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 		if (node.ptrASTArray->find("width") != node.ptrASTArray->end()) {
 			node.attributes["width"] = (*node.ptrASTArray)["width"]->getString();
-			node.style["width"] = std::to_string(stod(node.attributes["width"]) / node.parentNode->width * viewportScaleX * 100) + '%';
+			if (node.attributes["width"].find("px") != string::npos) {
+				node.style["width"] = std::to_string(pxToPc(node.attributes["width"], innerWidth) / innerWidth * 100) + "%";
+			}
+			else {
+				node.style["width"] = std::to_string(stod(node.attributes["width"]) / node.parentNode->width * viewportScaleX * 100) + '%';
+			}
 		}
 
 		if (node.ptrASTArray->find("height") != node.ptrASTArray->end()) {
 			node.attributes["height"] = (*node.ptrASTArray)["height"]->getString();
-			node.style["height"] = std::to_string(stod(node.attributes["height"]) / node.parentNode->height * viewportScaleY * 100) + '%';
+			if (node.attributes["height"].find("px") != string::npos) {
+				node.style["height"] = std::to_string(pxToPc(node.attributes["height"], innerHeight) / innerHeight * 100) + "%";
+			}
+			else {
+				node.style["height"] = std::to_string(stod(node.attributes["height"]) / node.parentNode->height * viewportScaleY * 100) + '%';
+			}
+		}
+
+		if (node.get_tag_name() == "canvas") {
+			if (node.bitmap == nullptr) {
+				node.bitmap = new char[400 * 400 * 4];
+			}
 		}
 
 		if (node.ptrASTArray->find("class") != node.ptrASTArray->end()) {
@@ -469,6 +485,25 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				delete[] gradStops;
 			}
 		}
+	}
+	if (node.get_tag_name() == "canvas") {
+		ID2D1Bitmap* pBitmap = NULL;
+		HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(400, 400), node.bitmap, 400 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+
+		// Draw a bitmap.
+		pRenderTarget->DrawBitmap(
+			pBitmap,
+			D2D1::RectF(
+				node.x,
+				node.y,
+				node.x + node.width,
+				node.y + node.height
+			),
+			1.0
+		);
+
+		SafeRelease(&pBitmap);
+
 	}
 
 	if (node.get_tag_name() == "img") {

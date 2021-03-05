@@ -884,6 +884,18 @@ ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
 	return ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>'));
 }
 
+ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	int x = int(resolveRuntimeObject(args[1]).getNumber());
+	int y = int(resolveRuntimeObject(args[2]).getNumber());
+	int idx = y * 400 * 4 + x * 4;
+	canvasEl->bitmap[idx] = (char)255;
+	canvasEl->bitmap[idx + 1] = (char)0;
+	canvasEl->bitmap[idx + 2] = (char)0;
+	canvasEl->bitmap[idx + 3] = (char)255;
+	return ASTNode();
+}
+
 ASTNode PredefinedAppendChild(vector<ASTNode> args, Scope& scope) {
 	DOMNode* newChild = resolveRuntimeObject(args[1]).ptrDOMNode;
 	DOMNode* newParent = resolveRuntimeObject(args[0]).ptrDOMNode;
@@ -979,6 +991,7 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"isset", &PredefinedIsset},
 	{"createPrototype", &PredefinedCreatePrototype},
 	{"createElement", &PredefinedCreateElement},
+	{"SetPixel", &PredefinedSetPixel},
 	{"appendChild", &PredefinedAppendChild},
 	{"Alert", &PredefinedAlert},
 	{"addEventListener", &PredefinedAddEventListener},

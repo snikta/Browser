@@ -32,6 +32,7 @@ public:
 	DOMNode *previousSibling = nullptr; // be
 	DOMNode *nextSibling = nullptr; // private -- invert case (camelCase becomes _ and vice versa)
 	DOMNode *parentNode;
+	char* bitmap = nullptr;
 	string type;
 	bool expand = true;
 	double width = 0.0;
