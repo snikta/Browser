@@ -6,10 +6,13 @@ html, body {
 
 canvas {
 	display: block;
+	left: 0px;
+	top: 107px;
 }
 
 h1 {
 	display: block;
-	left: 0px;
-	top: 500px;
+	left: 400px;
+	top: 107px;
+	position: absolute;
 }

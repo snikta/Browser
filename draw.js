@@ -1,9 +1,14 @@
 var canvasEl = createElement("canvas")
-canvasEl.style.background = "rgb(200, 200, 255)"
 canvasEl.width = "400px"
 canvasEl.height = "400px"
 canvasEl.style.display = "block"
 canvasEl.style.position = "absolute"
+
+var tempCanvasEl = createElement("canvas")
+tempCanvasEl.width = "400px"
+tempCanvasEl.height = "400px"
+tempCanvasEl.style.display = "block"
+tempCanvasEl.style.position = "absolute"
 
 var coords = createElement("h1")
 var prevX = 0
@@ -25,7 +30,7 @@ var canvasMouseUp = function (e) {
 
 var canvasMouseMove = function (e) {
 	coords.textContent = "X: " + pageX + ", Y: " + pageY
-	DrawLine(canvasEl, prevX, prevY, pageX, pageY)
+	DrawLine(tempCanvasEl, prevX, prevY, pageX, pageY, "true")
 	prevX = pageX
 	prevY = pageY
 }

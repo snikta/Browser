@@ -291,7 +291,7 @@ HRESULT MainWindow::CreateGraphicsResources()
 			hr = pWICFactory->CreateBitmap(
 				400,
 				400,
-				GUID_WICPixelFormat32bppRGB,
+				GUID_WICPixelFormat32bppPRGBA,
 				WICBitmapCacheOnLoad,
 				&pWICBitmap
 			);
@@ -950,6 +950,8 @@ void MainWindow::OnLButtonUp()
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mouseup"][j]);
 		Scope myScope;
 		myScope.__parent = astFunc.ASTNodeFunc->arguments;
+		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
 		if (astFunc.ASTNodeFunc == nullptr) {
 			continue;
 		}

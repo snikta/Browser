@@ -658,6 +658,9 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 	if (op1.scopeBox != nullptr) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
+	else {
+		op1 = parseParens(op1.getString(), scope);
+	}
 
 	op1 = resolveRuntimeObject(op1);
 	op2 = parseParens(op2.getString(), scope);
@@ -900,6 +903,7 @@ ASTNode PredefinedClearCanvas(vector<ASTNode> args, Scope& scope) {
 		delete[] canvasEl->bitmap;
 		canvasEl->bitmap = nullptr;
 	}
+	canvasEl->bitmap = new BYTE[400*400*4];
 	return ASTNode();
 }
 
@@ -915,13 +919,20 @@ ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
-void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float x2, float y2) {
+void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float x2, float y2, bool shouldClear) {
 	D2D1_SIZE_U size = D2D1::SizeU(400, 400);
 
 	pRenderTarget2->BeginDraw();
-	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White));
+	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0));
 
-	if (canvasEl->bitmap == nullptr) {
+	if (shouldClear) {
+		if (canvasEl->bitmap && canvasEl->bitmap != nullptr) {
+			delete[] canvasEl->bitmap;
+			canvasEl->bitmap = nullptr;
+		}
+		canvasEl->bitmap = new BYTE[400 * 400 * 4];
+	}
+	else if (canvasEl->bitmap == nullptr) {
 		canvasEl->bitmap = new BYTE[400 * 400 * 4];
 	}
 
@@ -953,8 +964,8 @@ void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float
 		pRenderTarget2->DrawRectangle(D2D1::RectF(x1, y1, x2, y2), pStrokeBrush);
 	}
 	else if (shapeType == "Ellipse") {
-		pRenderTarget2->FillEllipse(D2D1::Ellipse(D2D1::Point2F((x1 + x2) / 2.0, (y1 + y2) / 2.0), (x2 - x1) / 2.0, (y2 - y1) / 2.0), pFillBrush);
-		pRenderTarget2->DrawEllipse(D2D1::Ellipse(D2D1::Point2F((x1 + x2) / 2.0, (y1 + y2) / 2.0), (x2 - x1) / 2.0, (y2 - y1) / 2.0), pStrokeBrush);
+		pRenderTarget2->FillEllipse(D2D1::Ellipse(D2D1::Point2F((x1 + x2) / 2.0, (y1 + y2) / 2.0), abs(x2 - x1) / 2.0, abs(y2 - y1) / 2.0), pFillBrush);
+		pRenderTarget2->DrawEllipse(D2D1::Ellipse(D2D1::Point2F((x1 + x2) / 2.0, (y1 + y2) / 2.0), abs(x2 - x1) / 2.0, abs(y2 - y1) / 2.0), pStrokeBrush);
 	}
 	else if (shapeType == "Line") {
 		pRenderTarget2->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), pStrokeBrush);
@@ -983,8 +994,9 @@ ASTNode PredefinedDrawEllipse(vector<ASTNode> args, Scope& scope) {
 	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+	string shouldClear = resolveString(resolveRuntimeObject(args[5]).getString());
 
-	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2);
+	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2, shouldClear == "true");
 
 	return ASTNode();
 }
@@ -995,8 +1007,9 @@ ASTNode PredefinedDrawRectangle(vector<ASTNode> args, Scope& scope) {
 	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+	string shouldClear = resolveString(resolveRuntimeObject(args[5]).getString());
 
-	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2);
+	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2, shouldClear == "true");
 
 	return ASTNode();
 }
@@ -1008,7 +1021,7 @@ ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
 	
-	drawOnCanvas(canvasEl, "Line", x1, y1, x2, y2);
+	drawOnCanvas(canvasEl, "Line", x1, y1, x2, y2, false);
 
 	return ASTNode();
 }
@@ -2147,7 +2160,7 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 			key = "";
 			value = new ASTNode;
 			key_or_value = "key";
-			if (curBraceNode->parent != nullptr) {
+			if (curBraceNode->parent && curBraceNode->parent != nullptr) {
 				curBraceNode = curBraceNode->parent;
 			}
 			else {
@@ -2214,7 +2227,9 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 			curElement->ASTNodeString += quot;
 		}
 		else if (expr[i] == '{') {
+			int startPos = i;
 			(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = parseObjectLiteral(expr, i);
+			curElement = nullptr;
 		}
 		else if (expr[i] == '[') {
 			ASTNode* newBracketNode = new ASTNode;
@@ -2223,16 +2238,18 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 			curBracketNode = newBracketNode;
 		}
 		else if (expr[i] == ']') {
-			if (curElement->ASTArray->size() != 0) {
-				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = curElement;
-			}
-			else if (/*trim(*/curElement->getString() != "") {
-				Scope args;
-				ASTNode retval = parseParens(curElement->ASTNodeString, args);
-				if (retval.ASTNodeString != "") {
-					retval = ASTNode(resolveString(retval.ASTNodeString));
+			if (curElement && curElement != nullptr) {
+				if (curElement->ASTArray->size() != 0) {
+					(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = curElement;
 				}
-				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(retval);
+				else if (/*trim(*/curElement->getString() != "") {
+					Scope args;
+					ASTNode retval = parseParens(curElement->ASTNodeString, args);
+					if (retval.ASTNodeString != "") {
+						retval = ASTNode(resolveString(retval.ASTNodeString));
+					}
+					(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(retval);
+				}
 			}
 			curElement = new ASTNode;
 			if (curBracketNode->parent != nullptr) {
@@ -2243,16 +2260,18 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 			}
 		}
 		else if (expr[i] == ',') {
-			if (curElement->ASTArray->size() != 0) {
-				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = curElement;
-			}
-			else if (/*trim(*/curElement->getString() != "") {
-				Scope args;
-				ASTNode retval = parseParens(curElement->ASTNodeString, args);
-				if (retval.ASTNodeString != "") {
-					retval = ASTNode(resolveString(retval.ASTNodeString));
+			if (curElement && curElement != nullptr) {
+				if (curElement->ASTArray->size() != 0) {
+					(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = curElement;
 				}
-				(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(retval);
+				else if (/*trim(*/curElement->getString() != "") {
+					Scope args;
+					ASTNode retval = parseParens(curElement->ASTNodeString, args);
+					if (retval.ASTNodeString != "") {
+						retval = ASTNode(resolveString(retval.ASTNodeString));
+					}
+					(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = new ASTNode(retval);
+				}
 			}
 			curElement = new ASTNode;
 		}
@@ -2699,7 +2718,7 @@ ASTNode parseParens(string expr, Scope& args) {
 								}
 								size_t lastDot = curParent->parent->origFuncName.find_last_of('.', string::npos);
 								ASTNode astThis = parseParens(curParent->parent->origFuncName.substr(0, lastDot), args);
-								userDefinedFunctionScope.ScopeArray["this"] = resolveRuntimeObject(parseParens(curParent->parent->origFuncName.substr(0, lastDot), args));
+								userDefinedFunctionScope.ScopeArray["this"] = astThis;
 								output = new ASTNode(execAST(*func, userDefinedFunctionScope).retval.getString());
 							}
 							else {
@@ -2838,6 +2857,7 @@ vector<ASTNode> parseArguments(string argstring, Scope& scope) {
 				args.push_back(ASTNode(curarg));//.slice(1, -1))
 			}
 			else {*/
+			LOut("curarg: \"" + curarg + "\"");
 			args.push_back(parseParens(curarg, scope));
 			//}
 			curarg = "";
