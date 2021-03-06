@@ -215,7 +215,7 @@ public:
 		ptMouse(D2D1::Point2F())
 	{
 		std::srand(std::time(nullptr));
-		testJSExec();
+		//testJSExec();
 
 		loadPage("C:\\c++\\Browser\\draw.html");
 	}

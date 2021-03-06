@@ -894,6 +894,15 @@ ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
 	return ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>'));
 }
 
+ASTNode PredefinedClearCanvas(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	if (canvasEl->bitmap && canvasEl->bitmap != nullptr) {
+		delete[] canvasEl->bitmap;
+		canvasEl->bitmap = nullptr;
+	}
+	return ASTNode();
+}
+
 ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
 	int x = int(resolveRuntimeObject(args[1]).getNumber());
@@ -906,13 +915,7 @@ ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
-ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
-	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
-	float x1 = float(resolveRuntimeObject(args[1]).getNumber());
-	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
-	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
-	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
-	
+void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float x2, float y2) {
 	D2D1_SIZE_U size = D2D1::SizeU(400, 400);
 
 	pRenderTarget2->BeginDraw();
@@ -937,12 +940,28 @@ ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
 		1.0
 	);
 
-	const D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0);
-	ID2D1SolidColorBrush* pBrush;
-	hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
-	pRenderTarget2->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), pBrush);
-	pRenderTarget2->EndDraw();
+	D2D1_COLOR_F color = D2D1::ColorF(0.0, 0.0, 0.0);
+	ID2D1SolidColorBrush* pStrokeBrush;
+	hr = pRenderTarget2->CreateSolidColorBrush(color, &pStrokeBrush);
+
+	color = D2D1::ColorF(1.0, 0.0, 0.0);
+	ID2D1SolidColorBrush* pFillBrush;
+	hr = pRenderTarget2->CreateSolidColorBrush(color, &pFillBrush);
 	
+	if (shapeType == "Rectangle") {
+		pRenderTarget2->FillRectangle(D2D1::RectF(x1, y1, x2, y2), pFillBrush);
+		pRenderTarget2->DrawRectangle(D2D1::RectF(x1, y1, x2, y2), pStrokeBrush);
+	}
+	else if (shapeType == "Ellipse") {
+		pRenderTarget2->FillEllipse(D2D1::Ellipse(D2D1::Point2F((x1 + x2) / 2.0, (y1 + y2) / 2.0), (x2 - x1) / 2.0, (y2 - y1) / 2.0), pFillBrush);
+		pRenderTarget2->DrawEllipse(D2D1::Ellipse(D2D1::Point2F((x1 + x2) / 2.0, (y1 + y2) / 2.0), (x2 - x1) / 2.0, (y2 - y1) / 2.0), pStrokeBrush);
+	}
+	else if (shapeType == "Line") {
+		pRenderTarget2->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), pStrokeBrush);
+	}
+
+	pRenderTarget2->EndDraw();
+
 	if (SUCCEEDED(hr))
 	{
 		if (canvasEl->bitmap && canvasEl->bitmap != nullptr) {
@@ -953,8 +972,43 @@ ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
 		pWICBitmap->CopyPixels(NULL, 400 * 4, 400 * 400 * 4, canvasEl->bitmap);
 	}
 
-	SafeRelease(&pBrush);
+	SafeRelease(&pStrokeBrush);
+	SafeRelease(&pFillBrush);
 	SafeRelease(&pBitmap);
+}
+
+ASTNode PredefinedDrawEllipse(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	float x1 = float(resolveRuntimeObject(args[1]).getNumber());
+	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
+	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
+	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+
+	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2);
+
+	return ASTNode();
+}
+
+ASTNode PredefinedDrawRectangle(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	float x1 = float(resolveRuntimeObject(args[1]).getNumber());
+	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
+	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
+	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+
+	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2);
+
+	return ASTNode();
+}
+
+ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	float x1 = float(resolveRuntimeObject(args[1]).getNumber());
+	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
+	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
+	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+	
+	drawOnCanvas(canvasEl, "Line", x1, y1, x2, y2);
 
 	return ASTNode();
 }
@@ -1054,8 +1108,11 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"isset", &PredefinedIsset},
 	{"createPrototype", &PredefinedCreatePrototype},
 	{"createElement", &PredefinedCreateElement},
+	{"ClearCanvas", &PredefinedClearCanvas},
 	{"SetPixel", &PredefinedSetPixel},
 	{"DrawLine", &PredefinedDrawLine},
+	{"DrawRectangle", &PredefinedDrawRectangle},
+	{"DrawEllipse", &PredefinedDrawEllipse},
 	{"appendChild", &PredefinedAppendChild},
 	{"Alert", &PredefinedAlert},
 	{"addEventListener", &PredefinedAddEventListener},
