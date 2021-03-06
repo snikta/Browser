@@ -63,7 +63,7 @@ bool isNaN(string val) {
 	return false;
 }
 
-const vector<string> operators = { "==","=","+=","-=","*=","/=","[]",".","+","-","*","/","%","<","<=",">",">=","&&","||",","," in ","new" };
+const vector<string> operators = { "==","=","+=","-=","*=","/=","[]",".","+","-","*","/","%","<","<=",">",">=","&&","!=","||",","," in ","new" };
 bool isOperator(string op) {
 	return find(operators.begin(), operators.end(), op) != operators.end();
 }
@@ -627,6 +627,11 @@ ASTNode EqualsEquals(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree&
 	op2 = resolve(op2, scope);
 	return ASTNode(op1.getString() == op2.getString() ? 1.0L : 0.0L);
 }
+ASTNode NotEqual(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode(op1.getString() != op2.getString() ? 1.0L : 0.0L);
+}
 ASTNode CommaOperator(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	op1 = parseParens(op1.getString(), scope);
 	op2 = parseParens(op2.getString(), scope);
@@ -658,9 +663,11 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 	if (op1.scopeBox != nullptr) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
-	else {
+	/*else {
 		op1 = parseParens(op1.getString(), scope);
-	}
+	}*/
+
+	ASTNode origOp2 = op2;
 
 	op1 = resolveRuntimeObject(op1);
 	op2 = parseParens(op2.getString(), scope);
@@ -743,6 +750,7 @@ map<string, operatorFunction> operatorFunctions = {
 	{"<", &LessThan},
 	{">", &GreaterThan},
 	{"==", &EqualsEquals},
+	{"!=", &NotEqual},
 	{",", &CommaOperator},
 	{" in ", &InOperator},
 	{"new", &NewOperator}
@@ -1280,7 +1288,7 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 	}
 	OperatorList orderedAst = unorderedAst;
 	std::sort(orderedAst.begin(), orderedAst.end(), OperatorListSort);
-
+	
 	ASTNode retval;
 	while (orderedAst.size() > 1) {
 		evaluateOperatorListNode(orderedAst[0], args, ast);
@@ -1297,6 +1305,10 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 		if (retval.runtimeId != -1) {
 			return "<RuntimeObject#" + std::to_string(retval.runtimeId) + '>';
 		}
+		return retval;
+	}
+
+	if (retval.ASTArray->size() > 0) {
 		return retval;
 	}
 
@@ -2794,15 +2806,15 @@ ASTNode parseParens(string expr, Scope& args) {
 		}
 	}
 
-	string retval;
+	ASTNode retval;
 
 	if (root->childNodes.size() == 0) {
-		retval = evaluate(parseExpr(curChild, args), args).getString();
+		retval = evaluate(parseExpr(curChild, args), args);
 	}
 	else if (root->childNodes.size() == 1) {
 		AbstractSyntaxTree rootAst;
 		rootAst.push_back(*parseASTNode(root));
-		retval = evaluate(rootAst, args).getString();
+		retval = evaluate(rootAst, args);
 		
 	}
 	else if (root->childNodes.size()) {
@@ -2810,10 +2822,20 @@ ASTNode parseParens(string expr, Scope& args) {
 		for (int i = 0, len = root->childNodes.size(); i < len; i++) {
 			exprToParse += parseASTNode(root->childNodes[i])->getString();
 		}
-		retval = evaluate(parseExpr(exprToParse, args), args).getString();
+		retval = evaluate(parseExpr(exprToParse, args), args);
 	}
 	else {
-		retval = parseASTNode(root)->getString();
+		retval = parseASTNode(root);
+	}
+
+	if (retval.ASTNodeType == ASTNumberNode) {
+		return retval;
+	}
+	else if (retval.ASTArray->size() > 0) {
+		return retval;
+	}
+	else {
+		return retval.getString();
 	}
 
 	/*if (retval.string) {
@@ -2857,7 +2879,6 @@ vector<ASTNode> parseArguments(string argstring, Scope& scope) {
 				args.push_back(ASTNode(curarg));//.slice(1, -1))
 			}
 			else {*/
-			LOut("curarg: \"" + curarg + "\"");
 			args.push_back(parseParens(curarg, scope));
 			//}
 			curarg = "";

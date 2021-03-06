@@ -1,10 +1,10 @@
-﻿var simplify = {}
+﻿Log("simplify.js")
 
-var getSqDist = function (p1, p2) {
+function getSqDist(p1, p2) {
     var dx = p1.x - p2.x
     var dy = p1.y - p2.y
 
-    return dx * dx + dy * dy;
+    return dx * dx + dy * dy
 }
 
 function getSqSegDist(p, p1, p2) {
@@ -14,102 +14,108 @@ function getSqSegDist(p, p1, p2) {
     var dy = p2.y - y
 	
     if (dx != 0 || dy != 0) {
-
-        var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+        var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy)
         if (t > 1) {
-            x = p2.x;
-            y = p2.y;
+            x = p2.x
+            y = p2.y
 
         } else if (t > 0) {
-            x += dx * t;
-            y += dy * t;
+            x += dx * t
+            y += dy * t
         }
     }
-    dx = p.x - x;
-    dy = p.y - y;
+    dx = p.x - x
+    dy = p.y - y
 
-    return dx * dx + dy * dy;
+    return dx * dx + dy * dy
 }
 
-var simplifyRadialDist = function (points, sqTolerance) {
+function simplifyRadialDist(points, sqTolerance) {
 
     var prevPoint = points[0]
-    var newPoints = [prevPoint]
+    var nPoints = []
     var point
+	var i = 0
+	var len = length(points)
+	nPoints[0] = prevPoint
+	
+	Log("point count: " + len)
 
-    for (var i = 1, len = length(points); i < len; i++) {
-        point = points[i];
+    for (i = 1; i <= len - 1; i = i + 1) {
+        point = points[i]
 
         if (getSqDist(point, prevPoint) > sqTolerance) {
-            newPoints[length(newPoints)] = point;
-            prevPoint = point;
+			var nplen = length(nPoints)
+            nPoints[nplen] = point
+            prevPoint = point
         }
     }
 
-    if (prevPoint != point) newPoints[length(newPoints)] = point;
+    if (prevPoint != point) {
+		var nplen = length(nPoints)
+		nPoints[nplen] = point
+	}
 
-    return newPoints;
+    return nPoints
 }
 
 function simplifyDPStep(points, first, last, sqTolerance, simplified) {
     var maxSqDist = sqTolerance
     var index = -1
+	var i = 0
 
-    for (i = first + 1; i < last; i++) {
-        var sqDist = getSqSegDist(points[i], points[first], points[last]);
+    for (i = first + 1; i <= last - 1; i = i + 1) {
+        var sqDist = getSqSegDist(points[i], points[first], points[last])
         if (sqDist > maxSqDist) {
-            index = i;
-            maxSqDist = sqDist;
+            index = i
+            maxSqDist = sqDist
         }
     }
 	
     if (maxSqDist > sqTolerance) {
         if (index - first > 1) {
-			simplifyDPStep(points, first, index, sqTolerance, simplified);
+			simplifyDPStep(points, first, index, sqTolerance, simplified)
 		}
-        simplified.push(points[index]);
+		var slen = length(simplified)
+        simplified[slen] = points[index]
         if (last - index > 1) {
-			simplifyDPStep(points, index, last, sqTolerance, simplified);
+			simplifyDPStep(points, index, last, sqTolerance, simplified)
 		}
     }
 }
 
 /* simplification using Ramer-Douglas-Peucker algorithm */
-var simplifyDouglasPeucker = function (points, sqTolerance) {
-    var last = length(points) - 1;
-    var simplified = [];
+function simplifyDouglasPeucker(points, sqTolerance) {
+    var last = length(points) - 1
+    var simplified = []
 	simplified[0] = points[0]
-    simplifyDPStep(points, 0, last, sqTolerance, simplified);
+    simplifyDPStep(points, 0, last, sqTolerance, simplified)
     simplified[length(simplified)] = points[last]
 
-    return simplified;
+    return simplified
 }
 
-var simplify = function (points, tolerance, highestQuality) {
-
-    if (length(points) <= 2) {
-		return points;
-	}
+function simplify(points, tolerance, highestQuality) {
 
 	var sqTolerance = 1
 	if (tolerance > 0) {
 		sqTolerance = tolerance * tolerance
 	}
 
-	if (!highestQuality) {
-		points = simplifyRadialDist(points, sqTolerance);
+	if (highestQuality != true) {
+		points = simplifyRadialDist(points, sqTolerance)
 	}
 		
-    points = simplifyDouglasPeucker(points, sqTolerance);
+    points = simplifyDouglasPeucker(points, sqTolerance)
 
-    return points;
+    return points
 }
 
 var tPoints = [{x:12,y:13},{x:15,y:12},{x:17,y:10},{x:20,y:15},{x:23,y:23},{x:34,y:25},{x:38,y:34},{x:45,y:40}]
 var testPoints = simplify(tPoints, 3, false)
-i = 0
+var i = 0
 len = length(testPoints)
 Log("testPoints.length: " + len)
-for (; i < len; i = i + 1) {
+for (i = 0; i <= len - 1; i = i + 1) {
 	Log(i + ": (" + testPoints[i].x + ", " + testPoints[i].y + ")")
 }
