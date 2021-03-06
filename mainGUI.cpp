@@ -769,7 +769,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
 	
-	if (mySlabContainer.ShapeMembers.size() < 6)
+	if (!pageLoaded)
 	{
 		vector<Shape*> shapesToPreprocess;
 		int x = 0, xDiff = 107 * viewportScaleX;
@@ -819,13 +819,13 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 				DWRITE_TEXT_METRICS metrics;
 				pTextLayout_->GetMetrics(&metrics);
 
-				Shape* newShape = new Shape;
+				/*Shape* newShape = new Shape;
 				newShape->id = shapeId;
 				x1 = newShape->x1 = renderTargetSize.width * viewportScaleX;
 				x2 = newShape->x2 = renderTargetSize.width;
 				y1 = newShape->y1 = y;
 				y2 = newShape->y2 = y + metrics.height;
-				newShape->node = nodesInOrder[i];
+				newShape->node = nodesInOrder[i];*/
 
 				Shape* shapeShape = new Shape;
 				shapeShape->id = mySlabContainer.NextAvailableShapeId++;
@@ -838,7 +838,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 				nodesInOrder[i]->SlabDecompShape = shapeShape;
 
 				shapesToPreprocess.push_back(shapeShape);
-				shapesToPreprocess.push_back(newShape);
+				//shapesToPreprocess.push_back(newShape);
 
 				y += metrics.height;
 			}

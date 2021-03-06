@@ -523,7 +523,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 		Shape* newShape = new Shape;
 
-		if (node.SlabDecompShape != nullptr) {
+		if (node.SlabDecompShape && node.SlabDecompShape != nullptr) {
 			newShape->eventHandlers = node.SlabDecompShape->eventHandlers;
 			mySlabContainer.deleteShape(*node.SlabDecompShape);
 			delete node.SlabDecompShape;
