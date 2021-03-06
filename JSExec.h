@@ -54,6 +54,7 @@ public:
 	vector<ASTNode*> childNodes;
 	ScopeContainer* scopeBox = nullptr;
 
+	ASTNode(const ASTNode& ast);
 	ASTNode(long double ASTNodeNumber);
 	ASTNode(string ASTNodeString);
 	ASTNode(bool ASTNodeBool);

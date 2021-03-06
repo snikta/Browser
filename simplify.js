@@ -38,8 +38,6 @@ function simplifyRadialDist(points, sqTolerance) {
 	var i = 0
 	var len = length(points)
 	nPoints[0] = prevPoint
-	
-	Log("point count: " + len)
 
     for (i = 1; i <= len - 1; i = i + 1) {
         point = points[i]
@@ -109,13 +107,4 @@ function simplify(points, tolerance, highestQuality) {
     points = simplifyDouglasPeucker(points, sqTolerance)
 
     return points
-}
-
-var tPoints = [{x:12,y:13},{x:15,y:12},{x:17,y:10},{x:20,y:15},{x:23,y:23},{x:34,y:25},{x:38,y:34},{x:45,y:40}]
-var testPoints = simplify(tPoints, 3, false)
-var i = 0
-len = length(testPoints)
-Log("testPoints.length: " + len)
-for (i = 0; i <= len - 1; i = i + 1) {
-	Log(i + ": (" + testPoints[i].x + ", " + testPoints[i].y + ")")
 }

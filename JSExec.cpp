@@ -68,6 +68,21 @@ bool isOperator(string op) {
 	return find(operators.begin(), operators.end(), op) != operators.end();
 }
 
+ASTNode::ASTNode(const ASTNode& ast) {
+	this->ASTArray = ast.ASTArray;
+	this->ASTNodeType = ast.ASTNodeType;
+	this->ASTNodeFunc = ast.ASTNodeFunc;
+	this->ASTNodeNumber = ast.ASTNodeNumber;
+	this->ASTNodeString = ast.ASTNodeString;
+	this->ASTNodeBool = ast.ASTNodeBool;
+	this->ptrDOMNode = ast.ptrDOMNode;
+	this->runtimeId = ast.runtimeId;
+	this->funcName = ast.funcName;
+	this->origFuncName = ast.origFuncName;
+	this->parent = ast.parent;
+	this->childNodes = ast.childNodes;
+	this->scopeBox = ast.scopeBox;
+}
 ASTNode::ASTNode(long double ASTNodeNumber) : ASTNodeNumber(ASTNodeNumber), ASTNodeType(ASTNumberNode) {};
 ASTNode::ASTNode(string ASTNodeString) {
 	if (ASTNodeString == "" || isNaN(ASTNodeString) || ASTNodeString == "-" || ASTNodeString == "+" || ASTNodeString == ".") {
@@ -2104,9 +2119,9 @@ ParseNode generateAST(string src) {
 	return *root;
 }
 
-ASTNode* parseArrayLiteral(string expr, int& i);
+ASTNode* parseArrayLiteral(string expr, int& i, Scope& args);
 
-ASTNode* parseObjectLiteral(string expr, int& i) {
+ASTNode* parseObjectLiteral(string expr, int& i, Scope &args) {
 	ASTNode* curBraceNode = new ASTNode;
 	ASTNode* rootBraceNode = curBraceNode;
 	ASTNode* curParenNode = new ASTNode;
@@ -2145,7 +2160,7 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 			}
 		}
 		else if (expr[i] == '[') {
-			value = parseArrayLiteral(expr, i);
+			value = parseArrayLiteral(expr, i, args);
 		}
 		else if (expr[i] == '{') {
 			ASTNode* newBraceNode = new ASTNode;
@@ -2164,9 +2179,13 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 				else if (!isNaN(value->ASTNodeString)) {
 					(*curBraceNode->ASTArray)[key] = new ASTNode((long double)stod(value->ASTNodeString));
 				}
+				else if (value->ASTNodeString != "") {
+					ASTNode ret = ASTNode(parseParens(value->ASTNodeString, args));
+					(*curBraceNode->ASTArray)[key] = new ASTNode(ret);
+				}
 				else if (/*trim(*/value->getString() != "") {
-					Scope args;
-					(*curBraceNode->ASTArray)[key] = new ASTNode(parseParens(value->getString(), args));
+					ASTNode ret = ASTNode(parseParens(value->getString(), args));
+					(*curBraceNode->ASTArray)[key] = new ASTNode(ret);
 				}
 			}
 			key = "";
@@ -2200,9 +2219,14 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 				else if (!isNaN(value->ASTNodeString)) {
 					(*curBraceNode->ASTArray)[key] = new ASTNode((long double) stod(value->ASTNodeString));
 				}
+				else if (value->ASTNodeString != "") {
+					ASTNode ret = ASTNode(parseParens(value->ASTNodeString, args));
+					(*curBraceNode->ASTArray)[key] = new ASTNode(ret);
+				}
 				else if (/*trim(*/value->getString() != "") {
 					Scope args;
-					(*curBraceNode->ASTArray)[key] = new ASTNode(parseParens(value->getString(), args));
+					ASTNode ret = ASTNode(parseParens(value->getString(), args));
+					(*curBraceNode->ASTArray)[key] = new ASTNode(ret);
 				}
 			}
 			key_or_value = "key";
@@ -2221,7 +2245,7 @@ ASTNode* parseObjectLiteral(string expr, int& i) {
 	}
 	return rootBraceNode;
 }
-ASTNode* parseArrayLiteral(string expr, int& i) {
+ASTNode* parseArrayLiteral(string expr, int& i, Scope& args) {
 	ASTNode* curBracketNode = new ASTNode;
 	ASTNode* rootBracketNode = curBracketNode;
 	i++;
@@ -2240,7 +2264,7 @@ ASTNode* parseArrayLiteral(string expr, int& i) {
 		}
 		else if (expr[i] == '{') {
 			int startPos = i;
-			(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = parseObjectLiteral(expr, i);
+			(*curBracketNode->ASTArray)[std::to_string(curBracketNode->ASTArray->size())] = parseObjectLiteral(expr, i, args);
 			curElement = nullptr;
 		}
 		else if (expr[i] == '[') {
@@ -2422,7 +2446,7 @@ ASTNode parseParens(string expr, Scope& args) {
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
 			}
-			ASTNode* ptrASTArray = parseObjectLiteral(expr, i);
+			ASTNode* ptrASTArray = parseObjectLiteral(expr, i, args);
 			int runtimeObjId = runtimeObjects.size();
 			ptrASTArray->runtimeId = runtimeObjId;
 			runtimeObjects.push_back(*ptrASTArray);
@@ -2433,7 +2457,7 @@ ASTNode parseParens(string expr, Scope& args) {
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
 			}
-			ASTNode *ptrASTArray = parseArrayLiteral(expr, i);
+			ASTNode *ptrASTArray = parseArrayLiteral(expr, i, args);
 			int runtimeObjId = runtimeObjects.size();
 			ptrASTArray->runtimeId = runtimeObjId;
 			runtimeObjects.push_back(*ptrASTArray);
@@ -2828,14 +2852,17 @@ ASTNode parseParens(string expr, Scope& args) {
 		retval = parseASTNode(root);
 	}
 
-	if (retval.ASTNodeType == ASTNumberNode) {
+	//LOut("expr: " + expr);
+	//LOut("expr.retval: " + retval.getString());
+
+	if (retval.getType() == ASTNumberNode) {
 		return retval;
 	}
 	else if (retval.ASTArray->size() > 0) {
 		return retval;
 	}
 	else {
-		return retval.getString();
+		return ASTNode(retval.getString());
 	}
 
 	/*if (retval.string) {
