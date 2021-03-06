@@ -68,21 +68,6 @@ bool isOperator(string op) {
 	return find(operators.begin(), operators.end(), op) != operators.end();
 }
 
-ASTNode::ASTNode(const ASTNode& ast) {
-	this->ASTArray = ast.ASTArray;
-	this->ASTNodeType = ast.ASTNodeType;
-	this->ASTNodeFunc = ast.ASTNodeFunc;
-	this->ASTNodeNumber = ast.ASTNodeNumber;
-	this->ASTNodeString = ast.ASTNodeString;
-	this->ASTNodeBool = ast.ASTNodeBool;
-	this->ptrDOMNode = ast.ptrDOMNode;
-	this->runtimeId = ast.runtimeId;
-	this->funcName = ast.funcName;
-	this->origFuncName = ast.origFuncName;
-	this->parent = ast.parent;
-	this->childNodes = ast.childNodes;
-	this->scopeBox = ast.scopeBox;
-}
 ASTNode::ASTNode(long double ASTNodeNumber) : ASTNodeNumber(ASTNodeNumber), ASTNodeType(ASTNumberNode) {};
 ASTNode::ASTNode(string ASTNodeString) {
 	if (ASTNodeString == "" || isNaN(ASTNodeString) || ASTNodeString == "-" || ASTNodeString == "+" || ASTNodeString == ".") {
@@ -95,7 +80,7 @@ ASTNode::ASTNode(string ASTNodeString) {
 	}
 };
 ASTNode::ASTNode(bool ASTNodeBool) : ASTNodeBool(ASTNodeBool), ASTNodeType(ASTBoolNode) {};
-ASTNode::ASTNode(ParseNode *ASTNodeFunc) : ASTNodeFunc(ASTNodeFunc), ASTNodeType(ASTFuncNode) {};
+ASTNode::ASTNode(ParseNode* ASTNodeFunc) : ASTNodeFunc(ASTNodeFunc), ASTNodeType(ASTFuncNode) {};
 ASTNode::ASTNode() {};
 int ASTNode::getType() {
 	return ASTNodeType;
@@ -625,6 +610,18 @@ ASTNode LessThanOrEqualTo(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntax
 ASTNode GreaterThan(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	op1 = resolve(op1, scope);
 	op2 = resolve(op2, scope);
+	if (op1.getString() == "false") {
+		op1 = ASTNode(false);
+	}
+	else if (op1.getString() == "true") {
+		op1 = ASTNode(true);
+	}
+	if (op2.getString() == "false") {
+		op2 = ASTNode(false);
+	}
+	else if (op2.getString() == "true") {
+		op2 = ASTNode(true);
+	}
 	return ASTNode(op1.getNumber() > op2.getNumber() ? 1.0L : 0.0L);
 }
 ASTNode LessThan(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
@@ -663,10 +660,10 @@ ASTNode Dot(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	ASTNode retval;
 
 	//if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
-		retval.scopeBox = new ScopeContainer;
-		retval.scopeBox->scope__ = &scope;
-		retval.scopeBox->op1__ = op1;
-		retval.scopeBox->op2__ = op2;
+	retval.scopeBox = new ScopeContainer;
+	retval.scopeBox->scope__ = &scope;
+	retval.scopeBox->op1__ = op1;
+	retval.scopeBox->op2__ = op2;
 	/*}
 	else {
 		retval = *((*op1.ASTArray)[resolveString(op2.getString())]);
@@ -729,7 +726,7 @@ ASTNode InOperator(ASTNode op2, ASTNode op1, Scope& scope, AbstractSyntaxTree& a
 	return ASTNode(op1.ASTArray->find(op2.getString()) != op1.ASTArray->end() ? 1.0L : 0.0L);
 }
 ASTNode Remainder(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
-	return ASTNode((long double) fmod(op1.getNumber(), op2.getNumber()));
+	return ASTNode((long double)fmod(op1.getNumber(), op2.getNumber()));
 }
 ASTNode LogicalAnd(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	op1 = ASTNode(resolveString(op1.getString()));
@@ -773,7 +770,15 @@ map<string, operatorFunction> operatorFunctions = {
 
 typedef ASTNode(*predefinedFunction)(vector<ASTNode> args, Scope& scope);
 
-ASTNode PredefinedAdd(vector<ASTNode> args, Scope &scope) {
+ASTNode PredefinedAcos(vector<ASTNode> args, Scope& scope) {
+	return ASTNode(acos(resolve(args[0], scope).getNumber()));
+}
+
+ASTNode PredefinedPow(vector<ASTNode> args, Scope& scope) {
+	return ASTNode(pow(resolve(args[0], scope).getNumber(), resolve(args[1], scope).getNumber()));
+}
+
+ASTNode PredefinedAdd(vector<ASTNode> args, Scope& scope) {
 	AbstractSyntaxTree emptyAst;
 	ASTNode retval(0.0L);
 	for (int i = 0, len = args.size(); i < len; i++) {
@@ -817,7 +822,7 @@ ASTNode PredefinedAlert(vector <ASTNode> args, Scope& scope) {
 }
 map<string, vector<ASTNode>> eventListeners;
 ASTNode PredefinedRandom(vector <ASTNode> args, Scope& scope) {
-	long double randomNumber = ((double) std::rand() / (RAND_MAX));
+	long double randomNumber = ((double)std::rand() / (RAND_MAX));
 	return ASTNode(randomNumber);
 }
 ASTNode PredefinedRemoveEventListener(vector <ASTNode> args, Scope& scope) {
@@ -923,7 +928,7 @@ ASTNode PredefinedCreateElement(vector<ASTNode> args, Scope& scope) {
 ASTNode PredefinedClearCanvas(vector<ASTNode> args, Scope& scope) {
 	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
 	if (canvasEl->bitmap && canvasEl->bitmap != nullptr) {
-		for (int i = 0, len = 400 * 400 * 4; i < len; i++) {
+		for (int i = 0, len = 800 * 400 * 4; i < len; i++) {
 			canvasEl->bitmap[i] = 0;
 		}
 	}
@@ -934,7 +939,7 @@ ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
 	int x = int(resolveRuntimeObject(args[1]).getNumber());
 	int y = int(resolveRuntimeObject(args[2]).getNumber());
-	int idx = y * 400 * 4 + x * 4;
+	int idx = y * 800 * 4 + x * 4;
 	canvasEl->bitmap[idx] = (BYTE)255;
 	canvasEl->bitmap[idx + 1] = (BYTE)0;
 	canvasEl->bitmap[idx + 2] = (BYTE)0;
@@ -947,13 +952,13 @@ struct Knot {
 	double y;
 };
 void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
-	D2D1_SIZE_U size = D2D1::SizeU(400, 400);
+	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
 
 	pRenderTarget2->BeginDraw();
 	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0));
 
 	ID2D1Bitmap* pBitmap = NULL;
-	HRESULT hr = pRenderTarget2->CreateBitmap(D2D1::SizeU(400, 400), canvasEl->bitmap, 400 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+	HRESULT hr = pRenderTarget2->CreateBitmap(D2D1::SizeU(800, 400), canvasEl->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
 
 	// Draw a bitmap.
 	pRenderTarget2->DrawBitmap(
@@ -961,7 +966,7 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
 		D2D1::RectF(
 			0,
 			0,
-			400,
+			800,
 			400
 		),
 		1.0
@@ -977,7 +982,7 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
 
 	if (knots.size() > 1) {
 		for (int i = 1, len = knots.size(); i < len; i++) {
-			pRenderTarget2->DrawLine(D2D1::Point2F(knots[i-1].x, knots[i-1].y), D2D1::Point2F(knots[i].x, knots[i].y), pStrokeBrush);
+			pRenderTarget2->DrawLine(D2D1::Point2F(knots[i - 1].x, knots[i - 1].y), D2D1::Point2F(knots[i].x, knots[i].y), pStrokeBrush);
 		}
 	}
 
@@ -989,8 +994,8 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
 			delete[] canvasEl->bitmap;
 			canvasEl->bitmap = nullptr;
 		}
-		canvasEl->bitmap = new BYTE[400 * 400 * 4];
-		pWICBitmap->CopyPixels(NULL, 400 * 4, 400 * 400 * 4, canvasEl->bitmap);
+		canvasEl->bitmap = new BYTE[800 * 400 * 4];
+		pWICBitmap->CopyPixels(NULL, 800 * 4, 800 * 400 * 4, canvasEl->bitmap);
 	}
 
 	SafeRelease(&pStrokeBrush);
@@ -998,14 +1003,14 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
 	SafeRelease(&pBitmap);
 }
 
-void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float x2, float y2) {
-	D2D1_SIZE_U size = D2D1::SizeU(400, 400);
+void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float x2, float y2) {
+	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
 
 	pRenderTarget2->BeginDraw();
 	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0));
 
 	ID2D1Bitmap* pBitmap = NULL;
-	HRESULT hr = pRenderTarget2->CreateBitmap(D2D1::SizeU(400, 400), canvasEl->bitmap, 400 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+	HRESULT hr = pRenderTarget2->CreateBitmap(D2D1::SizeU(800, 400), canvasEl->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
 
 	// Draw a bitmap.
 	pRenderTarget2->DrawBitmap(
@@ -1013,7 +1018,7 @@ void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float
 		D2D1::RectF(
 			0,
 			0,
-			400,
+			800,
 			400
 		),
 		1.0
@@ -1026,7 +1031,7 @@ void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float
 	color = D2D1::ColorF(1.0, 0.0, 0.0);
 	ID2D1SolidColorBrush* pFillBrush;
 	hr = pRenderTarget2->CreateSolidColorBrush(color, &pFillBrush);
-	
+
 	if (shapeType == "Rectangle") {
 		pRenderTarget2->FillRectangle(D2D1::RectF(x1, y1, x2, y2), pFillBrush);
 		pRenderTarget2->DrawRectangle(D2D1::RectF(x1, y1, x2, y2), pStrokeBrush);
@@ -1044,13 +1049,114 @@ void drawOnCanvas(DOMNode *canvasEl, string shapeType, float x1, float y1, float
 			delete[] canvasEl->bitmap;
 			canvasEl->bitmap = nullptr;
 		}
-		canvasEl->bitmap = new BYTE[400 * 400 * 4];
-		pWICBitmap->CopyPixels(NULL, 400 * 4, 400 * 400 * 4, canvasEl->bitmap);
+		canvasEl->bitmap = new BYTE[800 * 400 * 4];
+		pWICBitmap->CopyPixels(NULL, 800 * 4, 800 * 400 * 4, canvasEl->bitmap);
 	}
 
 	SafeRelease(&pStrokeBrush);
 	SafeRelease(&pFillBrush);
 	SafeRelease(&pBitmap);
+}
+
+ASTNode PredefinedDrawText(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
+
+	pRenderTarget2->BeginDraw();
+	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0));
+
+	ID2D1Bitmap* pBitmap = NULL;
+	HRESULT hr = pRenderTarget2->CreateBitmap(D2D1::SizeU(800, 400), canvasEl->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+
+	// Draw a bitmap.
+	pRenderTarget2->DrawBitmap(
+		pBitmap,
+		D2D1::RectF(
+			0,
+			0,
+			800,
+			400
+		),
+		1.0
+	);
+
+	// Create a text layout using the text format.
+	string text = resolveString(resolveRuntimeObject(args[1]).getString());
+
+	string strToLog = text;
+	string replacedString = "";
+	for (int j = 0, len = strToLog.size(); j < len; j++) {
+		if (j < len - 1 && strToLog[j] == '\\' && strToLog[j + 1] == 'n') {
+			replacedString += "\n";
+			j++;
+		}
+		else {
+			replacedString += strToLog[j];
+		}
+	}
+	text = replacedString;
+
+	std::wstring widestr = std::wstring(text.begin(), text.end());
+
+	IDWriteTextLayout* pTextLayout_;
+
+	hr = m_pDWriteFactory->CreateTextFormat(
+		L"Verdana",
+		NULL,
+		false ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+		false ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		10,
+		L"", //locale
+		&m_pTextFormat
+	);
+
+	hr = m_pDWriteFactory->CreateTextLayout(
+		widestr.c_str(),      // The string to be laid out and formatted.
+		text.length(),  // The length of the string.
+		m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+		1366,         // The width of the layout box.
+		768,        // The height of the layout box.
+		&pTextLayout_  // The IDWriteTextLayout interface pointer.
+	);
+
+	D2D1_COLOR_F color = D2D1::ColorF(0.0, 0.0, 0.0);
+	ID2D1SolidColorBrush* pBrush;
+	pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
+
+	double x = resolve(args[2], scope).getNumber();
+	double y = resolve(args[3], scope).getNumber();
+
+	DWRITE_TEXT_METRICS metrics;
+	pTextLayout_->GetMetrics(&metrics);
+	double width = metrics.widthIncludingTrailingWhitespace;
+	double height = metrics.height;
+
+	pRenderTarget2->DrawText(
+		widestr.c_str(),
+		text.length(),
+		m_pTextFormat,
+		D2D1::RectF(x, y, x + width, y + height),
+		pBrush
+	);
+
+	pRenderTarget2->EndDraw();
+
+	if (SUCCEEDED(hr))
+	{
+		if (canvasEl->bitmap && canvasEl->bitmap != nullptr) {
+			delete[] canvasEl->bitmap;
+			canvasEl->bitmap = nullptr;
+		}
+		canvasEl->bitmap = new BYTE[800 * 400 * 4];
+		pWICBitmap->CopyPixels(NULL, 800 * 4, 800 * 400 * 4, canvasEl->bitmap);
+	}
+
+	SafeRelease(&pBrush);
+	SafeRelease(pTextLayout_);
+	SafeRelease(&pBitmap);
+
+	return ASTNode();
 }
 
 ASTNode PredefinedDrawEllipse(vector<ASTNode> args, Scope& scope) {
@@ -1121,12 +1227,12 @@ ASTNode PredefinedGetHeight(vector<ASTNode> args, Scope& scope) {
 
 ASTNode PredefinedGetLeft(vector<ASTNode> args, Scope& scope) {
 	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
-	return ASTNode((long double) astHTMLElement.ptrDOMNode->x);
+	return ASTNode((long double)astHTMLElement.ptrDOMNode->x);
 }
 
 ASTNode PredefinedGetTop(vector<ASTNode> args, Scope& scope) {
 	ASTNode astHTMLElement = resolveRuntimeObject(args[0]);
-	return ASTNode((long double) astHTMLElement.ptrDOMNode->y);
+	return ASTNode((long double)astHTMLElement.ptrDOMNode->y);
 }
 
 ASTNode PredefinedAbs(vector<ASTNode> args, Scope& scope) {
@@ -1155,26 +1261,35 @@ ASTNode PredefinedMax(vector<ASTNode> args, Scope& scope) {
 	return ASTNode((long double)max);
 }
 
+ASTNode PredefinedSqrt(vector<ASTNode> args, Scope& scope) {
+	ASTNode num = resolve(args[0], scope);
+	return ASTNode((long double)sqrt(num.getNumber()));
+}
+
 ASTNode PredefinedRound(vector<ASTNode> args, Scope& scope) {
-	return ASTNode((long double)round(args[0].getNumber()));
+	ASTNode num = resolve(args[0], scope);
+	return ASTNode((long double)round(num.getNumber()));
 }
 
 ASTNode PredefinedLength(vector<ASTNode> args, Scope& scope) {
 	ASTNode astNode = resolveRuntimeObject(args[0]);
 	if (astNode.getType() == ASTStringNode) {
-		return ASTNode((long double) astNode.ASTNodeString.size());
+		return ASTNode((long double)astNode.ASTNodeString.size());
 	}
-	return ASTNode((long double) astNode.ASTArray->size());
+	return ASTNode((long double)astNode.ASTArray->size());
 }
 
 ASTNode PredefinedToHex(vector<ASTNode> args, Scope& scope) {
 	std::stringstream ss;
-	ss << std::hex << (int) args[0].getNumber(); // int decimal_value
+	ss << std::hex << (int)args[0].getNumber(); // int decimal_value
 	std::string res(ss.str());
 	return ASTNode(string(res));
 }
 
 map<string, predefinedFunction> predefinedFunctions = {
+	{"sqrt", &PredefinedSqrt},
+	{"pow", &PredefinedPow},
+	{"acos", &PredefinedAcos},
 	{"abs", &PredefinedAbs},
 	{"min", &PredefinedMin},
 	{"max", &PredefinedMax},
@@ -1189,6 +1304,7 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"createElement", &PredefinedCreateElement},
 	{"ClearCanvas", &PredefinedClearCanvas},
 	{"SetPixel", &PredefinedSetPixel},
+	{"DrawText", &PredefinedDrawText},
 	{"DrawLine", &PredefinedDrawLine},
 	{"DrawRectangle", &PredefinedDrawRectangle},
 	{"DrawEllipse", &PredefinedDrawEllipse},
@@ -1346,7 +1462,7 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 	}
 	OperatorList orderedAst = unorderedAst;
 	std::sort(orderedAst.begin(), orderedAst.end(), OperatorListSort);
-	
+
 	ASTNode retval;
 	while (orderedAst.size() > 1) {
 		evaluateOperatorListNode(orderedAst[0], args, ast);
@@ -2164,7 +2280,7 @@ ParseNode generateAST(string src) {
 
 ASTNode* parseArrayLiteral(string expr, int& i, Scope& args);
 
-ASTNode* parseObjectLiteral(string expr, int& i, Scope &args) {
+ASTNode* parseObjectLiteral(string expr, int& i, Scope& args) {
 	ASTNode* curBraceNode = new ASTNode;
 	ASTNode* rootBraceNode = curBraceNode;
 	ASTNode* curParenNode = new ASTNode;
@@ -2176,6 +2292,10 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope &args) {
 	ASTNode* value = new ASTNode;
 	string key_or_value = "key";
 	while (i < len) {
+		if (expr[i] == ' ' || expr[i] == '\n' || expr[i] == '\r' || expr[i] == '\t') {
+			i++;
+			continue;
+		}
 		if (expr[i] == '(') {
 			ASTNode* newNode = new ASTNode;
 			newNode->parent = curParenNode;
@@ -2219,7 +2339,7 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope &args) {
 				if (value->ASTArray->size() != 0) {
 					(*curBraceNode->ASTArray)[key] = value;
 				}
-				else if (!isNaN(value->ASTNodeString)) {
+				else if (value->ASTNodeString != "" && !isNaN(value->ASTNodeString)) {
 					(*curBraceNode->ASTArray)[key] = new ASTNode((long double)stod(value->ASTNodeString));
 				}
 				else if (value->ASTNodeString != "") {
@@ -2259,8 +2379,8 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope &args) {
 				if (value->ASTArray->size() != 0) {
 					(*curBraceNode->ASTArray)[key] = value;
 				}
-				else if (!isNaN(value->ASTNodeString)) {
-					(*curBraceNode->ASTArray)[key] = new ASTNode((long double) stod(value->ASTNodeString));
+				else if (value->ASTNodeString != "" && !isNaN(value->ASTNodeString)) {
+					(*curBraceNode->ASTArray)[key] = new ASTNode((long double)stod(value->ASTNodeString));
 				}
 				else if (value->ASTNodeString != "") {
 					ASTNode ret = ASTNode(parseParens(value->ASTNodeString, args));
@@ -2295,6 +2415,10 @@ ASTNode* parseArrayLiteral(string expr, int& i, Scope& args) {
 	int len = expr.size();
 	ASTNode* curElement = new ASTNode;
 	while (i < len) {
+		if (expr[i] == ' ' || expr[i] == '\n' || expr[i] == '\r' || expr[i] == '\t') {
+			i++;
+			continue;
+		}
 		if ((expr[i] == '\'' || expr[i] == '\"')) {
 			char quot = expr[i];
 			i++;
@@ -2413,7 +2537,7 @@ ASTNode* parseNode(ASTNode* node, Scope& args) {
 	return retval;
 }
 
-ParseNode *parseFunction(string expr, int &i) {
+ParseNode* parseFunction(string expr, int& i) {
 	bool syntaxError = true;
 	size_t len = expr.size();
 	int startPos = i;
@@ -2455,14 +2579,14 @@ ParseNode *parseFunction(string expr, int &i) {
 		i++;
 		while (i < len) {
 			if (expr[i] == '{') {
-				ParseNode *newBraceNode = new ParseNode;
+				ParseNode* newBraceNode = new ParseNode;
 				newBraceNode->parent = braceNode;
 				braceNode = newBraceNode;
 			}
 			else if (expr[i] == '}') {
 				braceNode = braceNode->parent;
 				if (braceNode == nullptr) {
-					ParseNode *funcAST = generateAST(expr.substr(startPos, i + 1 - startPos)).childNodes[0];
+					ParseNode* funcAST = generateAST(expr.substr(startPos, i + 1 - startPos)).childNodes[0];
 					return funcAST;
 				}
 			}
@@ -2500,7 +2624,7 @@ ASTNode parseParens(string expr, Scope& args) {
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
 			}
-			ASTNode *ptrASTArray = parseArrayLiteral(expr, i, args);
+			ASTNode* ptrASTArray = parseArrayLiteral(expr, i, args);
 			int runtimeObjId = runtimeObjects.size();
 			ptrASTArray->runtimeId = runtimeObjId;
 			runtimeObjects.push_back(*ptrASTArray);
@@ -2600,14 +2724,14 @@ ASTNode parseParens(string expr, Scope& args) {
 			int idx = std::distance(curParent->parent->childNodes.begin(), find(curParent->parent->childNodes.begin(), curParent->parent->childNodes.end(), curParent));
 			int curIdx = std::distance(curParent->parent->parent->childNodes.begin(), find(curParent->parent->parent->childNodes.begin(), curParent->parent->parent->childNodes.end(), curParent->parent));
 			ASTNode prevAST;
-			
+
 			if (curIdx > 0 && curParent->parent != nullptr && curParent->parent->parent != nullptr) {
 				prevAST = *curParent->parent->parent->childNodes[curIdx - 1];
 			}
 
 			if (prevAST.getString() != "" && prevAST.getType() != ASTBoolNode) {
 				if (prevAST.ASTNodeString.find("<RuntimeObject#") != string::npos) {
-					
+
 				}
 				else if (trim(prevAST.getString()) == "new") {
 					prevAST = ASTNode();
@@ -2644,7 +2768,7 @@ ASTNode parseParens(string expr, Scope& args) {
 				}
 				argsToParse = argsToParse.substr(0, argsToParse.size() - 1);
 				idx = std::distance(curParent->parent->parent->childNodes.begin(), find(curParent->parent->parent->childNodes.begin(), curParent->parent->parent->childNodes.end(), curParent->parent));
-				
+
 				vector<ASTNode> parsedArgs = parseArguments(argsToParse, *args2);
 				ASTNode* output = nullptr;
 				if (prevAST.getString() != "" && prevAST.getType() != ASTBoolNode) {
@@ -2697,7 +2821,7 @@ ASTNode parseParens(string expr, Scope& args) {
 					if (prev.getString() != "" && trim(prev.getString()) == "new") {
 						ParseNode* func;
 						ASTNode astFunc;
-						
+
 						if (curParent->parent->funcName != "" && curParent->parent->funcName.find("<RuntimeObject#") != string::npos) {
 							astFunc = resolveRuntimeObject(ASTNode(string(curParent->parent->funcName)));
 							func = astFunc.ASTNodeFunc;
@@ -2711,7 +2835,7 @@ ASTNode parseParens(string expr, Scope& args) {
 						idx--;
 
 						if (func->type == FunctionNode) {
-							Scope *userDefinedFunctionScope = new Scope;
+							Scope* userDefinedFunctionScope = new Scope;
 							userDefinedFunctionScope->__parent = &args;
 							vector<string> params = func->parameters;
 							if (parsedArgs.size()) {
@@ -2763,7 +2887,7 @@ ASTNode parseParens(string expr, Scope& args) {
 						output = '<RuntimeObject#' + runtimeObjId + '>'*/
 					}
 					else if (curParent != nullptr && curParent->parent != nullptr && curParent->parent->funcName != "") {
-						ParseNode *func = nullptr;
+						ParseNode* func = nullptr;
 						if (curParent->parent->funcName != "" && curParent->parent->funcName.find("<RuntimeObject#") != string::npos) {
 							func = resolveRuntimeObject(ASTNode(string(curParent->parent->funcName))).ASTNodeFunc;
 						}
@@ -2859,7 +2983,7 @@ ASTNode parseParens(string expr, Scope& args) {
 				for (int i = 0, len = curParent->parent->childNodes.size(); i < len; i++) {
 					ast.push_back(*parseASTNode(curParent->parent->childNodes[i]));
 				}
-				
+
 				curParent->parent->parent->childNodes[idx] = new ASTNode(evaluate(ast, args));
 				curParent->parent->parent->childNodes[idx]->parent = curParent->parent->parent;
 
@@ -2882,7 +3006,7 @@ ASTNode parseParens(string expr, Scope& args) {
 		AbstractSyntaxTree rootAst;
 		rootAst.push_back(*parseASTNode(root));
 		retval = evaluate(rootAst, args);
-		
+
 	}
 	else if (root->childNodes.size()) {
 		string exprToParse = "";

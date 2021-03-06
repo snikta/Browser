@@ -123,7 +123,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 	if (node.get_tag_name() == "canvas") {
 		if (!node.bitmap || node.bitmap == nullptr) {
-			node.bitmap = new BYTE[400 * 400 * 4];
+			node.bitmap = new BYTE[800 * 400 * 4];
 		}
 	}
 
@@ -488,7 +488,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 	}
 	if (node.get_tag_name() == "canvas") {
 		ID2D1Bitmap* pBitmap = NULL;
-		HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(400, 400), node.bitmap, 400 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+		HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(800, 400), node.bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
 
 		// Draw a bitmap.
 		pRenderTarget->DrawBitmap(

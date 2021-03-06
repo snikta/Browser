@@ -1,5 +1,5 @@
 var canvasEl = createElement("canvas")
-canvasEl.width = "400px"
+canvasEl.width = "800px"
 canvasEl.height = "400px"
 canvasEl.style.display = "block"
 canvasEl.style.position = "absolute"
@@ -12,17 +12,14 @@ var knots = []
 var shapeType = "Rectangle"
 
 var ChooseRectangle = function (e) {
-	Log("ChooseRectangle(e)")
 	shapeType = "Rectangle"
 }
 
 var ChooseEllipse = function (e) {
-	Log("ChooseEllipse(e)")
 	shapeType = "Ellipse"
 }
 
 var ChooseLine = function (e) {
-	Log("ChooseLine(e)")
 	shapeType = "Line"
 }
 
@@ -52,6 +49,7 @@ var drawAllShapes = function () {
 		var shape = shapes[i]
 		if (shape.type == "Rectangle") {
 			DrawRectangle(canvasEl, shape.x, shape.y, shape.x + shape.width, shape.y + shape.height)
+			DrawText(canvasEl, "hello world", shape.x, shape.y)
 		} else if (shape.type == "Ellipse") {
 			DrawEllipse(canvasEl, shape.x, shape.y, shape.x + shape.width, shape.y + shape.height)
 		} else if (shape.type == "Line") {
@@ -68,7 +66,8 @@ var drawAllShapes = function () {
 var canvasMouseUp = function (e) {
 	var shapeCount = length(shapes)
 	if (shapeType == "Line") {
-		knots = simplify(knots, 10, false)
+		var plen = length(knots)
+		knots[plen] = {x:pageX,y:pageY}
 		shapes[shapeCount] = {type:"Line",knots:knots}
 	} else {
 		shapes[shapeCount] = {type:shapeType,x:min(pageX,prevX),y:min(pageY,prevY),width:abs(pageX-prevX),height:abs(pageY-prevY)}

@@ -215,7 +215,7 @@ public:
 		ptMouse(D2D1::Point2F())
 	{
 		std::srand(std::time(nullptr));
-		//testJSExec();
+		testJSExec();
 
 		loadPage("C:\\c++\\Browser\\draw.html");
 	}
@@ -289,7 +289,7 @@ HRESULT MainWindow::CreateGraphicsResources()
 		if (SUCCEEDED(hr))
 		{
 			hr = pWICFactory->CreateBitmap(
-				400,
+				800,
 				400,
 				GUID_WICPixelFormat32bppPRGBA,
 				WICBitmapCacheOnLoad,
@@ -488,6 +488,7 @@ void MainWindow::OnPaint()
 
 			if (!pageLoaded) {
 				for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
+					//printParseNode(&scriptsToRunOnLoad[i], "");
 					execAST(scriptsToRunOnLoad[i], globalVariables);
 				}
 				drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
