@@ -217,7 +217,7 @@ public:
 		std::srand(std::time(nullptr));
 		testJSExec();
 
-		loadPage("C:\\c++\\Browser\\draw.html");
+		loadPage("C:\\c++\\Browser\\www\\TheProject.html");
 	}
 
 	PCWSTR  ClassName() const { return L"Browser Window Class"; }
@@ -770,7 +770,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
 	
-	if (!pageLoaded)
+	if (mySlabContainer.ShapeMembers.size() < 6)//!pageLoaded) // this was causing problems with event listeners
 	{
 		vector<Shape*> shapesToPreprocess;
 		int x = 0, xDiff = 107 * viewportScaleX;
