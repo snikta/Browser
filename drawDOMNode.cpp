@@ -113,7 +113,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 
 	//node.expand = false;
 	node.x = 0;
-	node.y = 107 * newHeight / origHeight;
+	node.y = 32 * newHeight / origHeight;
 	node.width = 0;
 	node.height = 0;
 	node.width_set = false;
@@ -131,7 +131,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		DOMNode* childNode = node.firstChild;
 		while (childNode && childNode != nullptr) {
 			childNode->x = 0;
-			childNode->y = 107 * newHeight / origHeight;
+			childNode->y = 32 * newHeight / origHeight;
 			childNode->width = 0;
 			childNode->height = 0;
 			childNode->width_set = false;

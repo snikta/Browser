@@ -79,7 +79,7 @@ a { color: #0000ff; }
 }
 
 #hueBar, #saturationValueBoxContainer { position: relative; height: 18px; border: 1px solid rgb(255, 255, 255); border-radius: 2px; box-shadow: 0px 0px 5px rgb(75, 75, 75); width: 320px; }
-#hueBar { position: fixed; left: 0px; top: 107px; z-index: 40; }
+#hueBar { position: fixed; left: 0px; top: 32px; z-index: 40; }
 #saturationValueBoxContainer { z-index: 40; width: 320px; height: 320px; }
 #satValInnerGrad { width: 320px; height: 320px; }
 #saturationValueBox { width: 320px; height: 320px; }

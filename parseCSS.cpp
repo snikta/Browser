@@ -7,14 +7,30 @@
 #include <vector>
 #include "parser.h"
 #include "whspace.h"
+#include "httpGet.h"
+#include "parseCSS.h"
 /* "parseCSS.cpp" */
 using namespace std;
+
+cssStream::cssStream(string url) {
+	httpGet(url, src);
+	pos = 0;
+	length = src.size();
+}
+char cssStream::get(int readlen) {
+	if ((pos + readlen) >= length) {
+		return EOF;
+	}
+	char srcRead = src[pos];
+	pos++;
+	return srcRead;
+};
 
 void parseCSS(string &filename)
 {
 	char chr;
-	ifstream source(filename);
-	while ((chr = source.get()) != EOF)
+	cssStream source(filename);
+	while ((chr = source.get(1)) != EOF)
 	{
 		if (whspace(chr))
 		{
@@ -23,7 +39,7 @@ void parseCSS(string &filename)
 		string selector;
 		selector += chr;
 		vector<string> selectorList;
-		while ((chr = source.get()) != EOF && chr != '{')
+		while ((chr = source.get(1)) != EOF && chr != '{')
 		{
 			if (whspace(chr) || chr == ',')
 			{
@@ -37,14 +53,14 @@ void parseCSS(string &filename)
 		}
 		selectorList.push_back(selector);
 		
-		chr = source.get();
+		chr = source.get(1);
 		string propertyName, propertyValue;
 		bool parsingPropName;
 		map<string,string> declaration;
 		while (chr && chr != EOF && chr != '}')
 		{
 			if (whspace(chr)) {
-				chr = source.get();
+				chr = source.get(1);
 				continue;
 			}
 			propertyName = "";
@@ -61,22 +77,22 @@ void parseCSS(string &filename)
 					do
 					{
 						propertyName += chr;
-					} while ((chr = source.get()) != EOF && chr != ':');
+					} while ((chr = source.get(1)) != EOF && chr != ':');
 					parsingPropName = false;
 				}
 				else
 				{
 					propertyValue += chr;
 				}
-			} while ((chr = source.get()) && chr != EOF && chr != ';');
+			} while ((chr = source.get(1)) && chr != EOF && chr != ';');
 			declaration[propertyName] = propertyValue;
 			if (chr && chr != EOF && chr != '}')
 			{
-				chr = source.get();
+				chr = source.get(1);
 			}
 		}
 		
-		chr = source.get();
+		chr = source.get(1);
 
 		for (int i = 0, len = selectorList.size(); i < len; i++)
 		{

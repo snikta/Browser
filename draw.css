@@ -8,14 +8,14 @@ canvas {
 	display: block;
 	position: absolute;
 	left: 0px;
-	top: 107px;
+	top: 32px;
 	background: rgb(250, 250, 200);
 }
 
 h1 {
 	display: block;
 	left: 800px;
-	top: 107px;
+	top: 32px;
 	position: absolute;
 }
 

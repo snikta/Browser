@@ -22,6 +22,7 @@
 #include "JSExec.h"
 #include <cstdlib>
 #include <ctime>
+#include "httpGet.h"
 
 SlabContainer mySlabContainer;
 Region* selRegion;
@@ -43,6 +44,40 @@ ID2D1Factory* pFactory = NULL;
 IWICBitmap* pWICBitmap = NULL;
 ID2D1RenderTarget* pRenderTarget2 = NULL;
 ID2D1SolidColorBrush* m_pBlackBrush;
+
+struct StackItem {
+	string url;
+	string prefix;
+	StackItem(string url, string prefix) : url(url), prefix(prefix) {};
+};
+
+vector<StackItem> undoStack;
+vector<StackItem> redoStack;
+
+string prefix = "http://localhost:8000/www/";
+string curURL = prefix + "TheProject.html";
+
+void loadPage(string url, bool skipStack, string newPrefix);
+
+void goBack() {
+	if (undoStack.size() == 0) {
+		return;
+	}
+	StackItem prevURL = undoStack.back();
+	undoStack.pop_back();
+	redoStack.push_back(StackItem(curURL, prefix));
+	loadPage(prevURL.url, true, prevURL.prefix);
+}
+
+void goForward() {
+	if (redoStack.size() == 0) {
+		return;
+	}
+	StackItem nextURL = redoStack.back();
+	redoStack.pop_back();
+	undoStack.push_back(StackItem(curURL, prefix));
+	loadPage(nextURL.url, true, nextURL.prefix);
+}
 
 Parser myParser;
 
@@ -83,7 +118,15 @@ void testJSExec() {
 	globalVariables.ScopeArray["i"] = ASTNode(15.0L);*/
 }
 
-void loadPage(string url) {
+void loadPage(string url, bool skipStack, string newPrefix) {
+	if (!skipStack) {
+		undoStack.push_back(StackItem(curURL, prefix));
+	}
+	if (newPrefix == "") {
+		newPrefix = "http://localhost:8000/www/";
+	}
+	prefix = newPrefix;
+	curURL = url;
 	pageLoaded = false;
 	myParser.set_location(url);
 
@@ -91,7 +134,10 @@ void loadPage(string url) {
 	{
 		string fname = myParser.get_location();
 		string src;
-		int len = readTextFile(fname, src);
+
+		httpGet(url, src);
+
+		int len = src.size();
 
 		string emptyStr = "";
 		string root = "body";
@@ -137,17 +183,20 @@ void loadPage(string url) {
 		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
 		scriptsToRunOnLoad.clear();
 		htmlNodes.clear();
+		myParser.styles.clear();
 		elsById.clear();
 		elsByTagName.clear();
 		elsByClassName.clear();
 		myParser.cssFilename = "";
 		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
 
-		string strCern = "www\\cern.css";
+		string strCern = "cern.css";
 		if (myParser.cssFilename == "") {
 			myParser.cssFilename = strCern;
 		}
-		parseCSS(myParser.cssFilename);
+		string cssFilename = prefix + myParser.cssFilename;
+		LOut("cssFilename: " + cssFilename);
+		parseCSS(cssFilename);
 
 		myParser.rootNode->set_zindex(0);
 
@@ -217,7 +266,7 @@ public:
 		std::srand(std::time(nullptr));
 		testJSExec();
 
-		loadPage("C:\\c++\\Browser\\www\\TheProject.html");
+		loadPage("http://localhost:8000/www/TheProject.html", true, prefix);
 	}
 
 	PCWSTR  ClassName() const { return L"Browser Window Class"; }
@@ -417,33 +466,39 @@ void MainWindow::OnPaint()
 
 			if (SUCCEEDED(hr))
 			{
-				hr = LoadBitmapFromFile(
-					pRenderTarget,
-					m_pWICFactory,
-					L"icons.png",
-					0,
-					0,
-					&m_pBitmap
-				);
+				vector<string> icons = { "back", "forward", "home", "refresh", "stop", "history", "downloads", "bookmarks" };
+				for (int i = 0, len = icons.size(); i < len; i++) {
+					string iconName = "icons/" + icons[i] + ".png";
+					std::wstring widestr = std::wstring(iconName.begin(), iconName.end());
 
-				if (SUCCEEDED(hr))
-				{
-					// Retrieve the size of the bitmap.
-					D2D1_SIZE_F size = m_pBitmap->GetSize();
-
-					D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(0.0, 15.0);
-
-					// Draw a bitmap.
-					pRenderTarget->DrawBitmap(
-						m_pBitmap,
-						D2D1::RectF(
-							upperLeftCorner.x,
-							upperLeftCorner.y,
-							upperLeftCorner.x + size.width * viewportScaleX * newWidth / origWidth,
-							upperLeftCorner.y + size.height * viewportScaleY * newHeight / origHeight)
+					hr = LoadBitmapFromFile(
+						pRenderTarget,
+						m_pWICFactory,
+						widestr.c_str(),
+						0,
+						0,
+						&m_pBitmap
 					);
 
-					SafeRelease(&m_pBitmap);
+					if (SUCCEEDED(hr))
+					{
+						// Retrieve the size of the bitmap.
+						D2D1_SIZE_F size = m_pBitmap->GetSize();
+
+						D2D1_POINT_2F upperLeftCorner = D2D1::Point2F(0.0, 15.0);
+
+						// Draw a bitmap.
+						pRenderTarget->DrawBitmap(
+							m_pBitmap,
+							D2D1::RectF(
+								upperLeftCorner.x + 32 * i * viewportScaleX * newWidth / origWidth,
+								upperLeftCorner.y,
+								upperLeftCorner.x + (32 * i + size.width) * viewportScaleX * newWidth / origWidth,
+								upperLeftCorner.y + size.height * viewportScaleY * newHeight / origHeight)
+						);
+
+						SafeRelease(&m_pBitmap);
+					}
 				}
 			}
 
@@ -609,6 +664,11 @@ void MainWindow::OnPaint()
 							D2D1_DRAW_TEXT_OPTIONS_CLIP
 						);
 					}
+					else {
+						Shape *selShape = selRegion->shapes[i];
+						D2D1_RECT_F* rect1 = &D2D1::RectF(selShape->x1 * sX, selShape->y1 * sY + 10, selShape->x2 * sX, selShape->y2 * sY + 10);
+						pRenderTarget->DrawRectangle(rect1, redBrush, 2.0);
+					}
 				}
 			}
 
@@ -718,15 +778,58 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 				myScope.__parent = &globalVariables;
 				myScope.ScopeArray["this"] = runtimeObjects[node->astRuntimeId];
 				myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-				myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
+				myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 32);
 				execAST(*astFunc.ASTNodeFunc, myScope);
 				return;
 			}
 			if (node && node != nullptr)
 			{
 				if (node->get_tag_name() == "a" && node->get_zindex() >= (largestZIndex - 1)) {
-					MessageBox(NULL, stringToLPCWSTR("Navigating to \"" + node->attributes["href"] + "\""), L"<a>.href", MB_OK);
-					loadPage("C:\\c++\\Browser\\www\\" + node->attributes["href"]);
+					string url = "";
+					if (node->attributes["href"].find("../") == string::npos) {
+						vector<string> parts = {};
+						splitString(prefix, '/', parts);
+						vector<string> path = {};
+						for (int i = 0, len = parts.size(); i < len; i++) {
+							if (parts[i] != "") {
+								path.push_back(parts[i]);
+							}
+						}
+						string fullpath = node->attributes["href"];
+						while (fullpath.find("../") == 0) {
+							fullpath = fullpath.substr(3);
+							path.pop_back();
+						}
+						if (path[0] == "http:") {
+							path[0] = "http:/";
+						}
+						for (int i = 0, len = path.size(); i < len; i++) {
+							if (i > 0) {
+								url += "/";
+							}
+							url += path[i];
+						}
+						url += "/" + fullpath;
+					}
+					else if (node->attributes["href"].find("://") == string::npos) {
+						url = prefix + node->attributes["href"];
+					}
+					else {
+						url = node->attributes["href"];
+					}
+					loadPage(url, false, prefix);
+					break;
+				}
+			}
+			else {
+				if (selRegion->shapes[i]->target == "back") {
+					goBack();
+				}
+				else if (selRegion->shapes[i]->target == "forward") {
+					goForward();
+				}
+				else if (selRegion->shapes[i]->target == "home") {
+					loadPage("http://localhost:8000/snikta/index.php", false, "http://localhost:8000/snikta/");
 				}
 			}
 		}
@@ -737,7 +840,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 		Scope myScope;
 		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 32);
 		if (astFunc.ASTNodeFunc == nullptr) {
 			continue;
 		}
@@ -770,11 +873,12 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
 	
-	if (mySlabContainer.ShapeMembers.size() < 6)//!pageLoaded) // this was causing problems with event listeners
+	if (mySlabContainer.ShapeMembers.size() <= 8)//!pageLoaded) // this was causing problems with event listeners
 	{
+		vector<string> icons = { "back", "forward", "home", "refresh", "stop", "history", "downloads", "bookmarks" };
 		vector<Shape*> shapesToPreprocess;
-		int x = 0, xDiff = 107 * viewportScaleX;
-		for (int i = 0, len = 5; i < len; i++)
+		int x = 0, xDiff = 32 * viewportScaleX;
+		for (int i = 0, len = icons.size(); i < len; i++)
 		{
 			int shapeId = mySlabContainer.NextAvailableShapeId++;
 			int x1, x2, y1, y2;
@@ -783,7 +887,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 			x1 = newShape->x1 = x;
 			x2 = newShape->x2 = x + xDiff;
 			y1 = newShape->y1 = 0;
-			y2 = newShape->y2 = 107 * viewportScaleY;
+			y2 = newShape->y2 = 32 * viewportScaleY;
+			newShape->target = icons[i];
 
 			shapesToPreprocess.push_back(newShape);
 
@@ -938,7 +1043,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		Scope myScope;
 		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 32);
 		execAST(*astFunc.ASTNodeFunc, myScope);
 	}
 
@@ -952,7 +1057,7 @@ void MainWindow::OnLButtonUp()
 		Scope myScope;
 		myScope.__parent = astFunc.ASTNodeFunc->arguments;
 		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 107);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 32);
 		if (astFunc.ASTNodeFunc == nullptr) {
 			continue;
 		}

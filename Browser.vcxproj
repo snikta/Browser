@@ -83,7 +83,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\c++\Browser\socket.io-client-cpp\lib\asio\asio\include;C:\c++\Browser\socket.io-client-cpp\lib\asio;C:\Users\josha\Downloads\boost_1_75_0\;C:\c++\Browser\socket.io-client-cpp\lib\websocketpp;C:\c++\Browser\socket.io-client-cpp\lib;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\include;C:\c++\Browser\socket.io-client-cpp\lib\asio\asio\include;C:\c++\Browser\socket.io-client-cpp\lib\asio;C:\Users\josha\Downloads\boost_1_75_0\;C:\c++\Browser\socket.io-client-cpp\lib\websocketpp;C:\c++\Browser\socket.io-client-cpp\lib;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\bin;C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\lib;C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -138,17 +139,19 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\josha\Downloads\boost_1_75_0\libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\include;C:\Users\josha\Downloads\boost_1_75_0\libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
+      <AdditionalLibraryDirectories>C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\bin;C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw;C:\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="drawDOMNode.cpp" />
+    <ClCompile Include="httpGet.cpp" />
     <ClCompile Include="JSExec.cpp" />
     <ClCompile Include="lcase.cpp" />
     <ClCompile Include="LoadBitmapFromFile.cpp" />
@@ -166,10 +169,12 @@
     <ClCompile Include="WICViewerD2D.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Users\josha\Downloads\curl-7.75.0_4-win64-mingw\curl-7.75.0-win64-mingw\include\curl\curl.h" />
     <ClInclude Include="basewin.h" />
     <ClInclude Include="DOMNode.h" />
     <ClInclude Include="drawDOMNode.h" />
     <ClInclude Include="fileWatcher.h" />
+    <ClInclude Include="httpGet.h" />
     <ClInclude Include="JSExec.h" />
     <ClInclude Include="lcase.h" />
     <ClInclude Include="LoadBitmapFromFile.h" />
