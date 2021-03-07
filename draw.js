@@ -53,12 +53,7 @@ var drawAllShapes = function () {
 		} else if (shape.type == "Ellipse") {
 			DrawEllipse(canvasEl, shape.x, shape.y, shape.x + shape.width, shape.y + shape.height)
 		} else if (shape.type == "Line") {
-			var lineKnots = shape.knots
-			var knotCount = length(lineKnots)
-			var i = 0
-			if (knotCount > 1) {
-				DrawLine(canvasEl, lineKnots)
-			}
+			DrawLine(canvasEl, shape.curves)
 		}
 	}
 }
@@ -66,9 +61,8 @@ var drawAllShapes = function () {
 var canvasMouseUp = function (e) {
 	var shapeCount = length(shapes)
 	if (shapeType == "Line") {
-		var plen = length(knots)
-		knots[plen] = {x:pageX,y:pageY}
-		shapes[shapeCount] = {type:"Line",knots:knots}
+		curves = getSplinePrimitivesFromKnots(simplify(knots, 3, false))
+		shapes[shapeCount] = {type:"Line",curves:curves}
 	} else {
 		shapes[shapeCount] = {type:shapeType,x:min(pageX,prevX),y:min(pageY,prevY),width:abs(pageX-prevX),height:abs(pageY-prevY)}
 	}
@@ -86,10 +80,10 @@ var canvasMouseMove = function (e) {
 		drawAllShapes()
 		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY)
 	} else if (shapeType == "Line") {
-		DrawLine(canvasEl, [{x:prevX,y:prevY},{x:pageX,y:pageY}])
+		drawAllShapes()
 		var plen = length(knots)
 		knots[plen] = {x:pageX,y:pageY}
-		var p = knots[plen]
+		DrawPolyline(canvasEl, knots)
 		prevX = pageX
 		prevY = pageY
 	}

@@ -7,7 +7,7 @@
 
 #define IDR_MAINMENU             104 
 #define IDM_EXIT                 106 
-#define IDM_FILE                 32 
+#define IDM_FILE                 107 
 #ifndef IDC_STATIC 
 #define IDC_STATIC               -1 
 #endif 

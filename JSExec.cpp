@@ -92,6 +92,9 @@ string ASTNode::getString() {
 		break;
 	case ASTNumberNode:
 	{
+		if (this->ASTNodeNumber == 0) {
+			return "0";
+		}
 		if (this->ASTNodeNumber == int(this->ASTNodeNumber)) {
 			return std::to_string(int(this->ASTNodeNumber));
 		}
@@ -104,7 +107,7 @@ string ASTNode::getString() {
 	}
 	break;
 	case ASTBoolNode:
-		return this->ASTNodeBool ? "true" : "false";
+		return this->ASTNodeBool ? "1" : "0";
 		break;
 	default:
 		return "";
@@ -113,6 +116,12 @@ string ASTNode::getString() {
 long double ASTNode::getNumber() {
 	switch (ASTNodeType) {
 	case ASTStringNode:
+		if (this->ASTNodeString == "true") {
+			return 1.0;
+		}
+		else if (this->ASTNodeString == "false") {
+			return 0.0;
+		}
 		if (this->ASTNodeString[0] == '"' && this->ASTNodeString[this->ASTNodeString.size() - 1] == '"') {
 			return stold(this->ASTNodeString.substr(1, this->ASTNodeString.size() - 2));
 		}
@@ -193,6 +202,9 @@ ASTNode resolveRuntimeObject(ASTNode astRef) {
 	if (astRef.getString() != "" && astRef.ASTNodeString.find("<RuntimeObject#") != string::npos) {
 		string runtimeObjectId = astRef.ASTNodeString.substr(astRef.ASTNodeString.find("<RuntimeObject#") + string("<RuntimeObject#").size());
 		runtimeObjectId = runtimeObjectId.substr(0, runtimeObjectId.size() - 1);
+		if (runtimeObjectId == "-1") {
+			return astRef;
+		}
 		return runtimeObjects[stoi(runtimeObjectId)];
 	}
 	return astRef;
@@ -610,18 +622,6 @@ ASTNode LessThanOrEqualTo(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntax
 ASTNode GreaterThan(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	op1 = resolve(op1, scope);
 	op2 = resolve(op2, scope);
-	if (op1.getString() == "false") {
-		op1 = ASTNode(false);
-	}
-	else if (op1.getString() == "true") {
-		op1 = ASTNode(true);
-	}
-	if (op2.getString() == "false") {
-		op2 = ASTNode(false);
-	}
-	else if (op2.getString() == "true") {
-		op2 = ASTNode(true);
-	}
 	return ASTNode(op1.getNumber() > op2.getNumber() ? 1.0L : 0.0L);
 }
 ASTNode LessThan(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
@@ -675,9 +675,9 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 	if (op1.scopeBox != nullptr) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
-	/*else {
+	else {
 		op1 = parseParens(op1.getString(), scope);
-	}*/
+	}
 
 	ASTNode origOp2 = op2;
 
@@ -770,8 +770,12 @@ map<string, operatorFunction> operatorFunctions = {
 
 typedef ASTNode(*predefinedFunction)(vector<ASTNode> args, Scope& scope);
 
+ASTNode PredefinedNumber(vector<ASTNode> args, Scope& scope) {
+	return ASTNode((long double)resolve(args[0], scope).getNumber());
+}
+
 ASTNode PredefinedAcos(vector<ASTNode> args, Scope& scope) {
-	return ASTNode(acos(resolve(args[0], scope).getNumber()));
+	return ASTNode((long double)acos(resolve(args[0], scope).getNumber()));
 }
 
 ASTNode PredefinedPow(vector<ASTNode> args, Scope& scope) {
@@ -947,11 +951,7 @@ ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
-struct Knot {
-	double x;
-	double y;
-};
-void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
+void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
 	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
 
 	pRenderTarget2->BeginDraw();
@@ -981,9 +981,50 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<Knot> knots) {
 	hr = pRenderTarget2->CreateSolidColorBrush(color, &pFillBrush);
 
 	if (knots.size() > 1) {
+		ID2D1GeometrySink* pSink = NULL;
+		ID2D1PathGeometry* pPathGeometry = NULL;
+		hr = pFactory->CreatePathGeometry(&pPathGeometry);
+		hr = pPathGeometry->Open(&pSink);
+
+		pSink->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+		map<string, ASTNode*> knot = *knots[0].ASTArray;
+		ASTNode point = *knot["points"];
+		ASTNode points = resolveRuntimeObject(point);
+		pSink->BeginFigure(
+			D2D1::Point2F((*(*points.ASTArray)["0"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["0"]->ASTArray)["y"]->getNumber()),
+			D2D1_FIGURE_BEGIN_FILLED
+		);
+
 		for (int i = 1, len = knots.size(); i < len; i++) {
-			pRenderTarget2->DrawLine(D2D1::Point2F(knots[i - 1].x, knots[i - 1].y), D2D1::Point2F(knots[i].x, knots[i].y), pStrokeBrush);
+			map<string, ASTNode*> knot = *knots[i].ASTArray;
+			if (knot["points"] == nullptr) {
+				continue;
+			}
+			ASTNode point = *knot["points"];
+			ASTNode points = resolveRuntimeObject(point);
+			if (resolveString(knot["type"]->getString()) == "BezierCurve") {
+				pSink->AddBezier(
+					D2D1::BezierSegment(
+						D2D1::Point2F((*(*points.ASTArray)["1"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["1"]->ASTArray)["y"]->getNumber()),
+						D2D1::Point2F((*(*points.ASTArray)["2"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["2"]->ASTArray)["y"]->getNumber()),
+						D2D1::Point2F((*(*points.ASTArray)["3"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["3"]->ASTArray)["y"]->getNumber())
+					)
+				);
+			}
+			else if (resolveString(knot["type"]->getString()) == "Line") {
+				pSink->AddLine(D2D1::Point2F((*(*knot["points"]->ASTArray)["0"]->ASTArray)["x"]->getNumber(), (*(*knot["points"]->ASTArray)["0"]->ASTArray)["y"]->getNumber()));
+			}
 		}
+
+		pSink->EndFigure(D2D1_FIGURE_END_OPEN);
+
+		hr = pSink->Close();
+
+		pRenderTarget2->DrawGeometry(pPathGeometry, pStrokeBrush, 2.0);
+
+		SafeRelease(&pPathGeometry);
+		SafeRelease(&pSink);
 	}
 
 	pRenderTarget2->EndDraw();
@@ -1183,15 +1224,35 @@ ASTNode PredefinedDrawRectangle(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
+ASTNode PredefinedDrawPolyline(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	ASTNode knots = resolveRuntimeObject(args[1]);
+
+	vector<ASTNode> knotContainer;
+	for (int i = 0, len = knots.ASTArray->size(); i < len; i++) {
+		ASTNode *points = new ASTNode();
+		ASTNode *point = new ASTNode();
+		(*point->ASTArray)["x"] = (*(*knots.ASTArray)[std::to_string(i)]->ASTArray)["x"];
+		(*point->ASTArray)["y"] = (*(*knots.ASTArray)[std::to_string(i)]->ASTArray)["y"];
+		(*points->ASTArray)["0"] = point;
+
+		ASTNode knot;
+		(*knot.ASTArray)["type"] = new ASTNode(string("Line"));
+		(*knot.ASTArray)["points"] = points;
+		knotContainer.push_back(knot);
+	}
+	
+	drawLineOnCanvas(canvasEl, knotContainer);
+
+	return ASTNode();
+}
+
 ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
 	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
-	ASTNode knotList = resolveRuntimeObject(args[1]);
-	vector<Knot> knots = {};
-	for (int i = 0, len = knotList.ASTArray->size(); i < len; i++) {
-		Knot knot;
-		knot.x = (*(*knotList.ASTArray)[std::to_string(i)]->ASTArray)["x"]->getNumber();
-		knot.y = (*(*knotList.ASTArray)[std::to_string(i)]->ASTArray)["y"]->getNumber();
-		knots.push_back(knot);
+	ASTNode knotContainer = resolveRuntimeObject(args[1]);
+	vector<ASTNode> knots = {};
+	for (int i = 0, len = knotContainer.ASTArray->size(); i < len; i++) {
+		knots.push_back((*(*knotContainer.ASTArray)[std::to_string(i)]));
 	}
 	drawLineOnCanvas(canvasEl, knots);
 
@@ -1287,6 +1348,7 @@ ASTNode PredefinedToHex(vector<ASTNode> args, Scope& scope) {
 }
 
 map<string, predefinedFunction> predefinedFunctions = {
+	{"number", &PredefinedNumber},
 	{"sqrt", &PredefinedSqrt},
 	{"pow", &PredefinedPow},
 	{"acos", &PredefinedAcos},
@@ -1306,6 +1368,7 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"SetPixel", &PredefinedSetPixel},
 	{"DrawText", &PredefinedDrawText},
 	{"DrawLine", &PredefinedDrawLine},
+	{"DrawPolyline", &PredefinedDrawPolyline},
 	{"DrawRectangle", &PredefinedDrawRectangle},
 	{"DrawEllipse", &PredefinedDrawEllipse},
 	{"appendChild", &PredefinedAppendChild},
@@ -1484,6 +1547,15 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 
 	if (retval.ASTArray->size() > 0) {
 		return retval;
+	}
+	else if (retval.ASTNodeType == ASTNumberNode) {
+		return retval;
+	}
+	else if (retval.ASTNodeType == ASTBoolNode) {
+		return retval;
+	}
+	if (retval.getString() == "false") {
+		return ASTNode((long double)0.0);
 	}
 
 	return isNaN(retval.getString()) ? resolve(retval, args).getString() : std::to_string(retval.getNumber());
@@ -2323,7 +2395,8 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope& args) {
 			}
 		}
 		else if (expr[i] == '[') {
-			value = parseArrayLiteral(expr, i, args);
+			(*curBraceNode->ASTArray)[std::to_string(curBraceNode->ASTArray->size())] = parseArrayLiteral(expr, i, args);
+			value = nullptr;
 		}
 		else if (expr[i] == '{') {
 			ASTNode* newBraceNode = new ASTNode;
@@ -2335,7 +2408,7 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope& args) {
 			curBraceNode = newBraceNode;
 		}
 		else if (expr[i] == '}') {
-			if (key != "") {
+			if (value && value != nullptr && key != "") {
 				if (value->ASTArray->size() != 0) {
 					(*curBraceNode->ASTArray)[key] = value;
 				}
@@ -2375,7 +2448,7 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope& args) {
 			key_or_value = "value";
 		}
 		else if (expr[i] == ',') {
-			if (key != "") {
+			if (value && value != nullptr && key != "") {
 				if (value->ASTArray->size() != 0) {
 					(*curBraceNode->ASTArray)[key] = value;
 				}
@@ -2396,7 +2469,7 @@ ASTNode* parseObjectLiteral(string expr, int& i, Scope& args) {
 			key = "";
 			value = new ASTNode;
 		}
-		else {
+		else if (value && value != nullptr) {
 			if (key_or_value == "key") {
 				key += expr[i];
 			}
@@ -3028,7 +3101,13 @@ ASTNode parseParens(string expr, Scope& args) {
 	else if (retval.ASTArray->size() > 0) {
 		return retval;
 	}
+	else if (retval.getType() == ASTBoolNode) {
+		return retval;
+	}
 	else {
+		if (retval.getString() == "false") {
+			return ASTNode((long double)0.0);
+		}
 		return ASTNode(retval.getString());
 	}
 
