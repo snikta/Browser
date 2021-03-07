@@ -675,9 +675,9 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 	if (op1.scopeBox != nullptr) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
-	else {
+	/*else {
 		op1 = parseParens(op1.getString(), scope);
-	}
+	}*/
 
 	ASTNode origOp2 = op2;
 

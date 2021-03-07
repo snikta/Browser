@@ -54,8 +54,8 @@ struct StackItem {
 vector<StackItem> undoStack;
 vector<StackItem> redoStack;
 
-string prefix = "http://localhost:8000/";
-string curURL = prefix + "draw.html";
+string prefix = "http://localhost:8000/www/";
+string curURL = prefix + "TheProject.html";
 
 void loadPage(string url, bool skipStack, string newPrefix);
 
@@ -266,7 +266,7 @@ public:
 		std::srand(std::time(nullptr));
 		testJSExec();
 
-		loadPage("http://localhost:8000/draw.html", true, prefix);
+		loadPage("http://localhost:8000/www/TheProject.html", true, prefix);
 	}
 
 	PCWSTR  ClassName() const { return L"Browser Window Class"; }
@@ -873,8 +873,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
 	
-	//if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
-	if (!pageLoaded)
+	if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
+	//if (!pageLoaded)
 	{
 		vector<string> icons = { "back", "forward", "home", "refresh", "stop", "history", "downloads", "bookmarks" };
 		vector<Shape*> shapesToPreprocess;
