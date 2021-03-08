@@ -19,6 +19,7 @@
 
 #include "basewin.h"
 #include "WICViewerD2D.h"
+#include "httpGet.h"
 
 void LOut(string str) {
 	string s1 = str + "\n";
@@ -63,7 +64,7 @@ bool isNaN(string val) {
 	return false;
 }
 
-const vector<string> operators = { "==","=","+=","-=","*=","/=","[]",".","+","-","*","/","%","<","<=",">",">=","&&","!=","||",","," in ","new" };
+const vector<string> operators = { "==","=","+=","-=","*=","/=","[]",".","+","-","*","/","%","<","<=",">",">=","&&","!=","||",","," in ","new","&","|","<<" };
 bool isOperator(string op) {
 	return find(operators.begin(), operators.end(), op) != operators.end();
 }
@@ -373,7 +374,7 @@ AbstractSyntaxTree parseExpr(string expr, Scope& scope) {
 						ast.push_back(ASTNode(string(cur)));
 					}
 					else {
-						ast.push_back(ASTNode(stold(cur)));
+						ast.push_back(ASTNode((long double)stold(cur)));
 					}
 				}
 				cur = "";
@@ -513,7 +514,7 @@ AbstractSyntaxTree parseExpr(string expr, Scope& scope) {
 			ast.push_back(ASTNode(string(cur)));
 		}
 		else {
-			ast.push_back(ASTNode(stold(cur)));
+			ast.push_back(ASTNode((long double)stold(cur)));
 		}
 		//}
 	}
@@ -742,7 +743,27 @@ ASTNode LogicalOr(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& as
 	op2 = resolve(op2, scope);
 	return ASTNode((op1.getNumber() == 1.0L || op2.getNumber() == 1.0L) ? 1.0L : 0.0L);
 }
+ASTNode BitwiseAnd(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode((long double)((int)op1.getNumber() & (int)op2.getNumber()));
+}
+
+ASTNode BitwiseOr(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode((long double)((int)op1.getNumber() | (int)op2.getNumber()));
+}
+
+ASTNode BitwiseShiftLeft(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
+	op1 = resolve(op1, scope);
+	op2 = resolve(op2, scope);
+	return ASTNode((long double)((int)op1.getNumber() << (int)op2.getNumber()));
+}
 map<string, operatorFunction> operatorFunctions = {
+	{"|", &BitwiseOr},
+	{"&", &BitwiseAnd},
+	{"<<", &BitwiseShiftLeft},
 	{"+", &Add},
 	{"-", &Subtract},
 	{"*", &Multiply},
@@ -769,6 +790,19 @@ map<string, operatorFunction> operatorFunctions = {
 };
 
 typedef ASTNode(*predefinedFunction)(vector<ASTNode> args, Scope& scope);
+
+ASTNode PredefinedFetch(vector<ASTNode> args, Scope& scope) {
+	string url = resolveString(resolveRuntimeObject(args[0]).getString());
+	string *src = new string;
+	httpGet(url, src);
+	Scope scp;
+	ASTNode astSrc;
+	astSrc.data = src;
+	scp.ScopeArray["content"] = astSrc;
+	ParseNode *func = resolveRuntimeObject(args[1]).ASTNodeFunc;
+	execAST(*func, scp);
+	return ASTNode();
+}
 
 ASTNode PredefinedNumber(vector<ASTNode> args, Scope& scope) {
 	return ASTNode((long double)resolve(args[0], scope).getNumber());
@@ -936,6 +970,37 @@ ASTNode PredefinedClearCanvas(vector<ASTNode> args, Scope& scope) {
 			canvasEl->bitmap[i] = 0;
 		}
 	}
+	return ASTNode();
+}
+
+ASTNode PredefinedGetCanvasByte(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	int idx = int(resolveRuntimeObject(args[1]).getNumber());
+	if (idx >= 800 * 400 * 4) {
+		return ASTNode((long double)0.0);
+	}
+	return ASTNode((long double)canvasEl->bitmap[idx]);
+}
+
+ASTNode PredefinedSetCanvasByte(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	int idx = int(resolveRuntimeObject(args[1]).getNumber());
+	if (idx >= 800 * 400 * 4) {
+		return ASTNode((long double)0.0);
+	}
+	BYTE value = BYTE(resolveRuntimeObject(args[2]).getNumber());
+	canvasEl->bitmap[idx] = (BYTE)value;
+	return ASTNode();
+}
+
+ASTNode PredefinedCopyCanvasByte(vector<ASTNode> args, Scope& scope) {
+	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
+	int idx = int(resolveRuntimeObject(args[1]).getNumber());
+	int idx2 = int(resolveRuntimeObject(args[2]).getNumber());
+	if (idx >= 800 * 400 * 4) {
+		return ASTNode((long double)0.0);
+	}
+	canvasEl->bitmap[idx] = (BYTE)canvasEl->bitmap[idx2];
 	return ASTNode();
 }
 
@@ -1244,6 +1309,12 @@ ASTNode PredefinedDrawPolyline(vector<ASTNode> args, Scope& scope) {
 	
 	drawLineOnCanvas(canvasEl, knotContainer);
 
+	for (int i = 0, len = knots.ASTArray->size(); i < len; i++) {
+		delete (*(*knotContainer[i].ASTArray)["points"]->ASTArray)["0"];
+		delete (*knotContainer[i].ASTArray)["type"];
+		delete (*knotContainer[i].ASTArray)["points"];
+	}
+
 	return ASTNode();
 }
 
@@ -1332,8 +1403,17 @@ ASTNode PredefinedRound(vector<ASTNode> args, Scope& scope) {
 	return ASTNode((long double)round(num.getNumber()));
 }
 
+ASTNode PredefinedGetByteAtPos(vector<ASTNode> args, Scope& scope) {
+	ASTNode astNode = resolveRuntimeObject(args[0]);
+	int byteIndex = (int)resolve(args[1], scope).getNumber();
+	return ASTNode((long double)(BYTE)(*astNode.data)[byteIndex]);
+}
+
 ASTNode PredefinedLength(vector<ASTNode> args, Scope& scope) {
 	ASTNode astNode = resolveRuntimeObject(args[0]);
+	if (astNode.data != nullptr) {
+		return ASTNode((long double)astNode.data->size());
+	}
 	if (astNode.getType() == ASTStringNode) {
 		return ASTNode((long double)astNode.ASTNodeString.size());
 	}
@@ -1348,6 +1428,11 @@ ASTNode PredefinedToHex(vector<ASTNode> args, Scope& scope) {
 }
 
 map<string, predefinedFunction> predefinedFunctions = {
+	{"copyCanvasByte", &PredefinedCopyCanvasByte},
+	{"getCanvasByte", &PredefinedGetCanvasByte},
+	{"setCanvasByte", &PredefinedSetCanvasByte},
+	{"getByteAtPos", &PredefinedGetByteAtPos},
+	{"fetch", &PredefinedFetch},
 	{"number", &PredefinedNumber},
 	{"sqrt", &PredefinedSqrt},
 	{"pow", &PredefinedPow},
@@ -1418,8 +1503,8 @@ void evaluateOperatorListNode(OperatorListNode* obj, Scope& args, AbstractSyntax
 	//unorderedAst.erase(unorderedAst.begin() + idx)
 }
 
-map<string, int> precedenceTable = { { "[]", 20 }, { ".", 20 }, { "*", 15 }, { "\/", 15 }, { "%", 15 }, { "+", 14 }, { "-", 14 }, { "<", 12 }, { "<=", 12 }, { ">", 12 }, { ">=", 12 }, {" in ", 12} , { "==", 11 }, { "&&", 6 }, { "||", 5 }, { "=", 3 }, { "+=", 3 }, { "-=", 3 }, { "**=", 3 }, { "*=", 3 }, { "/=", 3 }, {",",1} };
-map<string, string> associativityTable = { {"[]", "ltr"}, {".", "ltr"}, {"*", "ltr"}, {"\/", "ltr"}, {"%", "ltr"}, {"+", "ltr"}, {"-", "ltr"}, {"<", "ltr"}, {"<=", "ltr"}, {">", "ltr"}, {">=", "ltr"}, {"==", "ltr"}, {"&&", "ltr"}, {"||", "ltr"}, {"=", "rtl"}, {"+=", "rtl"}, {"-=", "rtl"}, {"**=", "rtl"}, {"*=", "rtl"}, {"/=", "rtl"}, {"%=", "rtl"}, {"<<=", "rtl"}, {">>=", "rtl"}, {"&=", "rtl"}, {"^=", "rtl"}, {"|=", "rtl"}, {",", "ltr"}, {" in ", "ltr"} };
+map<string, int> precedenceTable = { { "[]", 20 }, { ".", 20 }, { "*", 15 }, { "\/", 15 }, { "%", 15 }, { "+", 14 }, { "-", 14 }, { "<<", 13 }, { "<", 12 }, { "<=", 12 }, { ">", 12 }, { ">=", 12 }, {" in ", 12} , { "==", 11 }, { "&", 10 }, { "|", 8 }, { "&&", 6 }, { "||", 5 }, { "=", 3 }, { "+=", 3 }, { "-=", 3 }, { "**=", 3 }, { "*=", 3 }, { "/=", 3 }, {",",1} };
+map<string, string> associativityTable = { {"[]", "ltr"}, {".", "ltr"}, {"*", "ltr"}, {"\/", "ltr"}, {"%", "ltr"}, {"+", "ltr"}, {"-", "ltr"}, {"<", "ltr"}, {"<=", "ltr"}, {">", "ltr"}, {">=", "ltr"}, {"==", "ltr"}, {"&&", "ltr"}, {"||", "ltr"}, {"=", "rtl"}, {"+=", "rtl"}, {"-=", "rtl"}, {"**=", "rtl"}, {"*=", "rtl"}, {"/=", "rtl"}, {"%=", "rtl"}, {"<<=", "rtl"}, {">>=", "rtl"}, {"&=", "rtl"}, {"^=", "rtl"}, {"|=", "rtl"}, {",", "ltr"}, {" in ", "ltr"}, {"&", "ltr"}, {"|", "ltr"}, {"~", "rtl"}, {"<<", "ltr" } };
 
 bool OperatorListSort(OperatorListNode* a, OperatorListNode* b) {
 	int bprec = precedenceTable[b->operatorName];
@@ -1536,6 +1621,11 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 		evaluateOperatorListNode(orderedAst[0], args, ast);
 		retval = orderedAst[0]->value;
 	}
+
+	for (int i = 0, len = unorderedAst.size(); i < len; i++) {
+		delete unorderedAst[i];
+	}
+	unorderedAst.clear();
 
 	if (retval.scopeBox != nullptr) {
 		retval = resolveFunc(retval.scopeBox, false, ASTNode());
@@ -2228,10 +2318,10 @@ ParseNode generateAST(string src) {
 				curParent = newParent;
 			}
 			else {
-				if (curParent->type == WhileNode && curParenParent->childNodes[curParenParent->childNodes.size() - 1]->type == WhileNode) {
+				if (curParent->type == WhileNode && curParenParent->childNodes.size() && curParenParent->childNodes[curParenParent->childNodes.size() - 1]->type == WhileNode) {
 
 				}
-				else if (curParent->type == ForNode && curParenParent->childNodes[curParenParent->childNodes.size() - 1]->type == ForNode) {
+				else if (curParent->type == ForNode && curParenParent->childNodes.size() && curParenParent->childNodes[curParenParent->childNodes.size() - 1]->type == ForNode) {
 
 				}
 				else {
@@ -2671,7 +2761,9 @@ ParseNode* parseFunction(string expr, int& i) {
 
 ASTNode parseParens(string expr, Scope& args) {
 	expr = '(' + trim(expr) + ')';
+	vector <ASTNode*> nodesToDelete = {};
 	ASTNode* curParent = new ASTNode;
+	nodesToDelete.push_back(curParent);
 	ASTNode* root = curParent;
 	string curChild = "";
 	for (int i = 0, len = expr.size(); i < len; i++) {
@@ -2680,34 +2772,40 @@ ASTNode parseParens(string expr, Scope& args) {
 		}
 		if (expr.substr(i, string("function").size()) == "function") {
 			ASTNode* funcASTNode = new ASTNode(parseFunction(expr, i));
+			nodesToDelete.push_back(funcASTNode);
 			curParent->childNodes.push_back(funcASTNode);
 		}
 		else if (expr[i] == '{') {
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
+				nodesToDelete.push_back(curParent->childNodes.back());
 			}
 			ASTNode* ptrASTArray = parseObjectLiteral(expr, i, args);
 			int runtimeObjId = runtimeObjects.size();
 			ptrASTArray->runtimeId = runtimeObjId;
 			runtimeObjects.push_back(*ptrASTArray);
 			curParent->childNodes.push_back(new ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>')));
+			nodesToDelete.push_back(curParent->childNodes.back());
 			curChild = "";
 		}
 		else if (expr[i] == '[' && !(expr[i - 1] >= 'A' && expr[i - 1] <= 'Z') && !(expr[i - 1] >= 'a' && expr[i - 1] <= 'z') && !(expr[i - 1] >= '0' && expr[i - 1] <= '9') && expr[i - 1] != '_' && expr[i - 1] != ']') {
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
+				nodesToDelete.push_back(curParent->childNodes.back());
 			}
 			ASTNode* ptrASTArray = parseArrayLiteral(expr, i, args);
 			int runtimeObjId = runtimeObjects.size();
 			ptrASTArray->runtimeId = runtimeObjId;
 			runtimeObjects.push_back(*ptrASTArray);
 			curParent->childNodes.push_back(new ASTNode(string("<RuntimeObject#" + std::to_string(runtimeObjId) + '>')));
+			nodesToDelete.push_back(curParent->childNodes.back());
 			curChild = "";
 		}
 		else if (expr[i] == '"' || expr[i] == '\'') {
 			char quotChar = expr[i];
 			if (curChild != "") {
 				curParent->childNodes.push_back(new ASTNode(curChild));
+				nodesToDelete.push_back(curParent->childNodes.back());
 			}
 			curChild = "";
 			string curStr = "";
@@ -2726,6 +2824,7 @@ ASTNode parseParens(string expr, Scope& args) {
 				i++;
 			}
 			curParent->childNodes.push_back(new ASTNode("\"" + curStr + "\""));
+			nodesToDelete.push_back(curParent->childNodes.back());
 		}
 		else if (expr[i] == '(') {
 			string funcName = "";
@@ -2753,16 +2852,19 @@ ASTNode parseParens(string expr, Scope& args) {
 				}
 				if (func.getString() == "" && (predefinedFunctions.find(funcName) == predefinedFunctions.end()) && (userDefinedFunctions.find(funcName) == userDefinedFunctions.end())) {
 					curParent->childNodes.push_back(new ASTNode(curChild));
+					nodesToDelete.push_back(curParent->childNodes.back());
 					funcName = "";
 				}
 				else {
 					if (funcName != "") {
 						if (curChild.substr(0, curChild.size() - origFuncName.size()) != "") {
 							curParent->childNodes.push_back(new ASTNode(trim(curChild.substr(0, curChild.size() - origFuncName.size()))));
+							nodesToDelete.push_back(curParent->childNodes.back());
 						}
 					}
 					else {
 						curParent->childNodes.push_back(new ASTNode(curChild));
+						nodesToDelete.push_back(curParent->childNodes.back());
 					}
 				}
 			}
@@ -2774,8 +2876,10 @@ ASTNode parseParens(string expr, Scope& args) {
 				newParent->origFuncName = origFuncName;
 			}
 			curParent->childNodes.push_back(newParent);
+			nodesToDelete.push_back(curParent->childNodes.back());
 			curParent = newParent;
 			newParent = new ASTNode;
+			nodesToDelete.push_back(newParent);
 			newParent->parent = curParent;
 			curParent = newParent;
 		}
@@ -2785,10 +2889,13 @@ ASTNode parseParens(string expr, Scope& args) {
 					/*if (curParent->childNodes[curParent->childNodes.size() - 1]->getString() == "") {
 						curParent->childNodes[curParent->childNodes.size() - 1] = new ASTNode(curParent->childNodes[curParent->childNodes.size() - 1]->getString() + curChild);
 					}*/
-					curParent->childNodes[curParent->childNodes.size() - 1] = new ASTNode(string(curParent->childNodes[curParent->childNodes.size() - 1]->getString() + curChild));
+					int idx = curParent->childNodes.size() - 1;
+					curParent->childNodes[idx] = new ASTNode(string(curParent->childNodes[curParent->childNodes.size() - 1]->getString() + curChild));
+					nodesToDelete.push_back(curParent->childNodes[idx]);
 				}
 				else {
 					curParent->childNodes.push_back(new ASTNode(string(curChild)));
+					nodesToDelete.push_back(curParent->childNodes.back());
 				}
 			}
 			if (find(curParent->parent->childNodes.begin(), curParent->parent->childNodes.end(), curParent) == curParent->parent->childNodes.end()) {
@@ -2881,6 +2988,7 @@ ASTNode parseParens(string expr, Scope& args) {
 
 							}
 							output = new ASTNode(execAST(*output->ASTNodeFunc, params).retval);
+							nodesToDelete.push_back(output);
 						}
 						curParent->parent->parent->childNodes.erase(curParent->parent->parent->childNodes.begin() + idx - 1);
 						idx--;
@@ -2925,6 +3033,7 @@ ASTNode parseParens(string expr, Scope& args) {
 							runtimeObjects.push_back(*objectInstance);
 							execAST(*func, *userDefinedFunctionScope);
 							output = new ASTNode("<RuntimeObject#" + std::to_string(runtimeObjId) + '>');
+							nodesToDelete.push_back(output);
 							//parseASTNode(curParent->parent->parent->childNodes[curIdx - 1])->ASTNodeString = "new ";
 							/*let outerArgs = args
 							funcToInvoke = function () {
@@ -2966,6 +3075,7 @@ ASTNode parseParens(string expr, Scope& args) {
 						}
 						if (predefinedFunctions.find(curParent->parent->funcName) != predefinedFunctions.end()) {
 							output = new ASTNode(predefinedFunctions[curParent->parent->funcName](parsedArgs, args).getString());
+							nodesToDelete.push_back(output);
 						}
 						else if (userDefinedFunctions.find(curParent->parent->funcName) != userDefinedFunctions.end()) {
 							Scope userDefinedFunctionScope;
@@ -2975,6 +3085,7 @@ ASTNode parseParens(string expr, Scope& args) {
 								userDefinedFunctionScope.ScopeArray[params[paramIdx]] = parsedArgs[paramIdx];
 							}
 							output = new ASTNode(execAST(*userDefinedFunctions[curParent->parent->funcName], userDefinedFunctionScope).retval.getString());
+							nodesToDelete.push_back(output);
 						}
 						else {
 							/*if (userDefinedFunctions.find(curParent->parent->funcName) != userDefinedFunctions.end()) {
@@ -2996,6 +3107,7 @@ ASTNode parseParens(string expr, Scope& args) {
 								ASTNode astThis = parseParens(curParent->parent->origFuncName.substr(0, lastDot), args);
 								userDefinedFunctionScope.ScopeArray["this"] = astThis;
 								output = new ASTNode(execAST(*func, userDefinedFunctionScope).retval.getString());
+								nodesToDelete.push_back(output);
 							}
 							else {
 								/*output = (func || JSExec.functions[curParent.parent.funcName]).apply(null, parsedArgs)*/
@@ -3009,6 +3121,7 @@ ASTNode parseParens(string expr, Scope& args) {
 				curParent = curParent->parent->parent->childNodes[idx];*/
 				if (output != nullptr) {
 					output = new ASTNode(*output);
+					nodesToDelete.push_back(output);
 					curParent->parent->parent->childNodes[idx] = output;
 				}
 				curParent = curParent->parent;
@@ -3041,6 +3154,7 @@ ASTNode parseParens(string expr, Scope& args) {
 					}
 					AbstractSyntaxTree exprAST = parseExpr(joined, args);
 					curParent->parent->childNodes[idx] = new ASTNode(evaluate(exprAST, args));
+					nodesToDelete.push_back(curParent->parent->childNodes[idx]);
 					//curParent.parent.childNodes[idx] = {childNodes: [], ASTNodeString: typeof retval == 'string' && !retval.match(/\<RuntimeObject#[0-9]+\>/) ? {string: retval} : retval}
 					//curParent->parent->childNodes[idx]->parent = curParent->parent;
 				}
@@ -3048,6 +3162,7 @@ ASTNode parseParens(string expr, Scope& args) {
 					string joined = parseNode(curParent, args)->getString();
 					AbstractSyntaxTree exprAST = parseExpr(joined, args);
 					curParent->parent->childNodes[idx] = new ASTNode(evaluate(exprAST, args));
+					nodesToDelete.push_back(curParent->parent->childNodes[idx]);
 					//curParent.parent.childNodes[idx] = {childNodes: [], ASTNodeString: typeof retval == 'string' && !retval.match(/\<RuntimeObject#[0-9]+\>/) ? {string: retval} : retval}
 					//curParent->parent->childNodes[idx]->parent = curParent->parent;
 				}
@@ -3058,6 +3173,7 @@ ASTNode parseParens(string expr, Scope& args) {
 				}
 
 				curParent->parent->parent->childNodes[idx] = new ASTNode(evaluate(ast, args));
+				nodesToDelete.push_back(curParent->parent->parent->childNodes[idx]);
 				curParent->parent->parent->childNodes[idx]->parent = curParent->parent->parent;
 
 				curParent = curParent->parent;
@@ -3091,6 +3207,11 @@ ASTNode parseParens(string expr, Scope& args) {
 	else {
 		retval = parseASTNode(root);
 	}
+
+	for (int i = 0, len = nodesToDelete.size(); i < len; i++) {
+		delete nodesToDelete[i];
+	}
+	nodesToDelete.clear();
 
 	//LOut("expr: " + expr);
 	//LOut("expr.retval: " + retval.getString());

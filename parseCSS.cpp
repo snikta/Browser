@@ -13,7 +13,7 @@
 using namespace std;
 
 cssStream::cssStream(string url) {
-	httpGet(url, src);
+	httpGet(url, &src);
 	pos = 0;
 	length = src.size();
 }

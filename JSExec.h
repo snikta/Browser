@@ -40,6 +40,7 @@ struct ParseNode;
 enum ASTNodeType { ASTStringNode, ASTNumberNode, ASTBoolNode, ASTFuncNode, ASTInstanceNode };
 class ASTNode {
 public:
+	string* data = nullptr;
 	DOMNode* ptrDOMNode = nullptr;
 	int runtimeId = -1;
 	ASTNodeType ASTNodeType = ASTBoolNode;

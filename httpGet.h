@@ -3,4 +3,4 @@
 #include <string>
 using namespace std;
 
-void httpGet(string url, string& src);
+int httpGet(string url, string *src);

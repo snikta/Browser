@@ -9,7 +9,7 @@ size_t writeFunction(void* ptr, size_t size, size_t nmemb, std::string* data) {
 	return size * nmemb;
 }
 
-void httpGet(string url, string& src) {
+int httpGet(string url, string *src) {
 	CURL* curl;
 	CURLcode res;
 
@@ -22,7 +22,7 @@ void httpGet(string url, string& src) {
 		   Consider using CURLOPT_ALTSVC instead! */
 		curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_3);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &src);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, src);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
 		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -30,11 +30,13 @@ void httpGet(string url, string& src) {
 		/* Perform the request, res will get the return code */
 		res = curl_easy_perform(curl);
 		/* Check for errors */
-		/*if (res != CURLE_OK) {
-
-		}*/
+		if (res != CURLE_OK) {
+			MessageBox(NULL, L"CURL error", L"", MB_OK);
+		}
 
 		/* always cleanup */
 		curl_easy_cleanup(curl);
 	}
+
+	return src->size();
 }
