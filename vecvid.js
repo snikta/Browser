@@ -103,9 +103,8 @@ function handleChroma() {
 		var shapes = []
 		var colors = []
 
-		var frameKnots = []
 		var colorIndex = 0
-		for (colorIndex = 0; colorIndex < 15; colorIndex=colorIndex+1) {
+		for (colorIndex = 0; colorIndex < 20; colorIndex=colorIndex+1) {
 			var bit = getBit()
 			if (bit == 0) {
 				frameIndex = frameIndex + 1
@@ -120,9 +119,10 @@ function handleChroma() {
 			
 			compSize = compSize + 6
 
-			var knots = []
 			var contourIndex = 0
 			for (contourIndex = 0; contourIndex < contourCount; contourIndex=contourIndex+1) {
+				var knots = []
+				
 				var firstPointX = (getBit() << 11 | getBit() << 10 | getBit() << 9 | getBit() << 8 | getBit() << 7 | getBit() << 6 | getBit() << 5 | getBit() << 4 | getBit() << 3 | getBit() << 2 | getBit() << 1 | getBit())
 				var firstPointY = (getBit() << 11 | getBit() << 10 | getBit() << 9 | getBit() << 8 | getBit() << 7 | getBit() << 6 | getBit() << 5 | getBit() << 4 | getBit() << 3 | getBit() << 2 | getBit() << 1 | getBit())
 				var innerContourCount = 0
@@ -140,11 +140,13 @@ function handleChroma() {
 					innerContourCount = 1
 				}
 
-				var curPoint = {x: firstPointX, y: firstPointY}
-				var curDelta = {x: 0, y: 0}
+				var curX = firstPointX
+				var curY = firstPointY
+				var curDX = 0
+				var curDY = 0
 
 				var knotLen = length(knots)
-				knots[knotLen] = {x: curPoint.x / 2.5, y: curPoint.y / 2.5}
+				knots[knotLen] = {x: curX / 2.5, y: curY / 2.5}
 
 				var innerContourIndex = 1
 				for (innerContourIndex = 1; innerContourIndex < innerContourCount; innerContourIndex=innerContourIndex+1) {
@@ -168,18 +170,27 @@ function handleChroma() {
 							x = delta.x
 							y = delta.y
 						}
-						curDelta = {x: x, y: y}
+						curDX = x
+						curDY = y
 					}
 					
-					curPoint.x = curPoint.x + curDelta.x
-					curPoint.y = curPoint.y + curDelta.y
+					curX = curX + curDX
+					curY = curY + curDY
 						
 					var knotLen = length(knots)
-					knots[knotLen] = {x: curPoint.x / 2.5, y: curPoint.y / 2.5}
+					if ((curDX * curDX + curDY * curDY) < 64) {
+						knots[knotLen] = {x: curX / 2.5, y: curY / 2.5}
+					} else {
+						DrawPolyline(canvasEl, knots)
+						Delete(knots)
+						knots = []
+					}
 				}
+				
+				DrawPolyline(canvasEl, knots)
+				Delete(knots)
+				knots = []
 			}
-			
-			DrawPolyline(canvasEl, knots)
 		}
 		
 		frameIndex = frameIndex + 1

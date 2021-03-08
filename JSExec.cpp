@@ -791,6 +791,19 @@ map<string, operatorFunction> operatorFunctions = {
 
 typedef ASTNode(*predefinedFunction)(vector<ASTNode> args, Scope& scope);
 
+ASTNode PredefinedDelete(vector<ASTNode> args, Scope& scope) {
+	ASTNode arg = resolveRuntimeObject(args[0]);
+	for (auto it = arg.ASTArray->begin(); it != arg.ASTArray->end(); it++) {
+		for (auto jt = it->second->ASTArray->begin(); jt != it->second->ASTArray->end(); jt++) {
+			delete jt->second;
+		}
+		it->second->ASTArray->clear();
+		delete it->second;
+	}
+	arg.ASTArray->clear();
+	return ASTNode();
+}
+
 ASTNode PredefinedFetch(vector<ASTNode> args, Scope& scope) {
 	string url = resolveString(resolveRuntimeObject(args[0]).getString());
 	string *src = new string;
@@ -1428,6 +1441,7 @@ ASTNode PredefinedToHex(vector<ASTNode> args, Scope& scope) {
 }
 
 map<string, predefinedFunction> predefinedFunctions = {
+	{"Delete", &PredefinedDelete},
 	{"copyCanvasByte", &PredefinedCopyCanvasByte},
 	{"getCanvasByte", &PredefinedGetCanvasByte},
 	{"setCanvasByte", &PredefinedSetCanvasByte},
@@ -1933,6 +1947,7 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 
 				}
 			} while (parseParens(condition, *scope).getBool());
+			delete scope;
 		}
 		break;
 		case WhileNode:
@@ -1949,6 +1964,7 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 
 				}
 			}
+			delete scope;
 		}
 		break;
 		case ForNode:
@@ -2028,6 +2044,7 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 					execAST(*node->condition[2], *scope);
 				}
 			}
+			delete scope;
 		}
 		break;
 		case SwitchNode:
@@ -2094,6 +2111,7 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 				}
 				goto AfterSwitch;
 			}
+			delete scope;
 		}
 		break;
 		case FunctionNode:
@@ -2148,6 +2166,7 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 			ParseNode retval;
 			retval.type = ReturnNode;
 			retval.retval = parseParens(stmt, *scope);
+			delete scope;
 			return retval;
 		}
 		break;
@@ -2163,7 +2182,7 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 		}
 	AfterSwitch: {};
 	}
-	return *(new ParseNode());
+	return ParseNode();//*(new ParseNode());
 }
 
 ParseNode generateAST(string src) {
@@ -2674,7 +2693,9 @@ ASTNode* parseNode(ASTNode* node, Scope& args) {
 	if (retval->childNodes.size()) {
 		string joined = "";
 		for (int i = 0, len = retval->childNodes.size(); i < len; i++) {
-			joined += parseNode(retval->childNodes[i], args)->getString();
+			ASTNode* parsedNode = parseNode(retval->childNodes[i], args);
+			joined += parsedNode->getString();
+			//delete parsedNode;
 		}
 		string evaluated = evaluate(parseExpr(joined, args), args).getString();
 		/*cout << "joined: " << joined << endl;
@@ -3159,7 +3180,9 @@ ASTNode parseParens(string expr, Scope& args) {
 					//curParent->parent->childNodes[idx]->parent = curParent->parent;
 				}
 				else if (curParent->childNodes.size()) {
-					string joined = parseNode(curParent, args)->getString();
+					ASTNode *parsedNode = parseNode(curParent, args);
+					nodesToDelete.push_back(parsedNode);
+					string joined = parsedNode->getString();
 					AbstractSyntaxTree exprAST = parseExpr(joined, args);
 					curParent->parent->childNodes[idx] = new ASTNode(evaluate(exprAST, args));
 					nodesToDelete.push_back(curParent->parent->childNodes[idx]);

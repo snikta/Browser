@@ -55,7 +55,7 @@ vector<StackItem> undoStack;
 vector<StackItem> redoStack;
 
 string prefix = "http://localhost:8000/";
-string curURL = prefix + "draw.html";
+string curURL = prefix + "vecvid.html";
 
 void loadPage(string url, bool skipStack, string newPrefix);
 
