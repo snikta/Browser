@@ -201,7 +201,6 @@ function addstroke(stroke, shiftx, shifty){
 }
 
 var getSplinePrimitivesFromKnots = function (knots) {
-	Log("getSplinePrimitivesFromKnots(knots)")
 	var simplifiedPointsForCurveFitting = {x:[], y: []}
 	var simplifiedPoints = []
 	var i = 0

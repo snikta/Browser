@@ -1037,7 +1037,7 @@ ASTNode PredefinedSetPixel(vector<ASTNode> args, Scope& scope) {
 	return ASTNode();
 }
 
-void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
+void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots, float dx, float dy) {
 	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
 
 	pRenderTarget2->BeginDraw();
@@ -1078,7 +1078,7 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
 		ASTNode point = *knot["points"];
 		ASTNode points = resolveRuntimeObject(point);
 		pSink->BeginFigure(
-			D2D1::Point2F((*(*points.ASTArray)["0"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["0"]->ASTArray)["y"]->getNumber()),
+			D2D1::Point2F((*(*points.ASTArray)["0"]->ASTArray)["x"]->getNumber() + dx, (*(*points.ASTArray)["0"]->ASTArray)["y"]->getNumber() + dy),
 			D2D1_FIGURE_BEGIN_FILLED
 		);
 
@@ -1093,14 +1093,14 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
 				if (resolveString(knot["type"]->getString()) == "BezierCurve") {
 					pSink->AddBezier(
 						D2D1::BezierSegment(
-							D2D1::Point2F((*(*points.ASTArray)["1"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["1"]->ASTArray)["y"]->getNumber()),
-							D2D1::Point2F((*(*points.ASTArray)["2"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["2"]->ASTArray)["y"]->getNumber()),
-							D2D1::Point2F((*(*points.ASTArray)["3"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["3"]->ASTArray)["y"]->getNumber())
+							D2D1::Point2F((*(*points.ASTArray)["1"]->ASTArray)["x"]->getNumber() + dx, (*(*points.ASTArray)["1"]->ASTArray)["y"]->getNumber() + dy),
+							D2D1::Point2F((*(*points.ASTArray)["2"]->ASTArray)["x"]->getNumber() + dx, (*(*points.ASTArray)["2"]->ASTArray)["y"]->getNumber() + dy),
+							D2D1::Point2F((*(*points.ASTArray)["3"]->ASTArray)["x"]->getNumber() + dx, (*(*points.ASTArray)["3"]->ASTArray)["y"]->getNumber() + dy)
 						)
 					);
 				}
 				else if (resolveString(knot["type"]->getString()) == "Line") {
-					pSink->AddLine(D2D1::Point2F((*(*knot["points"]->ASTArray)["0"]->ASTArray)["x"]->getNumber(), (*(*knot["points"]->ASTArray)["0"]->ASTArray)["y"]->getNumber()));
+					pSink->AddLine(D2D1::Point2F((*(*knot["points"]->ASTArray)["0"]->ASTArray)["x"]->getNumber() + dx, (*(*knot["points"]->ASTArray)["0"]->ASTArray)["y"]->getNumber() + dy));
 				}
 			}
 		}
@@ -1132,8 +1132,13 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
 	SafeRelease(&pBitmap);
 }
 
-void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float x2, float y2, string fillColor) {
+void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float x2, float y2, string fillColor, float dx, float dy) {
 	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
+
+	x1 += dx;
+	y1 += dy;
+	x2 += dx;
+	y2 += dy;
 
 	pRenderTarget2->BeginDraw();
 	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0));
@@ -1269,11 +1274,14 @@ ASTNode PredefinedDrawText(vector<ASTNode> args, Scope& scope) {
 	double width = metrics.widthIncludingTrailingWhitespace;
 	double height = metrics.height;
 
+	float dx = float(resolveRuntimeObject(args[4]).getNumber());
+	float dy = float(resolveRuntimeObject(args[5]).getNumber());
+
 	pRenderTarget2->DrawText(
 		widestr.c_str(),
 		text.length(),
 		m_pTextFormat,
-		D2D1::RectF(x, y, x + width, y + height),
+		D2D1::RectF(x + dx, y + dy, x + dx + width, y + dy + height),
 		pBrush
 	);
 
@@ -1303,8 +1311,10 @@ ASTNode PredefinedDrawEllipse(vector<ASTNode> args, Scope& scope) {
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
 	string fillColor = resolveString(resolveRuntimeObject(args[5]).getString());
+	float dx = float(resolveRuntimeObject(args[6]).getNumber());
+	float dy = float(resolveRuntimeObject(args[7]).getNumber());
 
-	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2, fillColor);
+	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2, fillColor, dx, dy);
 
 	return ASTNode();
 }
@@ -1316,8 +1326,10 @@ ASTNode PredefinedDrawRectangle(vector<ASTNode> args, Scope& scope) {
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
 	string fillColor = resolveString(resolveRuntimeObject(args[5]).getString());
+	float dx = float(resolveRuntimeObject(args[6]).getNumber());
+	float dy = float(resolveRuntimeObject(args[7]).getNumber());
 
-	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2, fillColor);
+	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2, fillColor, dx, dy);
 
 	return ASTNode();
 }
@@ -1340,7 +1352,7 @@ ASTNode PredefinedDrawPolyline(vector<ASTNode> args, Scope& scope) {
 		knotContainer.push_back(knot);
 	}
 	
-	drawLineOnCanvas(canvasEl, knotContainer);
+	drawLineOnCanvas(canvasEl, knotContainer, 0, 0);
 
 	for (int i = 0, len = knots.ASTArray->size(); i < len; i++) {
 		delete (*(*knotContainer[i].ASTArray)["points"]->ASTArray)["0"];
@@ -1354,11 +1366,13 @@ ASTNode PredefinedDrawPolyline(vector<ASTNode> args, Scope& scope) {
 ASTNode PredefinedDrawLine(vector<ASTNode> args, Scope& scope) {
 	DOMNode* canvasEl = resolveRuntimeObject(args[0]).ptrDOMNode;
 	ASTNode knotContainer = resolveRuntimeObject(args[1]);
+	float dx = float(resolveRuntimeObject(args[2]).getNumber());
+	float dy = float(resolveRuntimeObject(args[3]).getNumber());
 	vector<ASTNode> knots = {};
 	for (int i = 0, len = knotContainer.ASTArray->size(); i < len; i++) {
 		knots.push_back((*(*knotContainer.ASTArray)[std::to_string(i)]));
 	}
-	drawLineOnCanvas(canvasEl, knots);
+	drawLineOnCanvas(canvasEl, knots, dx, dy);
 
 	return ASTNode();
 }
@@ -2069,17 +2083,21 @@ ParseNode execAST(ParseNode& ast, Scope& args) {
 		break;
 		case SwitchNode:
 		{
+			Scope* scope = new Scope;
+			scope->__parent = &args;
 			string expr = node->expr;
 			/*for (let argName in args) {
 				expr = expr.replace(argName, '"' + args[argName] + '"')
 			}*/
-			expr = parseParens(expr, args).getString();
+			expr = parseParens(expr, *scope).getString();
+			LOut("cases.size(): " + std::to_string(node->cases.size()));
 			for (int i = 0, len = node->cases.size(); i < len; i++) {
 				if (node->cases[i]->switchCase == expr) {
-					execAST(*node->cases[i], args);
+					execAST(*node->cases[i], *scope);
 					break;
 				}
 			}
+			delete scope;
 		}
 		break;
 		case IfNode:
