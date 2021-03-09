@@ -212,15 +212,15 @@ ASTNode resolveRuntimeObject(ASTNode astRef) {
 }
 
 ASTNode resolve(ASTNode& op, Scope& scope);
-ASTNode resolveFunc(ScopeContainer* scopeBox, bool newvalExists, ASTNode newval)
+ASTNode resolveFunc(ScopeContainer &scopeBox, bool newvalExists, ASTNode newval)
 {
-	ASTNode op1 = scopeBox->op1__;
-	ASTNode op2 = scopeBox->op2__;
+	ASTNode op1 = *scopeBox.op1__;
+	ASTNode op2 = *scopeBox.op2__;
 
 	string op1Str = resolveString(op1.getString());
 	string op2Str = resolveString(op2.getString());
 
-	Scope* ptrScope = scopeBox->scope__;
+	Scope* ptrScope = scopeBox.scope__;
 
 	/*if (op1Str == "this") {
 		while (ptrScope != nullptr && ptrScope->__this__ == nullptr) {
@@ -262,10 +262,18 @@ ASTNode resolveFunc(ScopeContainer* scopeBox, bool newvalExists, ASTNode newval)
 					}
 				} while (true);
 			}
+			ASTNode* curValue = (*resolveRuntimeObject(ptrScope->ScopeArray[op1Str]).ASTArray)[op2Str];
+			if (curValue != nullptr) {
+				delete curValue;
+			}
 			return *(((*resolveRuntimeObject(ptrScope->ScopeArray[op1Str]).ASTArray)[op2Str]) = new ASTNode(newval));
 		}
 	} while (ptrScope->__parent != nullptr && (ptrScope = ptrScope->__parent));
 
+	ASTNode* curValue = (*resolveRuntimeObject(op1).ASTArray)[op2Str];
+	if (curValue != nullptr) {
+		delete curValue;
+	}
 	return *((*(resolveRuntimeObject(op1).ASTArray))[op2Str] = new ASTNode(newval));
 }
 
@@ -277,7 +285,7 @@ ASTNode* parseASTNode(ASTNode* node) {
 }
 
 ASTNode resolve(ASTNode& op, Scope& scope) {
-	if (op.scopeBox != nullptr) {
+	if (op.scopeBox.scope__ != nullptr) {
 		return resolveFunc(op.scopeBox, false, ASTNode());
 	}
 	if (op.getString()[0] == '"' && op.getString()[op.getString().size() - 1] == '"') {
@@ -587,7 +595,7 @@ ASTNode Let(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	}*/
 
 	op2 = resolve(op2, scope);
-	if (op1.scopeBox != nullptr) {
+	if (op1.scopeBox.scope__ != nullptr) {
 		ASTNode retval = resolveFunc(op1.scopeBox, true, op2);
 		return retval;
 	}
@@ -651,7 +659,7 @@ ASTNode CommaOperator(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree
 	return op2;
 }
 ASTNode Dot(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
-	if (op1.scopeBox != nullptr) {
+	if (op1.scopeBox.scope__ != nullptr) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
 
@@ -661,10 +669,10 @@ ASTNode Dot(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	ASTNode retval;
 
 	//if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
-	retval.scopeBox = new ScopeContainer;
-	retval.scopeBox->scope__ = &scope;
-	retval.scopeBox->op1__ = op1;
-	retval.scopeBox->op2__ = op2;
+	retval.scopeBox = ScopeContainer();
+	retval.scopeBox.scope__ = &scope;
+	retval.scopeBox.op1__ = new ASTNode(op1);
+	retval.scopeBox.op2__ = new ASTNode(op2);
 	/*}
 	else {
 		retval = *((*op1.ASTArray)[resolveString(op2.getString())]);
@@ -673,7 +681,7 @@ ASTNode Dot(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
 	return retval;
 }
 ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast) {
-	if (op1.scopeBox != nullptr) {
+	if (op1.scopeBox.scope__ != nullptr) {
 		op1 = resolveFunc(op1.scopeBox, false, ASTNode());
 	}
 	/*else {
@@ -688,10 +696,10 @@ ASTNode Brackets(ASTNode op1, ASTNode op2, Scope& scope, AbstractSyntaxTree& ast
 	ASTNode retval;
 
 	if (op1.ASTArray->find(resolveString(op2.getString())) == op1.ASTArray->end() || op1.ASTNodeString != "") {
-		retval.scopeBox = new ScopeContainer;
-		retval.scopeBox->scope__ = &scope;
-		retval.scopeBox->op1__ = op1;
-		retval.scopeBox->op2__ = op2;
+		retval.scopeBox = ScopeContainer();
+		retval.scopeBox.scope__ = &scope;
+		retval.scopeBox.op1__ = new ASTNode(op1);
+		retval.scopeBox.op2__ = new ASTNode(op2);
 	}
 	else {
 		retval = *((*op1.ASTArray)[resolveString(op2.getString())]);
@@ -1074,24 +1082,26 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
 			D2D1_FIGURE_BEGIN_FILLED
 		);
 
-		for (int i = 1, len = knots.size(); i < len; i++) {
-			map<string, ASTNode*> knot = *knots[i].ASTArray;
-			if (knot["points"] == nullptr) {
-				continue;
-			}
-			ASTNode point = *knot["points"];
-			ASTNode points = resolveRuntimeObject(point);
-			if (resolveString(knot["type"]->getString()) == "BezierCurve") {
-				pSink->AddBezier(
-					D2D1::BezierSegment(
-						D2D1::Point2F((*(*points.ASTArray)["1"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["1"]->ASTArray)["y"]->getNumber()),
-						D2D1::Point2F((*(*points.ASTArray)["2"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["2"]->ASTArray)["y"]->getNumber()),
-						D2D1::Point2F((*(*points.ASTArray)["3"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["3"]->ASTArray)["y"]->getNumber())
-					)
-				);
-			}
-			else if (resolveString(knot["type"]->getString()) == "Line") {
-				pSink->AddLine(D2D1::Point2F((*(*knot["points"]->ASTArray)["0"]->ASTArray)["x"]->getNumber(), (*(*knot["points"]->ASTArray)["0"]->ASTArray)["y"]->getNumber()));
+		if (knots.size()) {
+			for (int i = 1, len = knots.size(); i < len; i++) {
+				map<string, ASTNode*> knot = *knots[i].ASTArray;
+				if (knot["points"] == nullptr) {
+					continue;
+				}
+				ASTNode point = *knot["points"];
+				ASTNode points = resolveRuntimeObject(point);
+				if (resolveString(knot["type"]->getString()) == "BezierCurve") {
+					pSink->AddBezier(
+						D2D1::BezierSegment(
+							D2D1::Point2F((*(*points.ASTArray)["1"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["1"]->ASTArray)["y"]->getNumber()),
+							D2D1::Point2F((*(*points.ASTArray)["2"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["2"]->ASTArray)["y"]->getNumber()),
+							D2D1::Point2F((*(*points.ASTArray)["3"]->ASTArray)["x"]->getNumber(), (*(*points.ASTArray)["3"]->ASTArray)["y"]->getNumber())
+						)
+					);
+				}
+				else if (resolveString(knot["type"]->getString()) == "Line") {
+					pSink->AddLine(D2D1::Point2F((*(*knot["points"]->ASTArray)["0"]->ASTArray)["x"]->getNumber(), (*(*knot["points"]->ASTArray)["0"]->ASTArray)["y"]->getNumber()));
+				}
 			}
 		}
 
@@ -1122,7 +1132,7 @@ void drawLineOnCanvas(DOMNode* canvasEl, vector<ASTNode> knots) {
 	SafeRelease(&pBitmap);
 }
 
-void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float x2, float y2) {
+void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float x2, float y2, string fillColor) {
 	D2D1_SIZE_U size = D2D1::SizeU(800, 400);
 
 	pRenderTarget2->BeginDraw();
@@ -1147,7 +1157,15 @@ void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float
 	ID2D1SolidColorBrush* pStrokeBrush;
 	hr = pRenderTarget2->CreateSolidColorBrush(color, &pStrokeBrush);
 
-	color = D2D1::ColorF(1.0, 0.0, 0.0);
+	if (fillColor == "red") {
+		color = D2D1::ColorF(1.0, 0.0, 0.0);
+	}
+	else if (fillColor == "yellow") {
+		color = D2D1::ColorF(1.0, 1.0, 0.0);
+	}
+	else if (fillColor == "transparent") {
+		color = D2D1::ColorF(0.0, 0.0, 0.0, 0.0);
+	}
 	ID2D1SolidColorBrush* pFillBrush;
 	hr = pRenderTarget2->CreateSolidColorBrush(color, &pFillBrush);
 
@@ -1284,8 +1302,9 @@ ASTNode PredefinedDrawEllipse(vector<ASTNode> args, Scope& scope) {
 	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+	string fillColor = resolveString(resolveRuntimeObject(args[5]).getString());
 
-	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2);
+	drawOnCanvas(canvasEl, "Ellipse", x1, y1, x2, y2, fillColor);
 
 	return ASTNode();
 }
@@ -1296,8 +1315,9 @@ ASTNode PredefinedDrawRectangle(vector<ASTNode> args, Scope& scope) {
 	float y1 = float(resolveRuntimeObject(args[2]).getNumber());
 	float x2 = float(resolveRuntimeObject(args[3]).getNumber());
 	float y2 = float(resolveRuntimeObject(args[4]).getNumber());
+	string fillColor = resolveString(resolveRuntimeObject(args[5]).getString());
 
-	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2);
+	drawOnCanvas(canvasEl, "Rectangle", x1, y1, x2, y2, fillColor);
 
 	return ASTNode();
 }
@@ -1641,7 +1661,7 @@ ASTNode evaluate(AbstractSyntaxTree ast, Scope& args) {
 	}
 	unorderedAst.clear();
 
-	if (retval.scopeBox != nullptr) {
+	if (retval.scopeBox.scope__ != nullptr) {
 		retval = resolveFunc(retval.scopeBox, false, ASTNode());
 		if (retval.runtimeId != -1) {
 			return "<RuntimeObject#" + std::to_string(retval.runtimeId) + '>';
@@ -2684,8 +2704,8 @@ ASTNode* parseNode(ASTNode* node, Scope& args) {
 	}
 	retval = parseASTNode(retval);
 	//if (typeof node=='string') return '"' + node + '"'
-	if (retval->scopeBox != nullptr) {
-		while (retval->scopeBox != nullptr) {
+	if (retval->scopeBox.scope__ != nullptr) {
+		while (retval->scopeBox.scope__ != nullptr) {
 			retval = &resolveFunc(retval->scopeBox, false, ASTNode());
 		}
 	}
@@ -2971,6 +2991,7 @@ ASTNode parseParens(string expr, Scope& args) {
 				idx = std::distance(curParent->parent->parent->childNodes.begin(), find(curParent->parent->parent->childNodes.begin(), curParent->parent->parent->childNodes.end(), curParent->parent));
 
 				vector<ASTNode> parsedArgs = parseArguments(argsToParse, *args2);
+				delete args2;
 				ASTNode* output = nullptr;
 				if (prevAST.getString() != "" && prevAST.getType() != ASTBoolNode) {
 					ASTNode parsedNode;
@@ -3053,6 +3074,7 @@ ASTNode parseParens(string expr, Scope& args) {
 							userDefinedFunctionScope->ScopeArray["this"] = *objectInstance;
 							runtimeObjects.push_back(*objectInstance);
 							execAST(*func, *userDefinedFunctionScope);
+							delete userDefinedFunctionScope;
 							output = new ASTNode("<RuntimeObject#" + std::to_string(runtimeObjId) + '>');
 							nodesToDelete.push_back(output);
 							//parseASTNode(curParent->parent->parent->childNodes[curIdx - 1])->ASTNodeString = "new ";
@@ -3163,8 +3185,8 @@ ASTNode parseParens(string expr, Scope& args) {
 							runtimeObjects.push_back(*node);
 							joined += "<RuntimeObject#" + std::to_string(runtimeObjId) + '>';
 						}
-						else if (node->scopeBox != nullptr) {
-							while (node->scopeBox != nullptr) {
+						else if (node->scopeBox.scope__ != nullptr) {
+							while (node->scopeBox.scope__ != nullptr) {
 								node = &resolveFunc(node->scopeBox, false, ASTNode());
 							}
 							joined += parseASTNode(node)->getString();

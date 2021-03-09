@@ -34,7 +34,15 @@ bool isNaN(string val);
 extern const vector<string> operators;
 bool isOperator(string op);
 
-class ScopeContainer;
+class ASTNode;
+struct Scope;
+class ScopeContainer {
+public:
+	Scope* scope__ = nullptr;
+	ASTNode *op1__;
+	ASTNode *op2__;
+	ScopeContainer();
+};
 struct ParseNode;
 
 enum ASTNodeType { ASTStringNode, ASTNumberNode, ASTBoolNode, ASTFuncNode, ASTInstanceNode };
@@ -53,7 +61,7 @@ public:
 	bool ASTNodeBool = false;
 	ASTNode* parent = nullptr;
 	vector<ASTNode*> childNodes;
-	ScopeContainer* scopeBox = nullptr;
+	ScopeContainer scopeBox;
 
 	ASTNode(long double ASTNodeNumber);
 	ASTNode(string ASTNodeString);
@@ -75,14 +83,6 @@ struct Scope {
 };
 
 void printAST(AbstractSyntaxTree& ast);
-
-class ScopeContainer {
-public:
-	Scope* scope__ = nullptr;
-	ASTNode op1__;
-	ASTNode op2__;
-	ScopeContainer();
-};
 
 ASTNode parseParens(string expr, Scope& args);
 
