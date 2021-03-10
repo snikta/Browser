@@ -23,9 +23,13 @@
 #include <cstdlib>
 #include <ctime>
 #include "httpGet.h"
+#include <regex>
+#include <algorithm>
 
 SlabContainer mySlabContainer;
 Region* selRegion;
+
+ID2D1HwndRenderTarget* pRenderTarget;
 
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
@@ -34,6 +38,7 @@ map<string, vector<DOMNode*>> elsByClassName;
 vector<vector<ASTNode>> eventListenersToBindArgs;
 vector<Scope> eventListenersToBindScopes;
 vector<ParseNode> scriptsToRunOnLoad;
+vector<string> scriptSources;
 vector<DOMNode*> nodesInOrder;
 bool pageLoaded = false;
 
@@ -116,6 +121,225 @@ void testJSExec() {
 	/*globalVariables.ScopeArray["k"] = ASTNode(37.0L);
 	globalVariables.ScopeArray["j"] = ASTNode(22.0L);
 	globalVariables.ScopeArray["i"] = ASTNode(15.0L);*/
+}
+
+bool insideLineComment = false;
+bool insideBlockComment = false;
+bool insideQuote = false;
+
+bool isAlpha(char chr) {
+	return (chr >= 'A' && chr <= 'Z') || (chr >= 'a' && chr <= 'z');
+}
+
+const vector<string> JAVASCRIPT_RESERVED_WORDS = { "abstract", "arguments", "await", "boolean",
+"break", "byte", "case", "catch",
+"char", "class", "const", "continue",
+"debugger", "default", "delete", "do",
+"double", "else", "enum", "eval",
+"export", "extends", "false", "final",
+"finally", "float", "for", "function",
+"goto", "if", "implements", "import",
+"in", "instanceof", "int", "interface",
+"let", "long", "native", "new",
+"null", "package", "private", "protected",
+"public", "return", "short", "static",
+"super", "switch", "synchronized", "this",
+"throw", "throws", "transient", "true",
+"try", "typeof", "var", "void",
+"volatile", "while", "with", "yield", "Function", "End Function", "Class", "End Class", "For", "End For", "If", "End If", "Isset", "Else", "While", "Do", "Return", "Infinity", "Set_Me_Prop", "Set_El_Prop", "Push", "Push_Me_Prop", "Push_Obj_Prop", "Set_Obj_Prop", "Add", "Subtract", "Multiply", "Divide", "Width", "Height", "Instantiate", "Append_Child", "Min", "Max", "Concat", "Then", "Substring", "Equal", "Sin", "Cos", "Chr", "New_Object", "Start_Timer", "Stop_Timer", "Database_Select_Row", "Database_Update_Row", "Database_Insert_Row", "Alert", "DegToRad", "Get_Obj_Prop", "New_Dom_El", "Get_El_Prop", "Object_Keys", "Object_Values", "Gt", "Lte", "Lt", "Gte", "Replace" };
+const vector<string> PURPLE_JS_WORDS = { "Function", "End Function", "Class", "End Class", "for", "if", "else", "while", "do", "return", "case", "select", "break", "switch", "For", "End For", "If", "Then", "End If", "Isset", "Else", "While", "Do", "Return", "Infinity" };
+const vector<string> FUNCTION_JS_WORDS = { "Set_Me_Prop", "Set_El_Prop", "Push", "Push_Me_Prop", "Push_Obj_Prop", "Set_Obj_Prop", "Add", "Subtract", "Multiply", "Divide", "Width", "Height", "Instantiate", "Append_Child", "Min", "Max", "Concat", "Substring", "Equal", "Sin", "Cos", "Chr", "New_Object", "Start_Timer", "Stop_Timer", "Database_Select_Row", "Database_Update_Row", "Database_Insert_Row", "Alert", "DegToRad", "Get_Obj_Prop", "New_Dom_El", "Get_El_Prop", "Object_Keys", "Object_Values", "Gt", "Lte", "Lt", "Gte", "Replace" };
+
+void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWriteTextLayout* pTextLayout_) {
+	using namespace std::regex_constants;
+
+	double wordX = startX;
+	ID2D1SolidColorBrush* pBrush;
+	D2D1_COLOR_F color = D2D1::ColorF(38.0 / 255.0, 79.0 / 255.0, 120.0 / 255.0);
+	HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+
+	map<int, int> hiliteStops = {};
+	map<int, bool> hilitePurple = {};
+	map<int, bool> hiliteFunction = {};
+	insideLineComment = false;
+
+	for (int i = 0, len = JAVASCRIPT_RESERVED_WORDS.size(); i < len; i++) {
+		string keyword = JAVASCRIPT_RESERVED_WORDS[i];
+		regex rx(keyword);
+		for (std::sregex_iterator it(line.begin(), line.end(), rx), end; it != end; ++it) {
+			hiliteStops[it->position()] = keyword.size();
+			if (std::find(PURPLE_JS_WORDS.begin(), PURPLE_JS_WORDS.end(), keyword) != PURPLE_JS_WORDS.end()) {
+				hilitePurple[it->position()] = true;
+			} if (std::find(FUNCTION_JS_WORDS.begin(), FUNCTION_JS_WORDS.end(), keyword) != FUNCTION_JS_WORDS.end()) {
+				hiliteFunction[it->position()] = true;
+			}
+		}
+	}
+
+	bool hiliteState = false;
+	D2D1_COLOR_F hiliteColor = D2D1::ColorF(100.0 / 255.0, 149.0 / 255.0, 237 / 255.0);
+	int stopPos = -1;
+
+	for (int i = 0, len = line.size(); i < len; i++) {
+		if (hiliteStops.count(i) && (i == 0 || (!isAlpha(line[i - 1]) && !isAlpha(line[i + hiliteStops[i]])))) {
+			hiliteState = true;
+			stopPos = i + hiliteStops[i];
+			if (hilitePurple.count(i)) {
+				hiliteColor = D2D1::ColorF(197.0 / 255.0, 134 / 255.0, 192 / 255.0);
+			}
+			else if (hiliteFunction.count(i)) {
+				hiliteColor = D2D1::ColorF(220.0 / 255.0, 220 / 255.0, 161 / 255.0);
+			}
+			else {
+				hiliteColor = D2D1::ColorF(100.0 / 255.0, 149.0 / 255.0, 237 / 255.0);
+			}
+		}
+		if (stopPos == i) {
+			hiliteState = false;
+		}
+		bool origInsideQuote = insideQuote;
+		if (line[i] == '\'' && !insideQuote) {
+			insideQuote = true;
+		}
+		if (insideQuote) {
+			SafeRelease(pBrush);
+			color = D2D1::ColorF(206.0 / 255.0, 145.0 / 255.0, 120 / 255.0);
+			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+		}
+		else {
+			if (i < len - 1 && line[i] == '\/' && line[i + 1] == '\/') {
+				insideLineComment = true;
+			}
+			else if (!insideBlockComment && i < len - 1 && line[i] == '\/' && line[i + 1] == '*') {
+				insideBlockComment = true;
+			}
+			if (insideLineComment || insideBlockComment) {
+				SafeRelease(pBrush);
+				color = D2D1::ColorF(106.0 / 255.0, 138.0 / 255.0, 53.0 / 255.0);
+				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			}
+			else {
+				if (line[i] >= '0' && line[i] <= '9' && !(isAlpha(line[i - 1]) && isAlpha(line[i + 1]))) {
+					SafeRelease(pBrush);
+					color = D2D1::ColorF(167.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
+					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				}
+				else {
+					SafeRelease(pBrush);
+					HRESULT hr = pRenderTarget->CreateSolidColorBrush(hiliteState ? hiliteColor : D2D1::ColorF(1.0, 1.0, 1.0), &pBrush);
+				}
+			}
+			if (insideBlockComment && i > 0 && line[i - 1] == '*' && line[i] == '\/') {
+				insideBlockComment = false;
+			}
+		}
+		string chr = "";
+		chr.push_back(line[i]);
+		std::wstring widestr = std::wstring(chr.begin(), chr.end());
+		HRESULT hr = m_pDWriteFactory->CreateTextLayout(
+			widestr.c_str(),      // The string to be laid out and formatted.
+			1,  // The length of the string.
+			m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+			1366,         // The width of the layout box.
+			768,        // The height of the layout box.
+			&pTextLayout_  // The IDWriteTextLayout interface pointer.
+		);
+
+		DWRITE_TEXT_METRICS metrics;
+		pTextLayout_->GetMetrics(&metrics);
+
+		pRenderTarget->DrawText(
+			widestr.c_str(),
+			1,
+			m_pTextFormat,
+			D2D1::RectF(wordX, y, wordX + metrics.widthIncludingTrailingWhitespace, y + metrics.height),
+			pBrush
+		);
+		
+		wordX += metrics.widthIncludingTrailingWhitespace;
+
+		if (line[i] == '\'' && origInsideQuote) {
+			insideQuote = false;
+		}
+
+		SafeRelease(pTextLayout_);
+	}
+}
+
+void wrapParagraph(string& text) {
+	string curLine = "";
+	string curWord = "";
+	double lineHeight = 12.0;
+	double x = 0.0;
+	double y = 0.0;
+	int i = 0;
+	int len = text.size();
+
+	IDWriteTextLayout* pTextLayout_ = nullptr;
+
+	HRESULT hr = m_pDWriteFactory->CreateTextFormat(
+		L"Verdana",
+		NULL,
+		false ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+		false ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		10,
+		L"", //locale
+		&m_pTextFormat
+	);
+
+	double wordWidth = 0.0;
+
+	while (i < len && (text[i] == ' ' || text[i] == '\n')) {
+		curWord.push_back(text[i]);
+		i++;
+	}
+
+	if (i == len) {
+		curLine += curWord;
+	}
+	else {
+		for (; i < len; i++) {
+			curWord.push_back(text[i]);
+			if (text[i] == ' ' || text[i] == '\n') {
+				curLine += curWord;
+				std::wstring widestr = std::wstring(curWord.begin(), curWord.end());
+				hr = m_pDWriteFactory->CreateTextLayout(
+					widestr.c_str(),      // The string to be laid out and formatted.
+					curWord.size(),  // The length of the string.
+					m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+					1366,         // The width of the layout box.
+					768,        // The height of the layout box.
+					&pTextLayout_  // The IDWriteTextLayout interface pointer.
+				);
+				DWRITE_TEXT_METRICS metrics;
+				pTextLayout_->GetMetrics(&metrics);
+				wordWidth = metrics.widthIncludingTrailingWhitespace;
+				double height = metrics.height;
+				if ((x + wordWidth) >= 800) {
+					curLine = curLine.substr(0, curLine.size() - curWord.size());
+					if (curLine == "") {
+						y -= lineHeight;
+					}
+					printLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					curLine = curWord;
+					x = 0;
+					y += lineHeight;
+				}
+				if (text[i] == '\n') {
+					printLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					x = 0;
+					y += lineHeight;
+					if (curLine == "") {
+						y -= lineHeight;
+					}
+					curLine = "";
+				}
+				curWord = "";
+				x += wordWidth;
+			}
+		}
+	}
 }
 
 void loadPage(string url, bool skipStack, string newPrefix) {
@@ -208,7 +432,6 @@ void loadPage(string url, bool skipStack, string newPrefix) {
 class MainWindow : public BaseWindow<MainWindow>
 {
 	IWICImagingFactory     *m_pWICFactory;
-	ID2D1HwndRenderTarget   *pRenderTarget;
 	ID2D1BitmapRenderTarget* pCompatibleRenderTarget = NULL;
 	ID2D1SolidColorBrush    *pBrush;
 	ID2D1SolidColorBrush    *redBrush;
@@ -257,7 +480,7 @@ public:
 		}
 	};
 
-	MainWindow() : pRenderTarget(NULL), pBrush(NULL), redBrush(NULL)/*,
+	MainWindow() : pBrush(NULL), redBrush(NULL)/*,
 																					ellipse(D2D1::Ellipse(D2D1::Point2F(), 0, 0))*/,
 		ptMouse(D2D1::Point2F())
 	{
@@ -529,25 +752,36 @@ void MainWindow::OnPaint()
 
 			//...
 
-			if (myParser.rootNode == nullptr) {
-				return;
-			}
-
-			myParser.rootNode->set_zindex(0);
-
-			nodesInOrder.clear();
-			nodesInOrder = {};
-			drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
-
-			if (!pageLoaded) {
-				for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
-					printParseNode(&scriptsToRunOnLoad[i], "");
-					execAST(scriptsToRunOnLoad[i], globalVariables);
+			if (true) {
+				if (myParser.rootNode == nullptr) {
+					return;
 				}
+
+				myParser.rootNode->set_zindex(0);
+
+				nodesInOrder.clear();
+				nodesInOrder = {};
 				drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+
+				if (!pageLoaded) {
+					for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
+						//printParseNode(&scriptsToRunOnLoad[i], "");
+						execAST(scriptsToRunOnLoad[i], globalVariables);
+					}
+					drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
+				}
+
+				setZIndexes(*myParser.rootNode);
 			}
 
-			setZIndexes(*myParser.rootNode);
+			//wrapParagraph(scriptSources[0]);
+
+			if (pBrush != nullptr) {
+				SafeRelease(pBrush);
+			}
+
+			D2D1_COLOR_F color = D2D1::ColorF(0, 0, 0);
+			hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 
 			int y = 0;
 
@@ -871,7 +1105,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
 	
-	//if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
+	///if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
 	if (!pageLoaded)
 	{
 		vector<string> icons = { "back", "forward", "home", "refresh", "stop", "history", "downloads", "bookmarks" };

@@ -8,9 +8,10 @@ canvasEl.height = "400px"
 canvasEl.style.display = "block"
 canvasEl.style.position = "absolute"
 
-DrawRectangle(canvasEl, 0, 0, 1, 1)
+DrawRectangle(canvasEl, 0, 0, 1, 1, "transparent", {a:1,b:0,c:0,d:1,e:0,f:0})
 
 function handleChroma() {
+	var matrix = {a:1,b:0,c:0,d:1,e:0,f:0}
 	Log("Chroma length: " + length(content) + " bytes")
 	var i = 0
 	for (i = 0; i <= 12; i=i+1) {
@@ -187,7 +188,7 @@ function handleChroma() {
 					}
 				}
 				
-				DrawPolyline(canvasEl, knots)
+				DrawPolyline(canvasEl, knots, matrix)
 				Delete(knots)
 				knots = []
 			}

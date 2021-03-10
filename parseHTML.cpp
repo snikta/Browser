@@ -194,6 +194,7 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 				if (newNode->get_tag_name() == "script" && newNode->attributes["src"] != "") {
 					string scriptSrc;
 					int scriptLen = readTextFile(newNode->attributes["src"], scriptSrc);
+					scriptSources.push_back(scriptSrc);
 					ParseNode scriptAST = generateAST(scriptSrc);
 					scriptsToRunOnLoad.push_back(scriptAST);
 					//execAST(scriptAST, globalVariables);

@@ -9,7 +9,7 @@ var prevX = 0
 var prevY = 0
 var shapes = []
 var knots = []
-var shapeType = "Rectangle"
+var shapeType = "Cursor"
 
 var ChooseCursor = function (e) {
 	shapeType = "Cursor"

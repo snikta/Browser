@@ -205,6 +205,7 @@ ASTNode parseParens(string expr, Scope& args);
 vector<ASTNode> parseArguments(string argstring, Scope& scope);
 extern map<string, vector<ASTNode>> eventListeners;
 extern vector<ParseNode> scriptsToRunOnLoad;
+extern vector<string> scriptSources;
 extern vector<vector<ASTNode>> eventListenersToBindArgs;
 extern vector<Scope> eventListenersToBindScopes;
 extern bool pageLoaded;
