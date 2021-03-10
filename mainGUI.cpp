@@ -541,7 +541,7 @@ void MainWindow::OnPaint()
 
 			if (!pageLoaded) {
 				for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
-					//printParseNode(&scriptsToRunOnLoad[i], "");
+					printParseNode(&scriptsToRunOnLoad[i], "");
 					execAST(scriptsToRunOnLoad[i], globalVariables);
 				}
 				drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);

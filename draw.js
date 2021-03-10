@@ -52,38 +52,74 @@ addEventListener(rectButton, "mousedown", ChooseRectangle)
 addEventListener(ellipseButton, "mousedown", ChooseEllipse)
 addEventListener(lineButton, "mousedown", ChooseLine)
 
+var applyMatrix = function (matrix, point) {
+    var x = point.x
+    var y = point.y
+    
+	var retval = {
+        x: matrix.a * x + matrix.c * y + matrix.e,
+        y: matrix.b * x + matrix.d * y + matrix.f
+    }
+    return retval
+}
+
 var drawAllShapes = function () {
 	ClearCanvas(canvasEl)
 	var shapeCount = length(shapes)
 	for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 		var shape = shapes[i]
 		if (shape.type == "Rectangle") {
-			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), "red", shape.translateX, shape.translateY)
-			DrawText(canvasEl, "hello world", min(shape.x1, shape.x2), min(shape.y1, shape.y2), shape.translateX, shape.translateY)
+			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), "red", shape.matrix)
+			DrawText(canvasEl, "hello world", min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.matrix)
 		} else if (shape.type == "Ellipse") {
-			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), "yellow", shape.translateX, shape.translateY)
+			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), "yellow", shape.matrix)
 		} else if (shape.type == "Line") {
-			DrawLine(canvasEl, shape.curves, shape.translateX, shape.translateY)
+			DrawLine(canvasEl, shape.curves, shape.matrix)
 		}
 	}
 }
 
 var clickedHandle = ""
 var anchorHandle = ""
-var bboxMinX = 0
+var bboxMinX = 800
 var bboxMaxX = 0
-var bboxMinY = 0
+var bboxMinY = 432
 var bboxMaxY = 0
 var dragging = false
 var resizing = false
 var selectedShapes = []
 
 var drawSelectBox = function () {
-	DrawRectangle(canvasEl, bboxMinX, bboxMinY, bboxMaxX, bboxMaxY, "transparent", 0, 0)
-	DrawRectangle(canvasEl, bboxMinX - 5, bboxMinY - 5, bboxMinX + 5, bboxMinY + 5, "black", 0, 0)
-	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMinY - 5, bboxMaxX + 5, bboxMinY + 5, "black", 0, 0)
-	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMaxY - 5, bboxMaxX + 5, bboxMaxY + 5, "black", 0, 0)
-	DrawRectangle(canvasEl, bboxMinX - 5, bboxMaxY - 5, bboxMinX + 5, bboxMaxY + 5, "black", 0, 0)
+	DrawRectangle(canvasEl, bboxMinX, bboxMinY, bboxMaxX, bboxMaxY, "transparent", {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMinX - 5, bboxMinY - 5, bboxMinX + 5, bboxMinY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMinY - 5, bboxMaxX + 5, bboxMinY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMaxY - 5, bboxMaxX + 5, bboxMaxY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMinX - 5, bboxMaxY - 5, bboxMinX + 5, bboxMaxY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
+}
+
+var multiplyMatrices = function (mat1, mat2) {
+	var A = mat2.a
+	var B = mat2.b
+	var C = mat2.c
+	var D = mat2.d
+	var E = mat2.e
+	var F = mat2.f
+
+	var a = mat1.a
+	var b = mat1.b
+	var c = mat1.c
+	var d = mat1.d
+	var e = mat1.e
+	var f = mat1.f
+		
+	return {
+		a: a * A + b * C,
+		b: a * B + b * D,
+		c: A * c + C * d,
+		d: B * c + d * D,
+		e: A * e + E + C * f,
+		f: B * e + D * f + F
+	}
 }
 
 var canvasMouseUp = function (e) {
@@ -91,7 +127,7 @@ var canvasMouseUp = function (e) {
 	if (resizing == false && dragging == false) {
 		if (shapeType == "Line") {
 			curves = getSplinePrimitivesFromKnots(simplify(knots, 3, false))
-			shapes[shapeCount] = {type:"Line",curves:curves,translateX:0,translateY:0}
+			shapes[shapeCount] = {type:"Line",curves:curves,matrix:{a:1,b:0,c:0,d:1,e:0,f:0}}
 			var knotCount = length(knots)
 			var i = 0
 			var minX = 800
@@ -107,10 +143,10 @@ var canvasMouseUp = function (e) {
 			}
 			Delete(knots)
 			var shape = shapes[shapeCount]
-			shape.x = minX
-			shape.y = minY
-			shape.width = maxX - minX
-			shape.height = maxY - minY
+			shape.x1 = minX
+			shape.y1 = minY
+			shape.x2 = maxX
+			shape.y2 = maxY
 		} else if (shapeType != "Cursor") {
 			shapes[shapeCount] = {
 				type: shapeType,
@@ -118,8 +154,7 @@ var canvasMouseUp = function (e) {
 				y1: min(pageY,prevY),
 				x2: max(pageX,prevX),
 				y2: max(pageY,prevY),
-				translateX: 0,
-				translateY: 0
+				matrix:{a:1,b:0,c:0,d:1,e:0,f:0}
 			}
 		}
 	}
@@ -137,16 +172,24 @@ var canvasMouseUp = function (e) {
 		selectedShapes = []
 		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 			var shape = shapes[i]
-			var x1 = shape.x1 + shape.translateX
-			var y1 = shape.y1 + shape.translateY
-			var x2 = shape.x2 + shape.translateX
-			var y2 = shape.y2 + shape.translateY
+			var minPos = applyMatrix(shape.matrix, {x: shape.x1, y: shape.y1})
+			var maxPos = applyMatrix(shape.matrix, {x: shape.x2, y: shape.y2})
+			var x1 = minPos.x
+			var y1 = minPos.y
+			var x2 = maxPos.x
+			var y2 = maxPos.y
 			if (x1 >= minX && x2 <= maxX && y1 >= minY && y2 <= maxY) {
 				bboxMinX = min(bboxMinX, x1)
 				bboxMaxX = max(bboxMaxX, x2)
 				bboxMinY = min(bboxMinY, y1)
 				bboxMaxY = max(bboxMaxY, y2)
 				selectedShapes[length(selectedShapes)] = shape
+			}
+			if (length(selectedShapes) == 0) {
+				bboxMinX = 800
+				bboxMaxX = 0
+				bboxMinY = 432
+				bboxMaxY = 0
 			}
 		}
 	}
@@ -170,20 +213,11 @@ var canvasMouseMove = function (e) {
 		var scaleX = (pageX - anchorX) / (clickedX - anchorX)
 		var scaleY = (pageY - anchorY) / (clickedY - anchorY)
 		var shapeCount = length(selectedShapes)
+		var scaleMatrix = multiplyMatrices({a:1,b:0,c:0,d:1,e:0,f:0}, {a:scaleX,b:0,c:0,d:scaleY,e:0,f:0})
+		scaleMatrix = multiplyMatrices(scaleMatrix, {a:1,b:0,c:0,d:1,e:anchorX,f:anchorY})
 		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 			var shape = selectedShapes[i]
-			var x1 = shape.origX1 + shape.translateX
-			var y1 = shape.origY1 + shape.translateY
-			var x2 = shape.origX2 + shape.translateX
-			var y2 = shape.origY2 + shape.translateY
-			var x1_scaled = (x1 - anchorX) * scaleX + anchorX - shape.translateX
-			var y1_scaled = (y1 - anchorY) * scaleY + anchorY - shape.translateY
-			var x2_scaled = (x2 - anchorX) * scaleX + anchorX - shape.translateX
-			var y2_scaled = (y2 - anchorY) * scaleY + anchorY - shape.translateY
-			shape.x1 = min(x1_scaled, x2_scaled)
-			shape.y1 = min(y1_scaled, y2_scaled)
-			shape.x2 = max(x1_scaled, x2_scaled)
-			shape.y2 = max(y1_scaled, y2_scaled)
+			shape.matrix = multiplyMatrices(shape.untransformedMatrix, scaleMatrix)
 		}
 		drawAllShapes()
 		drawSelectBox()
@@ -205,10 +239,10 @@ var canvasMouseMove = function (e) {
 		bboxMinY = bboxMinY + deltaY
 		bboxMaxY = bboxMaxY + deltaY
 		var shapeCount = length(selectedShapes)
+		var translateMatrix = {a:1,b:0,c:0,d:1,e:deltaX,f:deltaY}
 		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 			var shape = selectedShapes[i]
-			shape.translateX = shape.translateX + deltaX
-			shape.translateY = shape.translateY + deltaY
+			shape.matrix = multiplyMatrices(shape.matrix, translateMatrix)
 		}
 		drawAllShapes()
 		drawSelectBox()
@@ -217,18 +251,18 @@ var canvasMouseMove = function (e) {
 	}
 	else if (shapeType == "Cursor") {
 		drawAllShapes()
-		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, "transparent", 0, 0)
+		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, "transparent", {a:1,b:0,c:0,d:1,e:0,f:0})
 	} else if (shapeType == "Rectangle") {
 		drawAllShapes()
-		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, "red", 0, 0)
+		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, "red", {a:1,b:0,c:0,d:1,e:0,f:0})
 	} else if (shapeType == "Ellipse") {
 		drawAllShapes()
-		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY, "yellow", 0, 0)
+		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY, "yellow", {a:1,b:0,c:0,d:1,e:0,f:0})
 	} else if (shapeType == "Line") {
 		drawAllShapes()
 		var plen = length(knots)
 		knots[plen] = {x:pageX,y:pageY}
-		DrawPolyline(canvasEl, knots)
+		DrawPolyline(canvasEl, knots, {a:1,b:0,c:0,d:1,e:0,f:0})
 		prevX = pageX
 		prevY = pageY
 	}
@@ -298,10 +332,7 @@ var canvasMouseDown = function (e) {
 		var shapeCount = length(selectedShapes)
 		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 			var shape = selectedShapes[i]
-			shape.origX1 = shape.x1
-			shape.origY1 = shape.y1
-			shape.origX2 = shape.x2
-			shape.origY2 = shape.y2
+			shape.untransformedMatrix = multiplyMatrices(shape.matrix, {a:1,b:0,c:0,d:1,e:0-anchorX,f:0-anchorY})
 		}
 	}
 	addEventListener("mousemove", canvasMouseMove)
