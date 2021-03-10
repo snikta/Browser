@@ -39,6 +39,7 @@ vector<vector<ASTNode>> eventListenersToBindArgs;
 vector<Scope> eventListenersToBindScopes;
 vector<ParseNode> scriptsToRunOnLoad;
 vector<string> scriptSources;
+vector<string> cssSources;
 vector<DOMNode*> nodesInOrder;
 bool pageLoaded = false;
 
@@ -149,6 +150,180 @@ const vector<string> JAVASCRIPT_RESERVED_WORDS = { "abstract", "arguments", "awa
 "volatile", "while", "with", "yield", "Function", "End Function", "Class", "End Class", "For", "End For", "If", "End If", "Isset", "Else", "While", "Do", "Return", "Infinity", "Set_Me_Prop", "Set_El_Prop", "Push", "Push_Me_Prop", "Push_Obj_Prop", "Set_Obj_Prop", "Add", "Subtract", "Multiply", "Divide", "Width", "Height", "Instantiate", "Append_Child", "Min", "Max", "Concat", "Then", "Substring", "Equal", "Sin", "Cos", "Chr", "New_Object", "Start_Timer", "Stop_Timer", "Database_Select_Row", "Database_Update_Row", "Database_Insert_Row", "Alert", "DegToRad", "Get_Obj_Prop", "New_Dom_El", "Get_El_Prop", "Object_Keys", "Object_Values", "Gt", "Lte", "Lt", "Gte", "Replace" };
 const vector<string> PURPLE_JS_WORDS = { "Function", "End Function", "Class", "End Class", "for", "if", "else", "while", "do", "return", "case", "select", "break", "switch", "For", "End For", "If", "Then", "End If", "Isset", "Else", "While", "Do", "Return", "Infinity" };
 const vector<string> FUNCTION_JS_WORDS = { "Set_Me_Prop", "Set_El_Prop", "Push", "Push_Me_Prop", "Push_Obj_Prop", "Set_Obj_Prop", "Add", "Subtract", "Multiply", "Divide", "Width", "Height", "Instantiate", "Append_Child", "Min", "Max", "Concat", "Substring", "Equal", "Sin", "Cos", "Chr", "New_Object", "Start_Timer", "Stop_Timer", "Database_Select_Row", "Database_Update_Row", "Database_Insert_Row", "Alert", "DegToRad", "Get_Obj_Prop", "New_Dom_El", "Get_El_Prop", "Object_Keys", "Object_Values", "Gt", "Lte", "Lt", "Gte", "Replace" };
+
+DWRITE_TEXT_METRICS fillText(char charToDraw, IDWriteTextLayout* pTextLayout_, ID2D1SolidColorBrush* pBrush, float x, float y) {
+	string chr = "";
+	chr.push_back(charToDraw);
+	std::wstring widestr = std::wstring(chr.begin(), chr.end());
+	HRESULT hr = m_pDWriteFactory->CreateTextLayout(
+		widestr.c_str(),      // The string to be laid out and formatted.
+		1,  // The length of the string.
+		m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
+		1366,         // The width of the layout box.
+		768,        // The height of the layout box.
+		&pTextLayout_  // The IDWriteTextLayout interface pointer.
+	);
+
+	DWRITE_TEXT_METRICS metrics;
+	pTextLayout_->GetMetrics(&metrics);
+
+	pRenderTarget->DrawText(
+		widestr.c_str(),
+		1,
+		m_pTextFormat,
+		D2D1::RectF(x, y, x + metrics.widthIncludingTrailingWhitespace, y + metrics.height),
+		pBrush
+	);
+
+	return metrics;
+}
+
+bool insideTag = false;
+bool insidePropertyName = false;
+bool insidePropertyValue = false;
+bool insideComment = false;
+
+bool unitsSurround(string& line, int pos, string unit) {
+	if (((line[pos] >= '0' && line[pos] <= '9') && line[pos + 1] == unit[0] && line[pos + 2] == unit[1])
+		|| ((line[pos - 1] >= '0' && line[pos - 1] <= '9') && line[pos] == unit[0] && line[pos + 1] == unit[1])
+		|| ((line[pos - 2] >= '0' && line[pos - 2] <= '9') && line[pos - 1] == unit[0] && line[pos] == unit[1])) {
+		return true;
+	}
+	return false;
+}
+
+void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, IDWriteTextLayout* pTextLayout_) {
+	double wordX = startX;
+	D2D1::ColorF selectorColor = D2D1::ColorF(215.0 / 255.0, 186.0 / 255.0, 125.0 / 255.0);
+	ID2D1SolidColorBrush* pBrush;
+	D2D1_COLOR_F color = D2D1::ColorF(38.0 / 255.0, 79.0 / 255.0, 120.0 / 255.0);
+	HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+	string propertyValue = "";
+	size_t importantIdx = line.find(" !important");
+	for (int i = 0, len = line.size(); i < len; i++) {
+		if (insideTag) {
+			while (i < len && line[i] != '}') {
+				if (line[i] == ':') {
+					insidePropertyName = false;
+					insidePropertyValue = true;
+				}
+				if (line[i] == ';') {
+					insidePropertyName = true;
+					insidePropertyValue = false;
+				}
+				if (line[i] == ':' || line[i] == ';' || insidePropertyValue) {
+					if (std::regex_search(line.substr(i, line.size() - i), std::regex("[0-9]+(em|px|%|;)"))) {
+						SafeRelease(pBrush);
+						color = D2D1::ColorF(167.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
+						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					}
+					else if (unitsSurround(line, i, "em") || unitsSurround(line, i, "px") || line[i] == '%') {
+						SafeRelease(pBrush);
+						color = D2D1::ColorF(167.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
+						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					}
+					else {
+						SafeRelease(pBrush);
+						color = D2D1::ColorF(206 / 255.0, 145.0 / 255.0, 120.0 / 255.0);
+						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					}
+				}
+				else if (insidePropertyName) {
+					SafeRelease(pBrush);
+					color = D2D1::ColorF(156.0 / 255.0, 220.0 / 255.0, 254.0 / 255.0);
+					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				}
+
+				if (importantIdx != string::npos && i >= importantIdx && i < (importantIdx + string(" !important").size())) {
+					SafeRelease(pBrush);
+					color = D2D1::ColorF(86.0 / 255.0, 156.0 / 255.0, 214.0 / 255.0);
+					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				}
+				if (insideComment && i > 1 && line[i - 2] == '*' && line[i - 1] == '\/') {
+					insideComment = false;
+				}
+				if (i < len - 1 && line[i] == '\/' && line[i + 1] == '*') {
+					insideComment = true;
+				}
+				if (insideComment) {
+					SafeRelease(pBrush);
+					color = D2D1::ColorF(106.0 / 255.0, 153.0 / 255.0, 85.0 / 255.0);
+					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				}
+
+				DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
+				wordX += metrics.widthIncludingTrailingWhitespace;
+
+				SafeRelease(pTextLayout_);
+
+				i++;
+			}
+			if (line[i] == '}') {
+				insideTag = false;
+				SafeRelease(pBrush);
+				color = D2D1::ColorF(181.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
+				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+
+				DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
+				wordX += metrics.widthIncludingTrailingWhitespace;
+
+				SafeRelease(pTextLayout_);
+				insidePropertyName = false;
+				insidePropertyValue = false;
+			}
+			else {
+				i--;
+			}
+		}
+		else {
+			if (insideComment && i > 1 && line[i - 2] == '*' && line[i - 1] == '\/') {
+				insideComment = false;
+			}
+			if (i < len - 1 && line[i] == '\/' && line[i + 1] == '*') {
+				insideComment = true;
+			}
+
+			if (line[i] == '#') {
+				selectorColor = D2D1::ColorF(215.0 / 255.0, 186.0 / 255.0, 125.0 / 255.0);
+			}
+			else if (line[i] == '.') {
+				selectorColor = D2D1::ColorF(215.0 / 255.0, 186.0 / 255.0, 125.0 / 255.0);
+			}
+			else if (line[i] == ' ' || line[i] == ',') {
+				selectorColor = D2D1::ColorF(215.0 / 255.0, 186.0 / 255.0, 125.0 / 255.0);
+			}
+			else if (line[i] == ':') {
+				selectorColor = D2D1::ColorF(215.0 / 255.0, 186.0 / 255.0, 125.0 / 255.0);
+			}
+
+			SafeRelease(pBrush);
+			if (line[i] == '{') {
+				color = D2D1::ColorF(181.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
+			}
+			else {
+				color = selectorColor;
+			}
+			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+
+			if (insideComment) {
+				SafeRelease(pBrush);
+				color = D2D1::ColorF(106.0 / 255.0, 153.0 / 255.0, 85.0 / 255.0);
+				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			}
+			DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
+			wordX += metrics.widthIncludingTrailingWhitespace;
+			if (line[i] == '{') {
+				insideTag = true;
+				insidePropertyName = true;
+				insidePropertyValue = false;
+				SafeRelease(pBrush);
+				color = D2D1::ColorF(128.0 / 255.0, 128.0 / 255.0, 192.0 / 255.0);
+				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				propertyValue = "";
+			}
+		}
+	}
+}
 
 void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWriteTextLayout* pTextLayout_) {
 	using namespace std::regex_constants;
@@ -271,7 +446,7 @@ void wrapParagraph(string& text) {
 	string curWord = "";
 	double lineHeight = 12.0;
 	double x = 0.0;
-	double y = 0.0;
+	double y = 32.0;
 	int i = 0;
 	int len = text.size();
 
@@ -321,13 +496,13 @@ void wrapParagraph(string& text) {
 					if (curLine == "") {
 						y -= lineHeight;
 					}
-					printLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					printCSSLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
 					curLine = curWord;
 					x = 0;
 					y += lineHeight;
 				}
 				if (text[i] == '\n') {
-					printLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					printCSSLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
 					x = 0;
 					y += lineHeight;
 					if (curLine == "") {
@@ -774,7 +949,7 @@ void MainWindow::OnPaint()
 				setZIndexes(*myParser.rootNode);
 			}
 
-			//wrapParagraph(scriptSources[0]);
+			wrapParagraph(cssSources[0]);
 
 			if (pBrush != nullptr) {
 				SafeRelease(pBrush);
