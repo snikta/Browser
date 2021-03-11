@@ -1,56 +1,56 @@
-var canvasEl = createElement("canvas")
-canvasEl.width = "800px"
-canvasEl.height = "400px"
-canvasEl.style.display = "block"
-canvasEl.style.position = "absolute"
+var canvasEl = createElement('canvas')
+canvasEl.width = '800px'
+canvasEl.height = '400px'
+canvasEl.style.display = 'block'
+canvasEl.style.position = 'absolute'
 
-var coords = createElement("h1")
+var coords = createElement('h1')
 var prevX = 0
 var prevY = 0
 var shapes = []
 var knots = []
-var shapeType = "Cursor"
+var shapeType = 'Cursor'
 
 var ChooseCursor = function (e) {
-	shapeType = "Cursor"
+	shapeType = 'Cursor'
 }
 
 var ChooseRectangle = function (e) {
-	shapeType = "Rectangle"
+	shapeType = 'Rectangle'
 }
 
 var ChooseEllipse = function (e) {
-	shapeType = "Ellipse"
+	shapeType = 'Ellipse'
 }
 
 var ChooseLine = function (e) {
-	shapeType = "Line"
+	shapeType = 'Line'
 }
 
-var cursorButton = createElement("div")
-cursorButton.id = "cursorButton"
-cursorButton.style.left = "0px"
-cursorButton.textContent = "Cursor"
+var cursorButton = createElement('div')
+cursorButton.id = 'cursorButton'
+cursorButton.style.left = '0px'
+cursorButton.textContent = 'Cursor'
 
-var rectButton = createElement("div")
-rectButton.id = "rectButton"
-rectButton.style.left = "50px"
-rectButton.textContent = "Rectangle"
+var rectButton = createElement('div')
+rectButton.id = 'rectButton'
+rectButton.style.left = '50px'
+rectButton.textContent = 'Rectangle'
 
-var ellipseButton = createElement("div")
-ellipseButton.id = "ellipseButton"
-ellipseButton.style.left = "100px"
-ellipseButton.textContent = "Ellipse"
+var ellipseButton = createElement('div')
+ellipseButton.id = 'ellipseButton'
+ellipseButton.style.left = '100px'
+ellipseButton.textContent = 'Ellipse'
 
-var lineButton = createElement("div")
-lineButton.id = "ellipseButton"
-lineButton.style.left = "150px"
-lineButton.textContent = "Line"
+var lineButton = createElement('div')
+lineButton.id = 'ellipseButton'
+lineButton.style.left = '150px'
+lineButton.textContent = 'Line'
 
-addEventListener(cursorButton, "mousedown", ChooseCursor)
-addEventListener(rectButton, "mousedown", ChooseRectangle)
-addEventListener(ellipseButton, "mousedown", ChooseEllipse)
-addEventListener(lineButton, "mousedown", ChooseLine)
+addEventListener(cursorButton, 'mousedown', ChooseCursor)
+addEventListener(rectButton, 'mousedown', ChooseRectangle)
+addEventListener(ellipseButton, 'mousedown', ChooseEllipse)
+addEventListener(lineButton, 'mousedown', ChooseLine)
 
 var applyMatrix = function (matrix, point) {
     var x = point.x
@@ -68,19 +68,19 @@ var drawAllShapes = function () {
 	var shapeCount = length(shapes)
 	for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 		var shape = shapes[i]
-		if (shape.type == "Rectangle") {
-			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), "red", shape.matrix)
-			DrawText(canvasEl, "hello world", min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.matrix)
-		} else if (shape.type == "Ellipse") {
-			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), "yellow", shape.matrix)
-		} else if (shape.type == "Line") {
+		if (shape.type == 'Rectangle') {
+			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), 'red', shape.matrix)
+			DrawText(canvasEl, 'hello world', min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.matrix)
+		} else if (shape.type == 'Ellipse') {
+			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), 'yellow', shape.matrix)
+		} else if (shape.type == 'Line') {
 			DrawLine(canvasEl, shape.curves, shape.matrix)
 		}
 	}
 }
 
-var clickedHandle = ""
-var anchorHandle = ""
+var clickedHandle = ''
+var anchorHandle = ''
 var bboxMinX = 800
 var bboxMaxX = 0
 var bboxMinY = 432
@@ -90,11 +90,11 @@ var resizing = false
 var selectedShapes = []
 
 var drawSelectBox = function () {
-	DrawRectangle(canvasEl, bboxMinX, bboxMinY, bboxMaxX, bboxMaxY, "transparent", {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMinX - 5, bboxMinY - 5, bboxMinX + 5, bboxMinY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMinY - 5, bboxMaxX + 5, bboxMinY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMaxY - 5, bboxMaxX + 5, bboxMaxY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMinX - 5, bboxMaxY - 5, bboxMinX + 5, bboxMaxY + 5, "black", {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMinX, bboxMinY, bboxMaxX, bboxMaxY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMinX - 5, bboxMinY - 5, bboxMinX + 5, bboxMinY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMinY - 5, bboxMaxX + 5, bboxMinY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMaxY - 5, bboxMaxX + 5, bboxMaxY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawRectangle(canvasEl, bboxMinX - 5, bboxMaxY - 5, bboxMinX + 5, bboxMaxY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
 }
 
 var multiplyMatrices = function (mat1, mat2) {
@@ -125,9 +125,9 @@ var multiplyMatrices = function (mat1, mat2) {
 var canvasMouseUp = function (e) {
 	var shapeCount = length(shapes)
 	if (resizing == false && dragging == false) {
-		if (shapeType == "Line") {
+		if (shapeType == 'Line') {
 			curves = getSplinePrimitivesFromKnots(simplify(knots, 3, false))
-			shapes[shapeCount] = {type:"Line",curves:curves,matrix:{a:1,b:0,c:0,d:1,e:0,f:0}}
+			shapes[shapeCount] = {type:'Line',curves:curves,matrix:{a:1,b:0,c:0,d:1,e:0,f:0}}
 			var knotCount = length(knots)
 			var i = 0
 			var minX = 800
@@ -147,7 +147,7 @@ var canvasMouseUp = function (e) {
 			shape.y1 = minY
 			shape.x2 = maxX
 			shape.y2 = maxY
-		} else if (shapeType != "Cursor") {
+		} else if (shapeType != 'Cursor') {
 			shapes[shapeCount] = {
 				type: shapeType,
 				x1: min(pageX,prevX),
@@ -159,7 +159,7 @@ var canvasMouseUp = function (e) {
 		}
 	}
 	drawAllShapes()
-	if (shapeType == "Cursor" && dragging == false && resizing == false) {
+	if (shapeType == 'Cursor' && dragging == false && resizing == false) {
 		var shapeCount = length(shapes)
 		var minX = min(prevX, pageX)
 		var maxX = max(prevX, pageX)
@@ -195,8 +195,8 @@ var canvasMouseUp = function (e) {
 	}
 	drawSelectBox()
 	dragging = false
-	removeEventListener("mousemove", canvasMouseMove)
-	removeEventListener("mouseup", canvasMouseUp)
+	removeEventListener('mousemove', canvasMouseMove)
+	removeEventListener('mouseup', canvasMouseUp)
 }
 
 var anchorX = 0
@@ -208,7 +208,7 @@ var origBBoxMaxX = 0
 var origBBoxMinY = 0
 var origBBoxMaxY = 0
 var canvasMouseMove = function (e) {
-	coords.textContent = "X: " + pageX + ", Y: " + pageY
+	coords.textContent = 'X: ' + pageX + ', Y: ' + pageY
 	if (resizing == true) {
 		var scaleX = (pageX - anchorX) / (clickedX - anchorX)
 		var scaleY = (pageY - anchorY) / (clickedY - anchorY)
@@ -229,7 +229,7 @@ var canvasMouseMove = function (e) {
 		bboxMaxX = max(scaledBBoxMinX, scaledBBoxMaxX)
 		bboxMinY = min(scaledBBoxMinY, scaledBBoxMaxY)
 		bboxMaxY = max(scaledBBoxMinY, scaledBBoxMaxY)
-		coords.textContent = "X: " + pageX + ", Y: " + pageY + " scale(" + scaleX + ", " + scaleY + ")"
+		coords.textContent = 'X: ' + pageX + ', Y: ' + pageY + ' scale(' + scaleX + ', ' + scaleY + ')'
 	}
 	else if (dragging == true) {
 		var deltaX = pageX - prevX
@@ -249,16 +249,16 @@ var canvasMouseMove = function (e) {
 		prevX = pageX
 		prevY = pageY
 	}
-	else if (shapeType == "Cursor") {
+	else if (shapeType == 'Cursor') {
 		drawAllShapes()
-		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, "transparent", {a:1,b:0,c:0,d:1,e:0,f:0})
-	} else if (shapeType == "Rectangle") {
+		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
+	} else if (shapeType == 'Rectangle') {
 		drawAllShapes()
-		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, "red", {a:1,b:0,c:0,d:1,e:0,f:0})
-	} else if (shapeType == "Ellipse") {
+		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, 'red', {a:1,b:0,c:0,d:1,e:0,f:0})
+	} else if (shapeType == 'Ellipse') {
 		drawAllShapes()
-		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY, "yellow", {a:1,b:0,c:0,d:1,e:0,f:0})
-	} else if (shapeType == "Line") {
+		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY, 'yellow', {a:1,b:0,c:0,d:1,e:0,f:0})
+	} else if (shapeType == 'Line') {
 		drawAllShapes()
 		var plen = length(knots)
 		knots[plen] = {x:pageX,y:pageY}
@@ -275,23 +275,23 @@ var canvasMouseDown = function (e) {
 	resizing = true
 	dragging = false
 	if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
-		clickedHandle = "nw"
-		anchorHandle = "se"
+		clickedHandle = 'nw'
+		anchorHandle = 'se'
 	}
 	else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
-		clickedHandle = "ne"
-		anchorHandle = "sw"
+		clickedHandle = 'ne'
+		anchorHandle = 'sw'
 	}
 	else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
-		clickedHandle = "se"
-		anchorHandle = "nw"
+		clickedHandle = 'se'
+		anchorHandle = 'nw'
 	}
 	else if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
-		clickedHandle = "sw"
-		anchorHandle = "ne"
+		clickedHandle = 'sw'
+		anchorHandle = 'ne'
 	} else {
 		resizing = false
-		if (shapeType == "Line") {
+		if (shapeType == 'Line') {
 			knots = []
 		}
 		else if (pageX >= bboxMinX && pageX <= bboxMaxX && pageY >= bboxMinY && pageY <= bboxMaxY) {
@@ -299,25 +299,25 @@ var canvasMouseDown = function (e) {
 		}
 	}
 	if (resizing == true) {
-		if (clickedHandle == "nw") {
+		if (clickedHandle == 'nw') {
 			anchorX = bboxMaxX
 			anchorY = bboxMaxY
 			clickedX = bboxMinX
 			clickedY = bboxMinY
 		}
-		else if (clickedHandle == "ne") {
+		else if (clickedHandle == 'ne') {
 			anchorX = bboxMinX
 			anchorY = bboxMaxY
 			clickedX = bboxMaxX
 			clickedY = bboxMinY
 		}
-		else if (clickedHandle == "se") {
+		else if (clickedHandle == 'se') {
 			anchorX = bboxMinX
 			anchorY = bboxMinY
 			clickedX = bboxMaxX
 			clickedY = bboxMaxY
 		}
-		else if (clickedHandle == "sw") {
+		else if (clickedHandle == 'sw') {
 			anchorX = bboxMaxX
 			anchorY = bboxMinY
 			clickedX = bboxMinX
@@ -335,7 +335,7 @@ var canvasMouseDown = function (e) {
 			shape.untransformedMatrix = multiplyMatrices(shape.matrix, {a:1,b:0,c:0,d:1,e:0-anchorX,f:0-anchorY})
 		}
 	}
-	addEventListener("mousemove", canvasMouseMove)
-	addEventListener("mouseup", canvasMouseUp)
+	addEventListener('mousemove', canvasMouseMove)
+	addEventListener('mouseup', canvasMouseUp)
 }
-addEventListener("mousedown", canvasMouseDown)
+addEventListener('mousedown', canvasMouseDown)

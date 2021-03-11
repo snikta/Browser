@@ -1,22 +1,22 @@
-var header = createElement("div")
-header.id = "header"
-var theSpan = createElement("span")
-theSpan.textContent = "the "
-var bEl = createElement("b")
-var quickSpan = createElement("span")
-quickSpan.textContent = "quick "
-var iEl = createElement("i")
-iEl.textContent = "browny"
-var foxSpan = createElement("span")
-foxSpan.textContent = " fox"
-var jumpsSpan = createElement("span")
-jumpsSpan.textContent = " jumps over the "
-var lazyEl = createElement("i")
-lazyEl.textContent = "lazy"
-var dogSpan = createElement("span")
-var main = createElement("div")
-var sidebar = createElement("div")
-var content = createElement("div")
+var header = createElement('div')
+header.id = 'header'
+var theSpan = createElement('span')
+theSpan.textContent = 'the '
+var bEl = createElement('b')
+var quickSpan = createElement('span')
+quickSpan.textContent = 'quick '
+var iEl = createElement('i')
+iEl.textContent = 'browny'
+var foxSpan = createElement('span')
+foxSpan.textContent = ' fox'
+var jumpsSpan = createElement('span')
+jumpsSpan.textContent = ' jumps over the '
+var lazyEl = createElement('i')
+lazyEl.textContent = 'lazy'
+var dogSpan = createElement('span')
+var main = createElement('div')
+var sidebar = createElement('div')
+var content = createElement('div')
 var tableContainer = createElement('div')
 var tableEl = createElement('table')
 var tr1 = createElement('tr')
@@ -50,13 +50,13 @@ var footerRightColumn = createElement('div')
 
 contentFooter.id = 'contentFooter'
 footer.id = 'footer'
-footerLeftColumn["class"] = 'halfWide'
-footerRightColumn["class"] = 'halfWide hwRight'
+footerLeftColumn['class'] = 'halfWide'
+footerRightColumn['class'] = 'halfWide hwRight'
 contentFooter.textContent = 'contentFooter'
 footerLeftColumn.textContent = 'left column'
 footerRightColumn.textContent = 'right column'
 
-dogSpan.textContent = " dog"
+dogSpan.textContent = ' dog'
 appendChild(header, theSpan)
 appendChild(bEl, quickSpan)
 appendChild(bEl, iEl)
@@ -66,18 +66,18 @@ appendChild(header, jumpsSpan)
 appendChild(header, lazyEl)
 appendChild(header, dogSpan)
 
-main.id = "main"
-sidebar.id = "sidebar"
+main.id = 'main'
+sidebar.id = 'sidebar'
 appendChild(main, sidebar)
 
 content.id = 'content'
 
 p1.textContent = 'This is a paragraph. Some text goes here.'
 p2.textContent = 'This is another paragraph. Some more text goes here.'
-p3.textContent = "Lipsum could go here, but doesn't."
+p3.textContent = 'Lipsum could go here, but doesnt.'
 p4.textContent = 'Again the code is also really simple and pretty easy to understand.'
 p5.textContent = 'In the void setup, we are saying that we say that pin 7 is going to act as an output as this will be our LED pin, then down in the void loop, we say that sensorValue is the analog value of pin A0 which is then used in an if statement.'
-p6.textContent = 'This if statement states that if the sensorValue is above 50 to turn on pin 7 which is the LED pin and send back \"Rumble On\" to the serial monitor and if the sensorValue is below 50 to keep the LED off and send back \"Rumble Off\" to the serial monitor.'
+p6.textContent = 'This if statement states that if the sensorValue is above 50 to turn on pin 7 which is the LED pin and send back "Rumble On" to the serial monitor and if the sensorValue is below 50 to keep the LED off and send back "Rumble Off" to the serial monitor.'
 
 appendChild(main, content)
 appendChild(content, p1)
@@ -110,9 +110,9 @@ appendChild(tr1, thEmail)
 appendChild(tr2, tdAtkinsEmail)
 appendChild(tr3, tdMuskEmail)
 
-thFirstName["class"] = "firstName"
-tdFirstName1["class"] = "firstName"
-tdFirstName2["class"] = "firstName"
+thFirstName['class'] = 'firstName'
+tdFirstName1['class'] = 'firstName'
+tdFirstName2['class'] = 'firstName'
 
 thID.textContent = 'ID'
 td1.textContent = '1'
@@ -134,9 +134,9 @@ appendChild(content, contentFooter)
 appendChild(footer, footerLeftColumn)
 appendChild(footer, footerRightColumn)
 
-var imgApollo = createElement("img")
+var imgApollo = createElement('img')
 
-imgApollo.src = "apollo.jpg"
-imgApollo.width = "233"
-imgApollo.height = "155"
+imgApollo.src = 'apollo.jpg'
+imgApollo.width = '233'
+imgApollo.height = '155'
 appendChild(sidebar, imgApollo)

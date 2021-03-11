@@ -209,7 +209,7 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 	double wordX = startX;
 	ID2D1SolidColorBrush* pBrush;
 	D2D1_COLOR_F color = D2D1::ColorF(38.0 / 255.0, 79.0 / 255.0, 120.0 / 255.0);
-	HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+	HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 	for (int i = 0, len = line.size(); i < len; i++) {
 		if (line[i] == '<') {
 			insideTag = true;
@@ -227,7 +227,7 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 			openBracket += slashPos == string::npos ? "" : "\/";
 			SafeRelease(pBrush);
 			D2D1_COLOR_F color = D2D1::ColorF(0.5, 0.5, 0.5);
-			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			DWRITE_TEXT_METRICS metrics = fillText(openBracket, pTextLayout_, pBrush, wordX, y);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 			if (slashPos != string::npos) {
@@ -235,11 +235,11 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 			}
 			SafeRelease(pBrush);
 			color = D2D1::ColorF(100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0);
-			hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			metrics = fillText(tagName, pTextLayout_, pBrush, wordX, y);
 			SafeRelease(pBrush);
 			color = D2D1::ColorF(0.5, 0.5, 0.5);
-			hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 			i--;
 			continue;
@@ -274,7 +274,7 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 					color = D2D1::ColorF(1.0, 1.0, 1.0);
 				}
 			}
-			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 		}
@@ -286,7 +286,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 	D2D1::ColorF selectorColor = D2D1::ColorF(215.0 / 255.0, 186.0 / 255.0, 125.0 / 255.0);
 	ID2D1SolidColorBrush* pBrush;
 	D2D1_COLOR_F color = D2D1::ColorF(38.0 / 255.0, 79.0 / 255.0, 120.0 / 255.0);
-	HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+	HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 	string propertyValue = "";
 	size_t importantIdx = line.find(" !important");
 	for (int i = 0, len = line.size(); i < len; i++) {
@@ -304,29 +304,29 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 					if (std::regex_search(line.substr(i, line.size() - i), std::regex("[0-9]+(em|px|%|;)"))) {
 						SafeRelease(pBrush);
 						color = D2D1::ColorF(167.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
-						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+						HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 					}
 					else if (unitsSurround(line, i, "em") || unitsSurround(line, i, "px") || line[i] == '%') {
 						SafeRelease(pBrush);
 						color = D2D1::ColorF(167.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
-						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+						HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 					}
 					else {
 						SafeRelease(pBrush);
 						color = D2D1::ColorF(206 / 255.0, 145.0 / 255.0, 120.0 / 255.0);
-						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+						HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 					}
 				}
 				else if (insidePropertyName) {
 					SafeRelease(pBrush);
 					color = D2D1::ColorF(156.0 / 255.0, 220.0 / 255.0, 254.0 / 255.0);
-					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 				}
 
 				if (importantIdx != string::npos && i >= importantIdx && i < (importantIdx + string(" !important").size())) {
 					SafeRelease(pBrush);
 					color = D2D1::ColorF(86.0 / 255.0, 156.0 / 255.0, 214.0 / 255.0);
-					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 				}
 				if (insideComment && i > 1 && line[i - 2] == '*' && line[i - 1] == '\/') {
 					insideComment = false;
@@ -337,7 +337,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				if (insideComment) {
 					SafeRelease(pBrush);
 					color = D2D1::ColorF(106.0 / 255.0, 153.0 / 255.0, 85.0 / 255.0);
-					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 				}
 
 				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
@@ -351,7 +351,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				insideTag = false;
 				SafeRelease(pBrush);
 				color = D2D1::ColorF(181.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
-				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 
 				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
 				wordX += metrics.widthIncludingTrailingWhitespace;
@@ -392,12 +392,12 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 			else {
 				color = selectorColor;
 			}
-			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 
 			if (insideComment) {
 				SafeRelease(pBrush);
 				color = D2D1::ColorF(106.0 / 255.0, 153.0 / 255.0, 85.0 / 255.0);
-				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			}
 			
 			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
@@ -408,7 +408,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				insidePropertyValue = false;
 				SafeRelease(pBrush);
 				color = D2D1::ColorF(128.0 / 255.0, 128.0 / 255.0, 192.0 / 255.0);
-				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 				propertyValue = "";
 			}
 		}
@@ -546,14 +546,6 @@ double wrapParagraph(string& text, double paraY) {
 	pRenderTarget2->BeginDraw();
 	pRenderTarget2->SetTransform(D2D1::Matrix3x2F(1, 0, 0, 1, 0, 0));
 	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF(0, 0, 0, 0)));
-
-	insideTag = false;
-	insidePropertyName = false;
-	insidePropertyValue = false;
-	insideComment = false;
-	insideLineComment = false;
-	insideBlockComment = false;
-	insideQuote = false;
 
 	string curLine = "";
 	string curWord = "";
@@ -1074,11 +1066,18 @@ void MainWindow::OnPaint()
 				setZIndexes(*myParser.rootNode);
 			}
 
-			pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+			//pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 			vector<string> paraText = {};
 			splitString(scriptSources[0], '\n', paraText);
 			double paraY = 0.0;
 			if (paras.size() == 0) {
+				insideTag = false;
+				insidePropertyName = false;
+				insidePropertyValue = false;
+				insideComment = false;
+				insideLineComment = false;
+				insideBlockComment = false;
+				insideQuote = false;
 				for (int i = 0, len = paraText.size(); i < len; i++) {
 					string p = paraText[i] + "\n";
 					paraY = wrapParagraph(p, paraY);
@@ -1087,7 +1086,7 @@ void MainWindow::OnPaint()
 				documentHeight = paraY;
 			}
 
-			for (int i = 0, len = paras.size(); i < len; i++) {
+			/*for (int i = 0, len = paras.size(); i < len; i++) {
 				ID2D1Bitmap* pBitmap = NULL;
 				HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(800, paras[i]->height), paras[i]->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
 
@@ -1104,7 +1103,7 @@ void MainWindow::OnPaint()
 				);
 
 				SafeRelease(&pBitmap);
-			}
+			}*/
 
 			if (pBrush != nullptr) {
 				SafeRelease(pBrush);
