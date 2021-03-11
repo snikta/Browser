@@ -252,6 +252,9 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				}
 
 				DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
+				if (line.find("html, body") != string::npos) {
+					LOut("#1 " + line.substr(i) + " color(" + std::to_string(color.r) + ", " + std::to_string(color.g) + ", " + std::to_string(color.b) + ")");
+				}
 				wordX += metrics.widthIncludingTrailingWhitespace;
 
 				SafeRelease(pTextLayout_);
@@ -265,6 +268,9 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 
 				DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
+				if (line.find("html, body") != string::npos) {
+					LOut("#2 " + line.substr(i) + " color(" + std::to_string(color.r) + ", " + std::to_string(color.g) + ", " + std::to_string(color.b) + ")");
+				}
 				wordX += metrics.widthIncludingTrailingWhitespace;
 
 				SafeRelease(pTextLayout_);
@@ -310,6 +316,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				color = D2D1::ColorF(106.0 / 255.0, 153.0 / 255.0, 85.0 / 255.0);
 				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 			}
+			
 			DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 			if (line[i] == '{') {
@@ -442,6 +449,11 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 }
 
 void wrapParagraph(string& text) {
+	insideTag = false;
+	insidePropertyName = false;
+	insidePropertyValue = false;
+	insideComment = false;
+
 	string curLine = "";
 	string curWord = "";
 	double lineHeight = 12.0;
@@ -496,13 +508,13 @@ void wrapParagraph(string& text) {
 					if (curLine == "") {
 						y -= lineHeight;
 					}
-					printCSSLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					printLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
 					curLine = curWord;
 					x = 0;
 					y += lineHeight;
 				}
 				if (text[i] == '\n') {
-					printCSSLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					printLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
 					x = 0;
 					y += lineHeight;
 					if (curLine == "") {
@@ -949,7 +961,7 @@ void MainWindow::OnPaint()
 				setZIndexes(*myParser.rootNode);
 			}
 
-			wrapParagraph(cssSources[0]);
+			wrapParagraph(scriptSources[0]);
 
 			if (pBrush != nullptr) {
 				SafeRelease(pBrush);
