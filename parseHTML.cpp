@@ -189,10 +189,10 @@ void parseHTML(DOMNode &node, DOMNode &parentNode, string &src, int start, int e
 				charIndex = newNode->get_end();
 
 				if (newNode->get_tag_name() == "link" && newNode->attributes["rel"] == "stylesheet") {
-					myParser.cssFilename = newNode->attributes["href"];
 					string cssSrc;
 					int cssLen = readTextFile(newNode->attributes["href"], cssSrc);
 					cssSources.push_back(cssSrc);
+					myParser.cssFilename = newNode->attributes["href"];
 				}
 				if (newNode->get_tag_name() == "script" && newNode->attributes["src"] != "") {
 					string scriptSrc;

@@ -30,6 +30,7 @@ SlabContainer mySlabContainer;
 Region* selRegion;
 
 ID2D1HwndRenderTarget* pRenderTarget;
+string htmlSource;
 
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
@@ -44,7 +45,7 @@ vector<DOMNode*> nodesInOrder;
 bool pageLoaded = false;
 
 IDWriteFactory* m_pDWriteFactory;
-IDWriteTextFormat* m_pTextFormat;
+IDWriteTextFormat* m_pTextFormat = nullptr;
 ID2D1Factory* pFactory = NULL;
 
 IWICBitmap* pWICBitmap = NULL;
@@ -151,13 +152,11 @@ const vector<string> JAVASCRIPT_RESERVED_WORDS = { "abstract", "arguments", "awa
 const vector<string> PURPLE_JS_WORDS = { "Function", "End Function", "Class", "End Class", "for", "if", "else", "while", "do", "return", "case", "select", "break", "switch", "For", "End For", "If", "Then", "End If", "Isset", "Else", "While", "Do", "Return", "Infinity" };
 const vector<string> FUNCTION_JS_WORDS = { "Set_Me_Prop", "Set_El_Prop", "Push", "Push_Me_Prop", "Push_Obj_Prop", "Set_Obj_Prop", "Add", "Subtract", "Multiply", "Divide", "Width", "Height", "Instantiate", "Append_Child", "Min", "Max", "Concat", "Substring", "Equal", "Sin", "Cos", "Chr", "New_Object", "Start_Timer", "Stop_Timer", "Database_Select_Row", "Database_Update_Row", "Database_Insert_Row", "Alert", "DegToRad", "Get_Obj_Prop", "New_Dom_El", "Get_El_Prop", "Object_Keys", "Object_Values", "Gt", "Lte", "Lt", "Gte", "Replace" };
 
-DWRITE_TEXT_METRICS fillText(char charToDraw, IDWriteTextLayout* pTextLayout_, ID2D1SolidColorBrush* pBrush, float x, float y) {
-	string chr = "";
-	chr.push_back(charToDraw);
-	std::wstring widestr = std::wstring(chr.begin(), chr.end());
+DWRITE_TEXT_METRICS fillText(string text, IDWriteTextLayout* pTextLayout_, ID2D1SolidColorBrush* pBrush, float x, float y) {
+	std::wstring widestr = std::wstring(text.begin(), text.end());
 	HRESULT hr = m_pDWriteFactory->CreateTextLayout(
 		widestr.c_str(),      // The string to be laid out and formatted.
-		1,  // The length of the string.
+		text.size(),  // The length of the string.
 		m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
 		1366,         // The width of the layout box.
 		768,        // The height of the layout box.
@@ -169,7 +168,7 @@ DWRITE_TEXT_METRICS fillText(char charToDraw, IDWriteTextLayout* pTextLayout_, I
 
 	pRenderTarget->DrawText(
 		widestr.c_str(),
-		1,
+		text.size(),
 		m_pTextFormat,
 		D2D1::RectF(x, y, x + metrics.widthIncludingTrailingWhitespace, y + metrics.height),
 		pBrush
@@ -190,6 +189,88 @@ bool unitsSurround(string& line, int pos, string unit) {
 		return true;
 	}
 	return false;
+}
+
+string charToString(char chr) {
+	string retval = "";
+	retval.push_back(chr);
+	return retval;
+}
+
+void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, IDWriteTextLayout* pTextLayout_) {
+	double wordX = startX;
+	ID2D1SolidColorBrush* pBrush;
+	D2D1_COLOR_F color = D2D1::ColorF(38.0 / 255.0, 79.0 / 255.0, 120.0 / 255.0);
+	HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+	for (int i = 0, len = line.size(); i < len; i++) {
+		if (line[i] == '<') {
+			insideTag = true;
+			string tagName = "";
+			i++;
+			while (i < len && line[i] != '>' && line[i] != ' ') {
+				tagName += charToString(line[i]);
+				i++;
+			}
+			if (line[i] == '>') {
+				insideTag = false;
+			}
+			size_t slashPos = tagName.find('\/');
+			string openBracket = "<";
+			openBracket += slashPos == string::npos ? "" : "\/";
+			SafeRelease(pBrush);
+			D2D1_COLOR_F color = D2D1::ColorF(0.5, 0.5, 0.5);
+			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			DWRITE_TEXT_METRICS metrics = fillText(openBracket, pTextLayout_, pBrush, wordX, y);
+			wordX += metrics.widthIncludingTrailingWhitespace;
+			if (slashPos != string::npos) {
+				tagName = tagName.substr(1);
+			}
+			SafeRelease(pBrush);
+			color = D2D1::ColorF(100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0);
+			hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			metrics = fillText(tagName, pTextLayout_, pBrush, wordX, y);
+			SafeRelease(pBrush);
+			color = D2D1::ColorF(0.5, 0.5, 0.5);
+			hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			wordX += metrics.widthIncludingTrailingWhitespace;
+			i--;
+			continue;
+		}
+		else {
+			if (line[i] == '>') {
+				insideTag = false;
+			}
+			if (insideTag && line[i] == '"') {
+				insideQuote = !insideQuote;
+			}
+			SafeRelease(pBrush);
+			D2D1_COLOR_F color;
+			if (insideTag) {
+				if (insideQuote) {
+					color = D2D1::ColorF(206.0 / 255.0, 145.0 / 255.0, 120.0 / 255.0);
+				}
+				else {
+					if (line[i] == '=') {
+						color = D2D1::ColorF(1.0, 1.0, 1.0);
+					}
+					else {
+						color = D2D1::ColorF(156.0 / 255.0, 220.0 / 255.0, 218.0 / 255.0);
+					}
+				}
+			}
+			else {
+				if (line[i] == '>') {
+					color = D2D1::ColorF(0.5, 0.5, 0.5);
+				}
+				else {
+					color = D2D1::ColorF(1.0, 1.0, 1.0);
+				}
+			}
+			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
+			wordX += metrics.widthIncludingTrailingWhitespace;
+		}
+	}
 }
 
 void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, IDWriteTextLayout* pTextLayout_) {
@@ -251,10 +332,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 				}
 
-				DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
-				if (line.find("html, body") != string::npos) {
-					LOut("#1 " + line.substr(i) + " color(" + std::to_string(color.r) + ", " + std::to_string(color.g) + ", " + std::to_string(color.b) + ")");
-				}
+				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
 				wordX += metrics.widthIncludingTrailingWhitespace;
 
 				SafeRelease(pTextLayout_);
@@ -267,10 +345,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				color = D2D1::ColorF(181.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
 				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 
-				DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
-				if (line.find("html, body") != string::npos) {
-					LOut("#2 " + line.substr(i) + " color(" + std::to_string(color.r) + ", " + std::to_string(color.g) + ", " + std::to_string(color.b) + ")");
-				}
+				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
 				wordX += metrics.widthIncludingTrailingWhitespace;
 
 				SafeRelease(pTextLayout_);
@@ -317,7 +392,7 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
 			}
 			
-			DWRITE_TEXT_METRICS metrics = fillText(line[i], pTextLayout_, pBrush, wordX, y);
+			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 			if (line[i] == '{') {
 				insideTag = true;
@@ -464,17 +539,6 @@ void wrapParagraph(string& text) {
 
 	IDWriteTextLayout* pTextLayout_ = nullptr;
 
-	HRESULT hr = m_pDWriteFactory->CreateTextFormat(
-		L"Verdana",
-		NULL,
-		false ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
-		false ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		10,
-		L"", //locale
-		&m_pTextFormat
-	);
-
 	double wordWidth = 0.0;
 
 	while (i < len && (text[i] == ' ' || text[i] == '\n')) {
@@ -491,7 +555,7 @@ void wrapParagraph(string& text) {
 			if (text[i] == ' ' || text[i] == '\n') {
 				curLine += curWord;
 				std::wstring widestr = std::wstring(curWord.begin(), curWord.end());
-				hr = m_pDWriteFactory->CreateTextLayout(
+				HRESULT hr = m_pDWriteFactory->CreateTextLayout(
 					widestr.c_str(),      // The string to be laid out and formatted.
 					curWord.size(),  // The length of the string.
 					m_pTextFormat,  // The text format to apply to the string (contains font information, etc).
@@ -547,6 +611,7 @@ void loadPage(string url, bool skipStack, string newPrefix) {
 		string src;
 
 		int len = httpGet(url, &src);
+		htmlSource = src + "\n";
 
 		string emptyStr = "";
 		string root = "body";
@@ -604,7 +669,6 @@ void loadPage(string url, bool skipStack, string newPrefix) {
 			myParser.cssFilename = strCern;
 		}
 		string cssFilename = prefix + myParser.cssFilename;
-		LOut("cssFilename: " + cssFilename);
 		parseCSS(cssFilename);
 
 		myParser.rootNode->set_zindex(0);
@@ -620,7 +684,7 @@ class MainWindow : public BaseWindow<MainWindow>
 {
 	IWICImagingFactory     *m_pWICFactory;
 	ID2D1BitmapRenderTarget* pCompatibleRenderTarget = NULL;
-	ID2D1SolidColorBrush    *pBrush;
+	ID2D1SolidColorBrush    *pBrush = nullptr;
 	ID2D1SolidColorBrush    *redBrush;
 	D2D1_ELLIPSE            ellipse;
 	D2D1_POINT_2F           ptMouse;
@@ -815,6 +879,19 @@ void MainWindow::OnPaint()
 		hr = DemoApp::CreateDeviceIndependentResources();
 		if (SUCCEEDED(hr))
 		{
+			if (m_pTextFormat == nullptr) {
+				float yDiff = 10 * newHeight / origHeight;
+				HRESULT hr = m_pDWriteFactory->CreateTextFormat(
+					L"Verdana",
+					NULL,
+					DWRITE_FONT_WEIGHT_NORMAL,
+					DWRITE_FONT_STYLE_NORMAL,
+					DWRITE_FONT_STRETCH_NORMAL,
+					yDiff,
+					L"", //locale
+					&m_pTextFormat
+				);
+			}
 			/*string str;
 			for (auto const &ent_i : myParser.styles)
 			{
@@ -910,18 +987,6 @@ void MainWindow::OnPaint()
 				}
 			}
 
-			float yDiff = 10 * newHeight / origHeight;
-			hr = m_pDWriteFactory->CreateTextFormat(
-				L"Verdana",
-				NULL,
-				DWRITE_FONT_WEIGHT_NORMAL,
-				DWRITE_FONT_STYLE_NORMAL,
-				DWRITE_FONT_STRETCH_NORMAL,
-				yDiff,
-				L"", //locale
-				&m_pTextFormat
-			);
-
 			if (SUCCEEDED(hr))
 			{
 				//std::wstring widestr = std::wstring(myParser.get_location().begin(), myParser.get_location().end());
@@ -961,7 +1026,8 @@ void MainWindow::OnPaint()
 				setZIndexes(*myParser.rootNode);
 			}
 
-			wrapParagraph(scriptSources[0]);
+			//pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+			//wrapParagraph(scriptSources[0]);
 
 			if (pBrush != nullptr) {
 				SafeRelease(pBrush);
