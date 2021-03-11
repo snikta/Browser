@@ -31,6 +31,14 @@ Region* selRegion;
 
 ID2D1HwndRenderTarget* pRenderTarget;
 string htmlSource;
+double height = 0.0;
+double scrollHandleWidth = 15.0;
+double scrollHandleHeight = 0.0;
+double documentHeight = 0.0;
+double scrollHandleY = 0.0;
+double scrollY = 0.0;
+double scrollDelta = 0.0;
+bool scrolling = false;
 
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
@@ -166,7 +174,7 @@ DWRITE_TEXT_METRICS fillText(string text, IDWriteTextLayout* pTextLayout_, ID2D1
 	DWRITE_TEXT_METRICS metrics;
 	pTextLayout_->GetMetrics(&metrics);
 
-	pRenderTarget->DrawText(
+	pRenderTarget2->DrawText(
 		widestr.c_str(),
 		text.size(),
 		m_pTextFormat,
@@ -413,7 +421,7 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 	double wordX = startX;
 	ID2D1SolidColorBrush* pBrush;
 	D2D1_COLOR_F color = D2D1::ColorF(38.0 / 255.0, 79.0 / 255.0, 120.0 / 255.0);
-	HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+	HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 
 	map<int, int> hiliteStops = {};
 	map<int, bool> hilitePurple = {};
@@ -461,7 +469,7 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 		if (insideQuote) {
 			SafeRelease(pBrush);
 			color = D2D1::ColorF(206.0 / 255.0, 145.0 / 255.0, 120 / 255.0);
-			HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+			HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 		}
 		else {
 			if (i < len - 1 && line[i] == '\/' && line[i + 1] == '\/') {
@@ -473,17 +481,17 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 			if (insideLineComment || insideBlockComment) {
 				SafeRelease(pBrush);
 				color = D2D1::ColorF(106.0 / 255.0, 138.0 / 255.0, 53.0 / 255.0);
-				HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+				HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			}
 			else {
 				if (line[i] >= '0' && line[i] <= '9' && !(isAlpha(line[i - 1]) && isAlpha(line[i + 1]))) {
 					SafeRelease(pBrush);
 					color = D2D1::ColorF(167.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
-					HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+					HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 				}
 				else {
 					SafeRelease(pBrush);
-					HRESULT hr = pRenderTarget->CreateSolidColorBrush(hiliteState ? hiliteColor : D2D1::ColorF(1.0, 1.0, 1.0), &pBrush);
+					HRESULT hr = pRenderTarget2->CreateSolidColorBrush(hiliteState ? hiliteColor : D2D1::ColorF(1.0, 1.0, 1.0), &pBrush);
 				}
 			}
 			if (insideBlockComment && i > 0 && line[i - 1] == '*' && line[i] == '\/') {
@@ -505,7 +513,7 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 		DWRITE_TEXT_METRICS metrics;
 		pTextLayout_->GetMetrics(&metrics);
 
-		pRenderTarget->DrawText(
+		pRenderTarget2->DrawText(
 			widestr.c_str(),
 			1,
 			m_pTextFormat,
@@ -523,17 +531,36 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 	}
 }
 
-void wrapParagraph(string& text) {
+class Paragraph {
+public:
+	double y1;
+	double y2;
+	int height;
+	BYTE* bitmap = nullptr;
+
+	Paragraph(double y1, double y2, int height) : y1(y1), y2(y2), height(height) {};
+};
+vector<Paragraph*> paras = {};
+
+double wrapParagraph(string& text, double paraY) {
+	pRenderTarget2->BeginDraw();
+	pRenderTarget2->SetTransform(D2D1::Matrix3x2F(1, 0, 0, 1, 0, 0));
+	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF(0, 0, 0, 0)));
+
 	insideTag = false;
 	insidePropertyName = false;
 	insidePropertyValue = false;
 	insideComment = false;
+	insideLineComment = false;
+	insideBlockComment = false;
+	insideQuote = false;
 
 	string curLine = "";
 	string curWord = "";
 	double lineHeight = 12.0;
 	double x = 0.0;
-	double y = 32.0;
+	double y = 0;
+	double y1 = paraY;
 	int i = 0;
 	int len = text.size();
 
@@ -555,6 +582,9 @@ void wrapParagraph(string& text) {
 			if (text[i] == ' ' || text[i] == '\n') {
 				curLine += curWord;
 				std::wstring widestr = std::wstring(curWord.begin(), curWord.end());
+				if (pTextLayout_ != nullptr) {
+					SafeRelease(pTextLayout_);
+				}
 				HRESULT hr = m_pDWriteFactory->CreateTextLayout(
 					widestr.c_str(),      // The string to be laid out and formatted.
 					curWord.size(),  // The length of the string.
@@ -591,6 +621,22 @@ void wrapParagraph(string& text) {
 			}
 		}
 	}
+
+	pRenderTarget2->EndDraw();
+
+	double y2 = y1 + y;
+	Paragraph* para = new Paragraph(y1, y2, int(ceil(y2 - y1)));
+	paras.push_back(para);
+	para->bitmap = new BYTE[800 * para->height * 4];
+	WICRect *rc = new WICRect;
+	rc->X = 0;
+	rc->Y = 0;
+	rc->Width = 800;
+	rc->Height = para->height;
+
+	pWICBitmap->CopyPixels(rc, 800 * 4, 800 * para->height * 4, para->bitmap);
+
+	return y1 + y;
 }
 
 void loadPage(string url, bool skipStack, string newPrefix) {
@@ -922,6 +968,8 @@ void MainWindow::OnPaint()
 
 			D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 
+			height = renderTargetSize.height * viewportScaleY;
+
 			if (origWidth == 0.0)
 			{
 				origWidth = renderTargetSize.width;
@@ -1026,8 +1074,37 @@ void MainWindow::OnPaint()
 				setZIndexes(*myParser.rootNode);
 			}
 
-			//pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-			//wrapParagraph(scriptSources[0]);
+			pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+			vector<string> paraText = {};
+			splitString(scriptSources[0], '\n', paraText);
+			double paraY = 0.0;
+			if (paras.size() == 0) {
+				for (int i = 0, len = paraText.size(); i < len; i++) {
+					string p = paraText[i] + "\n";
+					paraY = wrapParagraph(p, paraY);
+				}
+				scrollHandleHeight = min(1, height / paraY) * height;
+				documentHeight = paraY;
+			}
+
+			for (int i = 0, len = paras.size(); i < len; i++) {
+				ID2D1Bitmap* pBitmap = NULL;
+				HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(800, paras[i]->height), paras[i]->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+
+				// Draw a bitmap.
+				pRenderTarget->DrawBitmap(
+					pBitmap,
+					D2D1::RectF(
+						0,
+						paras[i]->y1 - scrollY,
+						800,
+						paras[i]->y1 - scrollY + paras[i]->height
+					),
+					1.0
+				);
+
+				SafeRelease(&pBitmap);
+			}
 
 			if (pBrush != nullptr) {
 				SafeRelease(pBrush);
@@ -1115,7 +1192,7 @@ void MainWindow::OnPaint()
 							/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
 							hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
 
-							D2D1_COLOR_F color2 = D2D1::ColorF(255, 0, 0, 0.5);
+							D2D1_COLOR_F color2 = D2D1::ColorF(1.0, 0, 0, 0.5);
 							hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
 
 							//D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
@@ -1133,7 +1210,7 @@ void MainWindow::OnPaint()
 						/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
 						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
 
-						D2D1_COLOR_F colorwhite = D2D1::ColorF(255, 255, 255, 1.0);
+						D2D1_COLOR_F colorwhite = D2D1::ColorF(1.0, 1.0, 1.0, 1.0);
 						hr = pRenderTarget->CreateSolidColorBrush(colorwhite, &whitebrush);
 
 						pRenderTarget->FillRectangle(rectwhite, whitebrush);
@@ -1159,6 +1236,23 @@ void MainWindow::OnPaint()
 
 			pageLoaded = true;
 		}
+
+		ID2D1SolidColorBrush* scrollBrush;
+		D2D1_COLOR_F scrollGray = D2D1::ColorF(211.0 / 255.0, 211.0 / 255.0, 211.0 / 255.0, 1.0);
+		hr = pRenderTarget->CreateSolidColorBrush(scrollGray, &scrollBrush);
+
+		D2D1_RECT_F* rect1 = &D2D1::RectF(800 - scrollHandleWidth, 0, 800, height);
+		pRenderTarget->FillRectangle(rect1, scrollBrush);
+
+		SafeRelease(scrollBrush);
+
+		scrollGray = D2D1::ColorF(140.0 / 255.0, 140.0 / 255.0, 140.0 / 255.0, 1.0);
+		hr = pRenderTarget->CreateSolidColorBrush(scrollGray, &scrollBrush);
+
+		rect1 = &D2D1::RectF(800 - scrollHandleWidth, scrollHandleY, 800, scrollHandleY + scrollHandleHeight);
+		pRenderTarget->FillRectangle(rect1, scrollBrush);
+
+		SafeRelease(scrollBrush);
 
 		hr = pRenderTarget->EndDraw();
 		if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET)
@@ -1227,6 +1321,11 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 
 	MainWindow::x1 = x1;
 	MainWindow::y1 = y1;
+
+	if (x1 >= (800 - scrollHandleWidth) && x1 <= 800) {
+		scrollDelta = scrollHandleY - (y1 - 32);
+		scrolling = true;
+	}
 
 	if (MainWindow::success && selRegion != nullptr)
 	{
@@ -1335,6 +1434,10 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
+double clamp(double value, double min, double max) {
+	return min(max(value, min), max);
+}
+
 void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 {
 	if (pRenderTarget == nullptr) {
@@ -1345,6 +1448,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 	globalVariables.ScopeArray["innerWidth"] = ASTNode((long double)renderTargetSize.width * viewportScaleX);
 	globalVariables.ScopeArray["innerHeight"] = ASTNode((long double)renderTargetSize.height * viewportScaleY);
+
+	double height = renderTargetSize.height * viewportScaleY;
 
 	//if (flags & MK_LBUTTON)
 	//{
@@ -1357,8 +1462,14 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 	MainWindow::x2 = dips.x / (newWidth / origWidth);
 	MainWindow::y2 = dips.y / (newHeight / origHeight);
+
+	if (scrolling) {
+		scrollHandleHeight = min(1, height / documentHeight) * height;
+		scrollHandleY = clamp(y1 - 32 + scrollDelta, 0, height - scrollHandleHeight);
+		scrollY = scrollHandleY / height * documentHeight;
+	}
 	
-	///if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
+	//if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
 	if (!pageLoaded)
 	{
 		vector<string> icons = { "back", "forward", "home", "refresh", "stop", "history", "downloads", "bookmarks" };
@@ -1538,6 +1649,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 void MainWindow::OnLButtonUp()
 {
+	scrolling = false;
 	for (int j = 0, jLen = eventListeners["mouseup"].size(); j < jLen; j++) {
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mouseup"][j]);
 		Scope myScope;
