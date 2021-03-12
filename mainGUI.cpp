@@ -47,8 +47,8 @@ map<string, vector<DOMNode*>> elsByClassName;
 vector<vector<ASTNode>> eventListenersToBindArgs;
 vector<Scope> eventListenersToBindScopes;
 vector<ParseNode> scriptsToRunOnLoad;
-vector<string> scriptSources;
-vector<string> cssSources;
+map<string, string> scriptSources;
+map<string, string> cssSources;
 vector<DOMNode*> nodesInOrder;
 bool pageLoaded = false;
 
@@ -71,6 +71,14 @@ vector<StackItem> redoStack;
 
 string prefix = "http://localhost:8000/";
 string curURL = prefix + "draw.html";
+
+double clamp(double value, double min, double max) {
+	return min(max(value, min), max);
+}
+
+int clamp(int value, int min, int max) {
+	return min(max(value, min), max);
+}
 
 void loadPage(string url, bool skipStack, string newPrefix);
 
@@ -160,7 +168,8 @@ const vector<string> JAVASCRIPT_RESERVED_WORDS = { "abstract", "arguments", "awa
 const vector<string> PURPLE_JS_WORDS = { "Function", "End Function", "Class", "End Class", "for", "if", "else", "while", "do", "return", "case", "select", "break", "switch", "For", "End For", "If", "Then", "End If", "Isset", "Else", "While", "Do", "Return", "Infinity" };
 const vector<string> FUNCTION_JS_WORDS = { "Set_Me_Prop", "Set_El_Prop", "Push", "Push_Me_Prop", "Push_Obj_Prop", "Set_Obj_Prop", "Add", "Subtract", "Multiply", "Divide", "Width", "Height", "Instantiate", "Append_Child", "Min", "Max", "Concat", "Substring", "Equal", "Sin", "Cos", "Chr", "New_Object", "Start_Timer", "Stop_Timer", "Database_Select_Row", "Database_Update_Row", "Database_Insert_Row", "Alert", "DegToRad", "Get_Obj_Prop", "New_Dom_El", "Get_El_Prop", "Object_Keys", "Object_Values", "Gt", "Lte", "Lt", "Gte", "Replace" };
 
-DWRITE_TEXT_METRICS fillText(string text, IDWriteTextLayout* pTextLayout_, ID2D1SolidColorBrush* pBrush, float x, float y) {
+DWRITE_TEXT_METRICS fillText(string text, ID2D1SolidColorBrush* pBrush, float x, float y, ID2D1RenderTarget *pRenderTarget) {
+	IDWriteTextLayout* pTextLayout_ = NULL;
 	std::wstring widestr = std::wstring(text.begin(), text.end());
 	HRESULT hr = m_pDWriteFactory->CreateTextLayout(
 		widestr.c_str(),      // The string to be laid out and formatted.
@@ -174,13 +183,15 @@ DWRITE_TEXT_METRICS fillText(string text, IDWriteTextLayout* pTextLayout_, ID2D1
 	DWRITE_TEXT_METRICS metrics;
 	pTextLayout_->GetMetrics(&metrics);
 
-	pRenderTarget2->DrawText(
+	pRenderTarget->DrawText(
 		widestr.c_str(),
 		text.size(),
 		m_pTextFormat,
 		D2D1::RectF(x, y, x + metrics.widthIncludingTrailingWhitespace, y + metrics.height),
 		pBrush
 	);
+
+	SafeRelease(pTextLayout_);
 
 	return metrics;
 }
@@ -228,7 +239,7 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 			SafeRelease(pBrush);
 			D2D1_COLOR_F color = D2D1::ColorF(0.5, 0.5, 0.5);
 			HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
-			DWRITE_TEXT_METRICS metrics = fillText(openBracket, pTextLayout_, pBrush, wordX, y);
+			DWRITE_TEXT_METRICS metrics = fillText(openBracket, pBrush, wordX, y, pRenderTarget2);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 			if (slashPos != string::npos) {
 				tagName = tagName.substr(1);
@@ -236,7 +247,7 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 			SafeRelease(pBrush);
 			color = D2D1::ColorF(100.0 / 255.0, 149.0 / 255.0, 237.0 / 255.0);
 			hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
-			metrics = fillText(tagName, pTextLayout_, pBrush, wordX, y);
+			metrics = fillText(tagName, pBrush, wordX, y, pRenderTarget2);
 			SafeRelease(pBrush);
 			color = D2D1::ColorF(0.5, 0.5, 0.5);
 			hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
@@ -275,7 +286,7 @@ void printHTMLLine(string& line, double y, double startX, int lineOffsetToPara, 
 				}
 			}
 			HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
-			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
+			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pBrush, wordX, y, pRenderTarget2);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 		}
 	}
@@ -340,10 +351,8 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 					HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 				}
 
-				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
+				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pBrush, wordX, y, pRenderTarget2);
 				wordX += metrics.widthIncludingTrailingWhitespace;
-
-				SafeRelease(pTextLayout_);
 
 				i++;
 			}
@@ -353,10 +362,9 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				color = D2D1::ColorF(181.0 / 255.0, 206.0 / 255.0, 168.0 / 255.0);
 				HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 
-				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
+				DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pBrush, wordX, y, pRenderTarget2);
 				wordX += metrics.widthIncludingTrailingWhitespace;
 
-				SafeRelease(pTextLayout_);
 				insidePropertyName = false;
 				insidePropertyValue = false;
 			}
@@ -399,8 +407,8 @@ void printCSSLine(string& line, double y, double startX, int lineOffsetToPara, I
 				color = D2D1::ColorF(106.0 / 255.0, 153.0 / 255.0, 85.0 / 255.0);
 				HRESULT hr = pRenderTarget2->CreateSolidColorBrush(color, &pBrush);
 			}
-			
-			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pTextLayout_, pBrush, wordX, y);
+
+			DWRITE_TEXT_METRICS metrics = fillText(charToString(line[i]), pBrush, wordX, y, pRenderTarget2);
 			wordX += metrics.widthIncludingTrailingWhitespace;
 			if (line[i] == '{') {
 				insideTag = true;
@@ -520,7 +528,7 @@ void printLine(string& line, double y, double startX, int lineOffsetToPara, IDWr
 			D2D1::RectF(wordX, y, wordX + metrics.widthIncludingTrailingWhitespace, y + metrics.height),
 			pBrush
 		);
-		
+
 		wordX += metrics.widthIncludingTrailingWhitespace;
 
 		if (line[i] == '\'' && origInsideQuote) {
@@ -540,9 +548,22 @@ public:
 
 	Paragraph(double y1, double y2, int height) : y1(y1), y2(y2), height(height) {};
 };
-vector<Paragraph*> paras = {};
 
-double wrapParagraph(string& text, double paraY) {
+enum SourceFileType { HTMLSourceFile, CSSSourceFile, JavaScriptSourceFile };
+
+class SourceFile {
+public:
+	SourceFileType type;
+	string contents;
+	vector<Paragraph*> paras = {};
+
+	SourceFile(SourceFileType type, string contents) : type(type), contents(contents) {};
+};
+vector<SourceFile> sourceFiles = {};
+float SourceFileLabelHeight;
+int selectedSourceFileIndex = -1;
+
+double wrapParagraph(string& text, double paraY, vector<Paragraph*> &paras, SourceFileType type) {
 	pRenderTarget2->BeginDraw();
 	pRenderTarget2->SetTransform(D2D1::Matrix3x2F(1, 0, 0, 1, 0, 0));
 	pRenderTarget2->Clear(D2D1::ColorF(D2D1::ColorF(0, 0, 0, 0)));
@@ -594,13 +615,29 @@ double wrapParagraph(string& text, double paraY) {
 					if (curLine == "") {
 						y -= lineHeight;
 					}
-					printLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					if (type == HTMLSourceFile) {
+						printHTMLLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					}
+					else if (type == CSSSourceFile) {
+						printCSSLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					}
+					else {
+						printLine(curLine, y, 0, i - curLine.size() - curWord.size() + 1, pTextLayout_);
+					}
 					curLine = curWord;
 					x = 0;
 					y += lineHeight;
 				}
 				if (text[i] == '\n') {
-					printLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					if (type == HTMLSourceFile) {
+						printHTMLLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					}
+					else if (type == CSSSourceFile) {
+						printCSSLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					}
+					else {
+						printLine(curLine, y, 0, i - curLine.size() + 1, pTextLayout_);
+					}
 					x = 0;
 					y += lineHeight;
 					if (curLine == "") {
@@ -620,7 +657,7 @@ double wrapParagraph(string& text, double paraY) {
 	Paragraph* para = new Paragraph(y1, y2, int(ceil(y2 - y1)));
 	paras.push_back(para);
 	para->bitmap = new BYTE[800 * para->height * 4];
-	WICRect *rc = new WICRect;
+	WICRect* rc = new WICRect;
 	rc->X = 0;
 	rc->Y = 0;
 	rc->Width = 800;
@@ -720,10 +757,10 @@ void loadPage(string url, bool skipStack, string newPrefix) {
 
 class MainWindow : public BaseWindow<MainWindow>
 {
-	IWICImagingFactory     *m_pWICFactory;
+	IWICImagingFactory* m_pWICFactory;
 	ID2D1BitmapRenderTarget* pCompatibleRenderTarget = NULL;
-	ID2D1SolidColorBrush    *pBrush = nullptr;
-	ID2D1SolidColorBrush    *redBrush;
+	ID2D1SolidColorBrush* pBrush = nullptr;
+	ID2D1SolidColorBrush* redBrush;
 	D2D1_ELLIPSE            ellipse;
 	D2D1_POINT_2F           ptMouse;
 	SlabContainer			scToolbar;
@@ -735,7 +772,7 @@ class MainWindow : public BaseWindow<MainWindow>
 	void    Resize();
 
 public:
-	DOMNode *nodeToExpand;
+	DOMNode* nodeToExpand;
 	bool success;
 	float slabLeft, slabRight, regionTop, regionBottom;
 	float x1, y1, x2, y2;
@@ -744,7 +781,7 @@ public:
 	void    OnLButtonDown(int pixelX, int pixelY, DWORD flags);
 	void    OnLButtonUp();
 	void    OnMouseMove(int pixelX, int pixelY, DWORD flags);
-	void    visualize(RedBlackTree *rbt, RedBlackNode &x, int level, bool last)
+	void    visualize(RedBlackTree* rbt, RedBlackNode& x, int level, bool last)
 	{
 		if (&x == rbt->nil)
 		{
@@ -795,7 +832,7 @@ class DPIScale
 	static float scaleY;
 
 public:
-	static void Initialize(ID2D1Factory *pFactory)
+	static void Initialize(ID2D1Factory* pFactory)
 	{
 		FLOAT dpiX, dpiY;
 		pFactory->GetDesktopDpi(&dpiX, &dpiY);
@@ -979,8 +1016,8 @@ void MainWindow::OnPaint()
 			//...
 
 			// Create a bitmap from a file.
-			IWICImagingFactory     *m_pWICFactory;
-			ID2D1Bitmap            *m_pBitmap;
+			IWICImagingFactory* m_pWICFactory;
+			ID2D1Bitmap* m_pBitmap;
 
 			HRESULT hr = CoCreateInstance(
 				CLSID_WICImagingFactory,
@@ -1039,7 +1076,7 @@ void MainWindow::OnPaint()
 					D2D1_DRAW_TEXT_OPTIONS_CLIP
 				);
 			}
- 
+
 			//mySlabContainer.preprocessSubdivision(iconShapes, 'x', nilSlab);
 
 			//...
@@ -1065,45 +1102,6 @@ void MainWindow::OnPaint()
 
 				setZIndexes(*myParser.rootNode);
 			}
-
-			//pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-			vector<string> paraText = {};
-			splitString(scriptSources[0], '\n', paraText);
-			double paraY = 0.0;
-			if (paras.size() == 0) {
-				insideTag = false;
-				insidePropertyName = false;
-				insidePropertyValue = false;
-				insideComment = false;
-				insideLineComment = false;
-				insideBlockComment = false;
-				insideQuote = false;
-				for (int i = 0, len = paraText.size(); i < len; i++) {
-					string p = paraText[i] + "\n";
-					paraY = wrapParagraph(p, paraY);
-				}
-				scrollHandleHeight = min(1, height / paraY) * height;
-				documentHeight = paraY;
-			}
-
-			/*for (int i = 0, len = paras.size(); i < len; i++) {
-				ID2D1Bitmap* pBitmap = NULL;
-				HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(800, paras[i]->height), paras[i]->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
-
-				// Draw a bitmap.
-				pRenderTarget->DrawBitmap(
-					pBitmap,
-					D2D1::RectF(
-						0,
-						paras[i]->y1 - scrollY,
-						800,
-						paras[i]->y1 - scrollY + paras[i]->height
-					),
-					1.0
-				);
-
-				SafeRelease(&pBitmap);
-			}*/
 
 			if (pBrush != nullptr) {
 				SafeRelease(pBrush);
@@ -1138,102 +1136,95 @@ void MainWindow::OnPaint()
 				MainWindow::nodeToExpand = myParser.rootNode;
 			}
 
-			DOMNode *dNode;
+			DOMNode* dNode;
 			dNode = nodeToExpand;
 			do
 			{
 				dNode->expand = true;
 			} while (dNode->parentNode != dNode && (dNode = dNode->parentNode));
 
-			myParser.output = myParser.printChildTagNames(*(myParser.rootNode), 0, false);
-			std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
-			pRenderTarget->DrawText(
-				widestr.c_str(),
-				myParser.output.length(),
-				m_pTextFormat,
-				D2D1::RectF(renderTargetSize.width * viewportScaleX, 0, renderTargetSize.width, renderTargetSize.height * 0.6),
-				pBrush,
-				D2D1_DRAW_TEXT_OPTIONS_CLIP
-			);
+			pageLoaded = true;
+		}
 
+		IDWriteTextLayout* pTextLayout_ = NULL;
 
-			/*map<int, Shape*>::iterator ShapeIt;
-			for (ShapeIt = mySlabContainer.ShapeMembers.begin(); ShapeIt != mySlabContainer.ShapeMembers.end(); ++ShapeIt)
-			{
-			pRenderTarget->FillRectangle(*(ShapeIt->second->rect), pBrush);
-			}*/
+		if (sourceFiles.size() == 0) {
+			DWRITE_TEXT_METRICS metrics = fillText("HTML", pBrush, 800, 0, pRenderTarget);
+			sourceFiles.push_back(SourceFile(HTMLSourceFile, htmlSource));
+			float y = metrics.height;
+			for (auto it = cssSources.begin(); it != cssSources.end(); it++) {
+				sourceFiles.push_back(SourceFile(CSSSourceFile, it->second));
+				y += metrics.height;
+			}
+			for (auto it = scriptSources.begin(); it != scriptSources.end(); it++) {
+				sourceFiles.push_back(SourceFile(JavaScriptSourceFile, it->second));
+				y += metrics.height;
+			}
+			SourceFileLabelHeight = metrics.height;
 
-			if (MainWindow::success && selRegion != nullptr)
-			{
-				float sX = newWidth / origWidth, sY = newHeight / origHeight;
-				int largestZIndex = -1;
-				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
-				{
-					DOMNode *node = selRegion->shapes[i]->node;
-					if (node)
-					{
-						if (node->get_zindex() > largestZIndex) {
-							largestZIndex = node->get_zindex();
-						}
-					}
-				}
-
-				for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
-				{
-					DOMNode *node = selRegion->shapes[i]->node;
-					if (node && node != nullptr)
-					{
-
-						if (node->get_zindex() >= (largestZIndex - 1)) {
-							D2D1_RECT_F *rect1 = &D2D1::RectF(node->x * sX, node->y * sY, (node->x + node->width) * sX, (node->y + node->height) * sY);
-							pRenderTarget->DrawRectangle(rect1, redBrush);
-
-							/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
-							hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
-
-							D2D1_COLOR_F color2 = D2D1::ColorF(1.0, 0, 0, 0.5);
-							hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
-
-							//D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
-
-							if (node->get_zindex() >= largestZIndex) {
-								//pRenderTarget->FillRectangle(rect1, redBrush);
-							}
-						}
-
-						//MessageBox(NULL, stringToLPCWSTR(node->get_text_content()), L"tag_name", MB_OK);
-
-						ID2D1SolidColorBrush* whitebrush;
-						D2D1_RECT_F* rectwhite = &D2D1::RectF(renderTargetSize.width * viewportScaleX, renderTargetSize.height * 0.6, renderTargetSize.width, renderTargetSize.height);
-
-						/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
-						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
-
-						D2D1_COLOR_F colorwhite = D2D1::ColorF(1.0, 1.0, 1.0, 1.0);
-						hr = pRenderTarget->CreateSolidColorBrush(colorwhite, &whitebrush);
-
-						pRenderTarget->FillRectangle(rectwhite, whitebrush);
-
-						myParser.output = myParser.printElementAttributes(*node);
-						std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
-						pRenderTarget->DrawText(
-							widestr.c_str(),
-							myParser.output.length(),
-							m_pTextFormat,
-							D2D1::RectF(renderTargetSize.width * viewportScaleX, renderTargetSize.height * 0.6, renderTargetSize.width, renderTargetSize.height),
-							pBrush,
-							D2D1_DRAW_TEXT_OPTIONS_CLIP
-						);
-					}
-					else {
-						Shape *selShape = selRegion->shapes[i];
-						D2D1_RECT_F* rect1 = &D2D1::RectF(selShape->x1 * sX, selShape->y1 * sY + 10, selShape->x2 * sX, selShape->y2 * sY + 10);
-						pRenderTarget->DrawRectangle(rect1, redBrush, 2.0);
+			for (int i = 0, len = sourceFiles.size(); i < len; i++) {
+				if (sourceFiles[i].paras.size() == 0) {
+					vector<string> paraText = {};
+					splitString(sourceFiles[i].contents, '\n', paraText);
+					double paraY = 0.0;
+					insideTag = false;
+					insidePropertyName = false;
+					insidePropertyValue = false;
+					insideComment = false;
+					insideLineComment = false;
+					insideBlockComment = false;
+					insideQuote = false;
+					for (int j = 0, jLen = paraText.size(); j < jLen; j++) {
+						string p = paraText[j] + "\n";
+						paraY = wrapParagraph(p, paraY, sourceFiles[i].paras, sourceFiles[i].type);
 					}
 				}
 			}
+		}
 
-			pageLoaded = true;
+		if (sourceFiles.size()) {
+			if (selectedSourceFileIndex != -1) {
+				LOut(std::to_string(selectedSourceFileIndex) + " / " + std::to_string(sourceFiles.size()));
+				pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+				for (int i = 0, len = sourceFiles[selectedSourceFileIndex].paras.size(); i < len; i++) {
+					ID2D1Bitmap* pBitmap = NULL;
+					HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(800, sourceFiles[selectedSourceFileIndex].paras[i]->height), sourceFiles[selectedSourceFileIndex].paras[i]->bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+
+					// Draw a bitmap.
+					pRenderTarget->DrawBitmap(
+						pBitmap,
+						D2D1::RectF(
+							0,
+							sourceFiles[selectedSourceFileIndex].paras[i]->y1 - scrollY,
+							800,
+							sourceFiles[selectedSourceFileIndex].paras[i]->y1 - scrollY + sourceFiles[selectedSourceFileIndex].paras[i]->height
+						),
+						1.0
+					);
+
+					SafeRelease(&pBitmap);
+				}
+				scrollHandleHeight = min(1, height / sourceFiles[selectedSourceFileIndex].paras.back()->y2) * height;
+				documentHeight = sourceFiles[selectedSourceFileIndex].paras.back()->y2;
+			}
+		}
+
+		if (pBrush != nullptr) {
+			SafeRelease(pBrush);
+		}
+		D2D1_COLOR_F color = D2D1::ColorF(1.0, 1.0, 1.0);
+		HRESULT hr = pRenderTarget->CreateSolidColorBrush(color, &pBrush);
+
+		fillText("HTML", pBrush, 800, 0, pRenderTarget);
+
+		float y = SourceFileLabelHeight;
+		for (auto it = cssSources.begin(); it != cssSources.end(); it++) {
+			fillText("CSS " + it->first, pBrush, 800, y, pRenderTarget);
+			y += SourceFileLabelHeight;
+		}
+		for (auto it = scriptSources.begin(); it != scriptSources.end(); it++) {
+			fillText("JavaScript " + it->first, pBrush, 800, y, pRenderTarget);
+			y += SourceFileLabelHeight;
 		}
 
 		ID2D1SolidColorBrush* scrollBrush;
@@ -1252,6 +1243,8 @@ void MainWindow::OnPaint()
 		pRenderTarget->FillRectangle(rect1, scrollBrush);
 
 		SafeRelease(scrollBrush);
+
+		SafeRelease(pTextLayout_);
 
 		hr = pRenderTarget->EndDraw();
 		if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET)
@@ -1325,13 +1318,22 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 		scrollDelta = scrollHandleY - (y1 - 32);
 		scrolling = true;
 	}
+	else {
+		if (x1 >= 800 && y1 >= 0 && y1 <= SourceFileLabelHeight * sourceFiles.size()) {
+			selectedSourceFileIndex = clamp(int(floor(y1 / SourceFileLabelHeight)), 0, sourceFiles.size() - 1);
+			return;
+		}
+		else {
+			selectedSourceFileIndex = -1;
+		}
+	}
 
 	if (MainWindow::success && selRegion != nullptr)
 	{
 		int largestZIndex = -1;
 		for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
 		{
-			DOMNode *node = selRegion->shapes[i]->node;
+			DOMNode* node = selRegion->shapes[i]->node;
 			if (node)
 			{
 				if (node->get_zindex() > largestZIndex) {
@@ -1353,7 +1355,7 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 			if (i >= selRegion->shapes.size()) {
 				break;
 			}
-			DOMNode *node = selRegion->shapes[i]->node;
+			DOMNode* node = selRegion->shapes[i]->node;
 			vector<ASTNode> clickFuncs = selRegion->shapes[i]->eventHandlers["mousedown"];
 			for (int j = 0, jLen = clickFuncs.size(); j < jLen; j++) {
 				ASTNode astFunc = resolveRuntimeObject(clickFuncs[j]);
@@ -1433,10 +1435,6 @@ void MainWindow::OnLButtonDown(int pixelX, int pixelY, DWORD flags)
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
-double clamp(double value, double min, double max) {
-	return min(max(value, min), max);
-}
-
 void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 {
 	if (pRenderTarget == nullptr) {
@@ -1464,10 +1462,10 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 
 	if (scrolling) {
 		scrollHandleHeight = min(1, height / documentHeight) * height;
-		scrollHandleY = clamp(y1 - 32 + scrollDelta, 0, height - scrollHandleHeight);
+		scrollHandleY = clamp(y1 - 32 + scrollDelta, double(0), height - scrollHandleHeight);
 		scrollY = scrollHandleY / height * documentHeight;
 	}
-	
+
 	//if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
 	if (!pageLoaded)
 	{
@@ -1600,7 +1598,7 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		node = rbt->closest(y2);
 
 		bool regionExists;
-		Region *region = &nilRegion;
+		Region* region = &nilRegion;
 		if (node->key > y2)
 		{
 			int regionKey = rbt->predecessor(node)->key;

@@ -172,12 +172,12 @@ var canvasMouseUp = function (e) {
 		selectedShapes = []
 		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 			var shape = shapes[i]
-			var minPos = applyMatrix(shape.matrix, {x: shape.x1, y: shape.y1})
-			var maxPos = applyMatrix(shape.matrix, {x: shape.x2, y: shape.y2})
-			var x1 = minPos.x
-			var y1 = minPos.y
-			var x2 = maxPos.x
-			var y2 = maxPos.y
+			var startPoint = applyMatrix(shape.matrix, {x: shape.x1, y: shape.y1})
+			var endPoint = applyMatrix(shape.matrix, {x: shape.x2, y: shape.y2})
+			var x1 = min(startPoint.x, endPoint.x)
+			var y1 = min(startPoint.y, endPoint.y)
+			var x2 = max(startPoint.x, endPoint.x)
+			var y2 = max(startPoint.y, endPoint.y)
 			if (x1 >= minX && x2 <= maxX && y1 >= minY && y2 <= maxY) {
 				bboxMinX = min(bboxMinX, x1)
 				bboxMaxX = max(bboxMaxX, x2)
