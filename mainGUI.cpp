@@ -1202,7 +1202,6 @@ void MainWindow::OnPaint()
 
 		if (sourceFiles.size()) {
 			if (selectedSourceFileIndex != -1) {
-				LOut(std::to_string(selectedSourceFileIndex) + " / " + std::to_string(sourceFiles.size()));
 				pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
 				for (int i = 0, len = sourceFiles[selectedSourceFileIndex].paras.size(); i < len; i++) {
 					ID2D1Bitmap* pBitmap = NULL;

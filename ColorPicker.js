@@ -26,15 +26,14 @@ var ColorPicker = function () {
 			/*btnHueBarSlider.style.left = ((xDiff + getLeft(hueBar)) / innerWidth * 100) + '%'*/
 			var hsl = hsvToRgb((xDiff / hueBarWidth * 360), 1.0, 1.0)
 			saturationValueBox.style.background = 'linear-gradient(toright,rgb(255,255,255),' + hsl + ')'
-			selectedElement.style.background = hsl
 			hueBar.hue = round(xDiff / getWidth(hueBar) * 360)
 			var shapeCount = length(selectedShapes)
 			var i = 0
 			for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 				var shape = selectedShapes[i]
 				shape.color = hsl
-				Log(shape.color)
 			}
+			drawAllShapes()
 		}
 	}
 	var dropHueBarSlider = function (e) {
@@ -42,11 +41,14 @@ var ColorPicker = function () {
 		removeEventListener('mouseup', dropHueBarSlider)
 	}
 	var hueBarMouseDown = function (e) {
-		showSatValContainer()
-		
-		/*addEventListener('mousemove', moveHueBarSlider)
-		addEventListener('mouseup', dropHueBarSlider)*/
+		if (pageX >= getLeft(hueBar)) {
+			showSatValContainer()
+			
+			addEventListener('mousemove', moveHueBarSlider)
+			addEventListener('mouseup', dropHueBarSlider)
+		}
 	}
+	addEventListener('mousedown', hueBarMouseDown)
 	/*saturationValueBoxContainer.onmousedown = function (e) { e.preventDefault(); e.stopPropagation(); }*/
 	btnHueBarSlider.id = 'btnHueBarSlider'
 	appendChild(hueBar, btnHueBarSlider)
@@ -111,15 +113,10 @@ var ColorPicker = function () {
 	}
 	addEventListener(satValInnerGrad, 'mousedown', satValInnerGradMouseDown)
 	
-	var _showSatValContainer = function () {
-		saturationValueBoxContainer.style.left = (getLeft(hueBar) / innerWidth * 100) + '%'
-		saturationValueBoxContainer.style.top = ((getTop(hueBar) + getHeight(hueBar)) / innerHeight * 100) + '%'
-		
+	var showSatValContainer = function () {
 		saturationValueBoxContainer["class"] = ''
-		
-		addEventListener('mousemove', moveHueBarSlider)
 	}
-	this.showSatValContainer = _showSatValContainer
+	this.showSatValContainer = showSatValContainer
 }
 
 var myColorPicker = new ColorPicker()

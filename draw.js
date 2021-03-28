@@ -255,10 +255,10 @@ var canvasMouseMove = function (e) {
 		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
 	} else if (shapeType == 'Rectangle') {
 		drawAllShapes()
-		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, 'red', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawRectangle(canvasEl, prevX, prevY, pageX, pageY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
 	} else if (shapeType == 'Ellipse') {
 		drawAllShapes()
-		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY, 'yellow', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, prevX, prevY, pageX, pageY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
 	} else if (shapeType == 'Line') {
 		drawAllShapes()
 		var plen = length(knots)
@@ -273,70 +273,74 @@ var canvasMouseDown = function (e) {
 	prevX = pageX
 	prevY = pageY
 	
-	resizing = true
-	dragging = false
-	if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
-		clickedHandle = 'nw'
-		anchorHandle = 'se'
+	if (pageX >= 800 - 320 && pageX <= 800) {
+		return
+	} else {	
+		resizing = true
+		dragging = false
+		if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
+			clickedHandle = 'nw'
+			anchorHandle = 'se'
+		}
+		else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
+			clickedHandle = 'ne'
+			anchorHandle = 'sw'
+		}
+		else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
+			clickedHandle = 'se'
+			anchorHandle = 'nw'
+		}
+		else if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
+			clickedHandle = 'sw'
+			anchorHandle = 'ne'
+		} else {
+			resizing = false
+			if (shapeType == 'Line') {
+				knots = []
+			}
+			else if (pageX >= bboxMinX && pageX <= bboxMaxX && pageY >= bboxMinY && pageY <= bboxMaxY) {
+				dragging = true
+			}
+		}
+		if (resizing == true) {
+			if (clickedHandle == 'nw') {
+				anchorX = bboxMaxX
+				anchorY = bboxMaxY
+				clickedX = bboxMinX
+				clickedY = bboxMinY
+			}
+			else if (clickedHandle == 'ne') {
+				anchorX = bboxMinX
+				anchorY = bboxMaxY
+				clickedX = bboxMaxX
+				clickedY = bboxMinY
+			}
+			else if (clickedHandle == 'se') {
+				anchorX = bboxMinX
+				anchorY = bboxMinY
+				clickedX = bboxMaxX
+				clickedY = bboxMaxY
+			}
+			else if (clickedHandle == 'sw') {
+				anchorX = bboxMaxX
+				anchorY = bboxMinY
+				clickedX = bboxMinX
+				clickedY = bboxMaxY
+			}
+			
+			origBBoxMinX = bboxMinX
+			origBBoxMaxX = bboxMaxX
+			origBBoxMinY = bboxMinY
+			origBBoxMaxY = bboxMaxY
+			
+			var shapeCount = length(selectedShapes)
+			for ( i = 0; i <= shapeCount - 1; i = i + 1) {
+				var shape = selectedShapes[i]
+				shape.untransformedMatrix = multiplyMatrices(shape.matrix, {a:1,b:0,c:0,d:1,e:0-anchorX,f:0-anchorY})
+			}
+		}
+		addEventListener('mousemove', canvasMouseMove)
+		addEventListener('mouseup', canvasMouseUp)
 	}
-	else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
-		clickedHandle = 'ne'
-		anchorHandle = 'sw'
-	}
-	else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
-		clickedHandle = 'se'
-		anchorHandle = 'nw'
-	}
-	else if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
-		clickedHandle = 'sw'
-		anchorHandle = 'ne'
-	} else {
-		resizing = false
-		if (shapeType == 'Line') {
-			knots = []
-		}
-		else if (pageX >= bboxMinX && pageX <= bboxMaxX && pageY >= bboxMinY && pageY <= bboxMaxY) {
-			dragging = true
-		}
-	}
-	if (resizing == true) {
-		if (clickedHandle == 'nw') {
-			anchorX = bboxMaxX
-			anchorY = bboxMaxY
-			clickedX = bboxMinX
-			clickedY = bboxMinY
-		}
-		else if (clickedHandle == 'ne') {
-			anchorX = bboxMinX
-			anchorY = bboxMaxY
-			clickedX = bboxMaxX
-			clickedY = bboxMinY
-		}
-		else if (clickedHandle == 'se') {
-			anchorX = bboxMinX
-			anchorY = bboxMinY
-			clickedX = bboxMaxX
-			clickedY = bboxMaxY
-		}
-		else if (clickedHandle == 'sw') {
-			anchorX = bboxMaxX
-			anchorY = bboxMinY
-			clickedX = bboxMinX
-			clickedY = bboxMaxY
-		}
-		
-		origBBoxMinX = bboxMinX
-		origBBoxMaxX = bboxMaxX
-		origBBoxMinY = bboxMinY
-		origBBoxMaxY = bboxMaxY
-		
-		var shapeCount = length(selectedShapes)
-		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
-			var shape = selectedShapes[i]
-			shape.untransformedMatrix = multiplyMatrices(shape.matrix, {a:1,b:0,c:0,d:1,e:0-anchorX,f:0-anchorY})
-		}
-	}
-	addEventListener('mousemove', canvasMouseMove)
-	addEventListener('mouseup', canvasMouseUp)
 }
 addEventListener('mousedown', canvasMouseDown)
