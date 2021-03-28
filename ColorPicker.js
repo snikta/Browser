@@ -3,7 +3,6 @@ var clamp = function (value, minLimit, maxLimit) {
 }
 
 var ColorPicker = function () {
-	Alert("Creating color picker...")
 	var hueBar = createElement('div')
 	var saturationValueBoxContainer = createElement('div')
 	var saturationValueBox = createElement('div')
@@ -29,6 +28,13 @@ var ColorPicker = function () {
 			saturationValueBox.style.background = 'linear-gradient(toright,rgb(255,255,255),' + hsl + ')'
 			selectedElement.style.background = hsl
 			hueBar.hue = round(xDiff / getWidth(hueBar) * 360)
+			var shapeCount = length(selectedShapes)
+			var i = 0
+			for ( i = 0; i <= shapeCount - 1; i = i + 1) {
+				var shape = selectedShapes[i]
+				shape.color = hsl
+				Log(shape.color)
+			}
 		}
 	}
 	var dropHueBarSlider = function (e) {
@@ -41,7 +47,6 @@ var ColorPicker = function () {
 		/*addEventListener('mousemove', moveHueBarSlider)
 		addEventListener('mouseup', dropHueBarSlider)*/
 	}
-	showSatValContainer()
 	/*saturationValueBoxContainer.onmousedown = function (e) { e.preventDefault(); e.stopPropagation(); }*/
 	btnHueBarSlider.id = 'btnHueBarSlider'
 	appendChild(hueBar, btnHueBarSlider)
@@ -65,6 +70,7 @@ var ColorPicker = function () {
 	appendChild(colorPickerDiv, hueBar)
 	appendChild(colorPickerDiv, saturationValueBoxContainer)
 	/*this.colorPickerDiv = colorPickerDiv*/
+	colorPickerDiv.style.left = (innerWidth - 320) + 'px'
 	
 	hueBar.hue = 0
 	satValInnerGrad.x = 320
@@ -105,13 +111,16 @@ var ColorPicker = function () {
 	}
 	addEventListener(satValInnerGrad, 'mousedown', satValInnerGradMouseDown)
 	
-	var showSatValContainer = function () {
+	var _showSatValContainer = function () {
 		saturationValueBoxContainer.style.left = (getLeft(hueBar) / innerWidth * 100) + '%'
-		saturationValueBoxContainer.style.top = ((getTop(hueBar) + getHeight(hueBar) + getTop(header)) / innerHeight * 100) + '%'
+		saturationValueBoxContainer.style.top = ((getTop(hueBar) + getHeight(hueBar)) / innerHeight * 100) + '%'
 		
 		saturationValueBoxContainer["class"] = ''
 		
 		addEventListener('mousemove', moveHueBarSlider)
 	}
-	this.showSatValContainer = showSatValContainer
+	this.showSatValContainer = _showSatValContainer
 }
+
+var myColorPicker = new ColorPicker()
+myColorPicker.showSatValContainer()

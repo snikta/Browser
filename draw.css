@@ -1,3 +1,6 @@
+div { position: absolute; }
+table, tr, div, li, ul, ol, img, p, div { display: block; }
+
 html, body {
 	width: 100%;
 	height: 100%;
@@ -19,11 +22,87 @@ h1 {
 	position: absolute;
 }
 
-div {
+#cursorButton, #rectButton, #ellipseButton, #lineButton {
 	background: rgb(200, 200, 200);
 	display: block;
 	width: 50px;
 	height: 20px;
 	position: fixed;
 	top: 95%;
+}
+
+#colorPickerDiv {
+	position: fixed;
+	top: 32px;
+	width: 320px;
+}
+#hueBar, #saturationValueBoxContainer {
+	position: relative;
+	border: 1px solid rgb(255, 255, 255);
+	border-radius: 2px;
+	box-shadow: 0px 0px 5px rgb(75, 75, 75);
+	width: 320px;
+}
+#hueBar {
+	position: relative;
+	left: 0px;
+	top: 32px;
+	z-index: 40;
+	height: 18px;
+}
+#saturationValueBoxContainer {
+	z-index: 40;
+	width: 320px;
+	height: 320px;
+}
+#satValInnerGrad {
+	width: 320px;
+	height: 320px;
+}
+#saturationValueBox {
+	width: 320px;
+	height: 320px;
+}
+#hexCodeContainer {
+	position: relative;
+	width: 100%;
+	font: 80% Tahoma, Arial, Helvetica, sans-serif;
+	z-index: 1;
+}
+#hexCode {
+	width: 85%;
+	display: block;
+	background: rgb(255, 255, 255);
+	text-align: center;
+}
+#satValVerticalLine, #opacityBarVerticalLine {
+	width: 1px;
+	position: absolute;
+	top: 0;
+	background: rgb(0, 0, 0);
+}
+#satValVerticalLine {
+	height: 100%;
+}
+div#opacityBarVerticalLine {
+	height: 15px;
+}
+#satValHorizontalLine {
+	width: 100%;
+	height: 1px;
+	position: absolute;
+	left: 0;
+	background: rgb(0, 0, 0);
+}
+#hueBar button {
+	margin-top: 0;
+}
+#hueBar button, #saturationValueBox button {
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border: 1px solid rgb(102, 102, 102);
+    background: rgb(128, 128, 128);
+    position: fixed;
 }

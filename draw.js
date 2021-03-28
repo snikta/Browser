@@ -43,7 +43,7 @@ ellipseButton.style.left = '100px'
 ellipseButton.textContent = 'Ellipse'
 
 var lineButton = createElement('div')
-lineButton.id = 'ellipseButton'
+lineButton.id = 'lineButton'
 lineButton.style.left = '150px'
 lineButton.textContent = 'Line'
 
@@ -69,10 +69,10 @@ var drawAllShapes = function () {
 	for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 		var shape = shapes[i]
 		if (shape.type == 'Rectangle') {
-			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), 'red', shape.matrix)
+			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.color, shape.matrix)
 			DrawText(canvasEl, 'hello world', min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.matrix)
 		} else if (shape.type == 'Ellipse') {
-			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), 'yellow', shape.matrix)
+			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.color, shape.matrix)
 		} else if (shape.type == 'Line') {
 			DrawLine(canvasEl, shape.curves, shape.matrix)
 		}
@@ -154,6 +154,7 @@ var canvasMouseUp = function (e) {
 				y1: min(pageY,prevY),
 				x2: max(pageX,prevX),
 				y2: max(pageY,prevY),
+				color: 'rgb(129, 198, 255)',
 				matrix:{a:1,b:0,c:0,d:1,e:0,f:0}
 			}
 		}

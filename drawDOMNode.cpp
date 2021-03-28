@@ -99,6 +99,7 @@ void drawBitmap(std::wstring widestr, DOMNode& node, ID2D1HwndRenderTarget* pRen
 }
 
 void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush, int newHeight, int origHeight, int newWidth, int origWidth, int xy, vector<DOMNode*>& nodesInOrder, int level) {
+	IDWriteTextLayout* pTextLayout_;
 	D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 	double innerWidth = renderTargetSize.width * viewportScaleX;
 	double innerHeight = renderTargetSize.height * viewportScaleY;
@@ -287,7 +288,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				//if (!(x_set && y_set))
 				//{
 				if (node.style["left"].find("px") != string::npos) {
-					node.x = pxToPc(node.style["left"], innerWidth);
+					node.x = parentNode->x + parentNode->marginX + pxToPc(node.style["left"], innerWidth);
 				}
 				else {
 					node.x = parentNode->x + parentNode->marginX + stod(substrReplace(node.style["left"] == "" ? "0" : node.style["left"], "%", "")) / 100 * parentNode->width;
@@ -325,6 +326,7 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 				else {
 					node.width = stod(substrReplace(node.style["width"] == "" ? "100" : node.style["width"], "%", "")) / 100 * parentNode->width;
 				}
+
 				//}
 				//if (!height_set)
 				//{
@@ -647,8 +649,6 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			// Create a text layout using the text format.
 			string s3 = node.get_text_content();
 			std::wstring widestr = std::wstring(s3.begin(), s3.end());
-
-			IDWriteTextLayout* pTextLayout_;
 
 			HRESULT hr = m_pDWriteFactory->CreateTextFormat(
 				L"Verdana",

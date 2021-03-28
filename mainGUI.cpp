@@ -40,6 +40,8 @@ double scrollY = 0.0;
 double scrollDelta = 0.0;
 bool scrolling = false;
 
+string prevURL;
+
 map<string, DOMNode*> elsById;
 map<string, vector<DOMNode*>> elsByTagName;
 map<string, vector<DOMNode*>> elsByClassName;
@@ -696,6 +698,9 @@ void loadPage(string url, bool skipStack, string newPrefix) {
 		myParser.rootNode = new DOMNode(root, emptyStr, 0, len, 0);
 		(myParser.rootNode)->set_parent_node(*(myParser.rootNode));
 
+		cssSources.clear();
+		scriptSources.clear();
+
 		vector<DOMNode*> htmlNodes = {};
 		parseHTML(*(myParser.rootNode), *(myParser.rootNode), src, 0, len, emptyStr, htmlNodes);
 
@@ -940,6 +945,7 @@ void setZIndexes(DOMNode& node) {
 	}
 }
 
+bool loadScriptsHaveRun = false;
 void MainWindow::OnPaint()
 {
 	HRESULT hr = CreateGraphicsResources();
@@ -950,6 +956,7 @@ void MainWindow::OnPaint()
 
 		pRenderTarget->BeginDraw();
 		pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+		D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 
 		hr = DemoApp::CreateDeviceIndependentResources();
 		if (SUCCEEDED(hr))
@@ -994,8 +1001,6 @@ void MainWindow::OnPaint()
 			str += myParser.printElementAttributes(*((*ptrElsOfTag)[i]));
 			}
 			}*/
-
-			D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
 
 			height = renderTargetSize.height * viewportScaleY;
 
@@ -1093,9 +1098,13 @@ void MainWindow::OnPaint()
 				drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
 
 				if (!pageLoaded) {
-					for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
-						//printParseNode(&scriptsToRunOnLoad[i], "");
-						execAST(scriptsToRunOnLoad[i], globalVariables);
+					if (!loadScriptsHaveRun) {
+						loadScriptsHaveRun = true;
+						globalVariables.ScopeArray["innerWidth"] = ASTNode((long double)renderTargetSize.width * viewportScaleX);
+						globalVariables.ScopeArray["innerHeight"] = ASTNode((long double)renderTargetSize.height * viewportScaleY);
+						for (int i = 0, len = scriptsToRunOnLoad.size(); i < len; i++) {
+							execAST(scriptsToRunOnLoad[i], globalVariables);
+						}
 					}
 					drawDOMNode(*myParser.rootNode, pRenderTarget, pBrush, MainWindow::newHeight, MainWindow::origHeight, MainWindow::newWidth, MainWindow::origWidth, 0, nodesInOrder, 0);
 				}
@@ -1148,7 +1157,16 @@ void MainWindow::OnPaint()
 
 		IDWriteTextLayout* pTextLayout_ = NULL;
 
-		if (sourceFiles.size() == 0) {
+		if (prevURL != curURL || sourceFiles.size() == 0) {
+			if (sourceFiles.size() > 0) {
+				for (int i = 0, len = sourceFiles.size(); i < len; i++) {
+					for (int j = 0, jLen = sourceFiles[i].paras.size(); j < jLen; j++) {
+						delete sourceFiles[i].paras[j];
+					}
+				}
+				sourceFiles.clear();
+				prevURL = curURL;
+			}
 			DWRITE_TEXT_METRICS metrics = fillText("HTML", pBrush, 800, 0, pRenderTarget);
 			sourceFiles.push_back(SourceFile(HTMLSourceFile, htmlSource));
 			float y = metrics.height;
@@ -1245,6 +1263,76 @@ void MainWindow::OnPaint()
 		SafeRelease(scrollBrush);
 
 		SafeRelease(pTextLayout_);
+
+		if (MainWindow::success && selRegion != nullptr)
+		{
+			float sX = newWidth / origWidth, sY = newHeight / origHeight;
+			int largestZIndex = -1;
+			for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
+			{
+				DOMNode* node = selRegion->shapes[i]->node;
+				if (node)
+				{
+					if (node->get_zindex() > largestZIndex) {
+						largestZIndex = node->get_zindex();
+					}
+				}
+			}
+
+			for (int i = 0, len = selRegion->shapes.size(); i < len; i++)
+			{
+				DOMNode* node = selRegion->shapes[i]->node;
+				if (node && node != nullptr)
+				{
+
+					if (node->get_zindex() >= (largestZIndex - 1)) {
+						D2D1_RECT_F* rect1 = &D2D1::RectF(node->x * sX, node->y * sY, (node->x + node->width) * sX, (node->y + node->height) * sY);
+						pRenderTarget->DrawRectangle(rect1, redBrush);
+
+						/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
+						hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
+
+						D2D1_COLOR_F color2 = D2D1::ColorF(1.0, 0, 0, 0.5);
+						HRESULT hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);
+
+						//D2D1_RECT_F *nodeBorder = &D2D1::RectF(node->x, node->y, (node->x + node->width), (node->y + node->height));
+
+						if (node->get_zindex() >= largestZIndex) {
+							//pRenderTarget->FillRectangle(rect1, redBrush);
+						}
+					}
+
+					//MessageBox(NULL, stringToLPCWSTR(node->get_text_content()), L"tag_name", MB_OK);
+
+					ID2D1SolidColorBrush* whitebrush;
+					D2D1_RECT_F* rectwhite = &D2D1::RectF(renderTargetSize.width * viewportScaleX, renderTargetSize.height * 0.6, renderTargetSize.width, renderTargetSize.height);
+
+					/*color2 = D2D1::ColorF(255, 0, 0, 1.0);
+					hr = pRenderTarget->CreateSolidColorBrush(color2, &redBrush);*/
+
+					D2D1_COLOR_F colorwhite = D2D1::ColorF(1.0, 1.0, 1.0, 1.0);
+					HRESULT hr = pRenderTarget->CreateSolidColorBrush(colorwhite, &whitebrush);
+
+					pRenderTarget->FillRectangle(rectwhite, whitebrush);
+
+					/*myParser.output = myParser.printElementAttributes(*node);
+					std::wstring widestr = std::wstring(myParser.output.begin(), myParser.output.end());
+					pRenderTarget->DrawText(
+						widestr.c_str(),
+						myParser.output.length(),
+						m_pTextFormat,
+						D2D1::RectF(renderTargetSize.width * viewportScaleX, renderTargetSize.height * 0.6, renderTargetSize.width, renderTargetSize.height),
+						pBrush,
+						D2D1_DRAW_TEXT_OPTIONS_CLIP
+					);*/
+				}
+				else {
+					Shape* selShape = selRegion->shapes[i];
+					D2D1_RECT_F* rect1 = &D2D1::RectF(selShape->x1 * sX, selShape->y1 * sY + 10, selShape->x2 * sX, selShape->y2 * sY + 10);
+					pRenderTarget->DrawRectangle(rect1, redBrush, 2.0);
+				}
+			}
+		}
 
 		hr = pRenderTarget->EndDraw();
 		if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET)

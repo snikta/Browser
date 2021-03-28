@@ -20,6 +20,7 @@
 #include "basewin.h"
 #include "WICViewerD2D.h"
 #include "httpGet.h"
+#include "splitString.h"
 
 void LOut(string str) {
 	string s1 = str + "\n";
@@ -1182,6 +1183,11 @@ void drawOnCanvas(DOMNode* canvasEl, string shapeType, float x1, float y1, float
 	}
 	else if (fillColor == "transparent") {
 		color = D2D1::ColorF(0.0, 0.0, 0.0, 0.0);
+	}
+	else if (fillColor.find("rgb(") != string::npos) {
+		vector<string> rgbValues;
+		splitString(fillColor.substr(0, fillColor.length() - 1).substr(4), ',', rgbValues);
+		color = D2D1::ColorF(stof(rgbValues[0]) / 255, stof(rgbValues[1]) / 255, stof(rgbValues[2]) / 255);
 	}
 	ID2D1SolidColorBrush* pFillBrush;
 	hr = pRenderTarget2->CreateSolidColorBrush(color, &pFillBrush);
@@ -3159,7 +3165,7 @@ ASTNode parseParens(string expr, Scope& args) {
 							userDefinedFunctionScope->ScopeArray["this"] = *objectInstance;
 							runtimeObjects.push_back(*objectInstance);
 							execAST(*func, *userDefinedFunctionScope);
-							delete userDefinedFunctionScope;
+							//delete userDefinedFunctionScope;
 							output = new ASTNode("<RuntimeObject#" + std::to_string(runtimeObjId) + '>');
 							nodesToDelete.push_back(output);
 							//parseASTNode(curParent->parent->parent->childNodes[curIdx - 1])->ASTNodeString = "new ";
