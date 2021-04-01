@@ -10,6 +10,10 @@ var prevY = 0
 var shapes = []
 var knots = []
 var shapeType = 'Cursor'
+var origRotateHandlePos = {x: -9999, y: -9999}
+var preRotateBBoxCentroid = {x: -9999, y: -9999}
+var selectBoxKnots = []
+var origPointUnrotated = {x: -9999, y: -9999}
 
 var ChooseCursor = function (e) {
 	shapeType = 'Cursor'
@@ -70,7 +74,6 @@ var drawAllShapes = function () {
 		var shape = shapes[i]
 		if (shape.type == 'Rectangle') {
 			DrawRectangle(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.color, shape.matrix)
-			DrawText(canvasEl, 'hello world', min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.matrix)
 		} else if (shape.type == 'Ellipse') {
 			DrawEllipse(canvasEl, min(shape.x1, shape.x2), min(shape.y1, shape.y2), max(shape.x1, shape.x2), max(shape.y1, shape.y2), shape.color, shape.matrix)
 		} else if (shape.type == 'Line') {
@@ -87,14 +90,29 @@ var bboxMinY = 432
 var bboxMaxY = 0
 var dragging = false
 var resizing = false
+var rotating = false
 var selectedShapes = []
 
 var drawSelectBox = function () {
-	DrawRectangle(canvasEl, bboxMinX, bboxMinY, bboxMaxX, bboxMaxY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMinX - 5, bboxMinY - 5, bboxMinX + 5, bboxMinY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMinY - 5, bboxMaxX + 5, bboxMinY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMaxX - 5, bboxMaxY - 5, bboxMaxX + 5, bboxMaxY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
-	DrawRectangle(canvasEl, bboxMinX - 5, bboxMaxY - 5, bboxMinX + 5, bboxMaxY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+	if (length(selectBoxKnots) > 0) {
+		DrawPolyline(canvasEl, selectBoxKnots, {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, selectBoxKnots[0].x - 5, selectBoxKnots[0].y - 5, selectBoxKnots[0].x + 5, selectBoxKnots[0].y + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, selectBoxKnots[1].x - 5, selectBoxKnots[1].y - 5, selectBoxKnots[1].x + 5, selectBoxKnots[1].y + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, selectBoxKnots[2].x - 5, selectBoxKnots[2].y - 5, selectBoxKnots[2].x + 5, selectBoxKnots[2].y + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, selectBoxKnots[3].x - 5, selectBoxKnots[3].y - 5, selectBoxKnots[3].x + 5, selectBoxKnots[3].y + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+	} else {
+		DrawEllipse(canvasEl, bboxMinX, bboxMinY, bboxMaxX, bboxMaxY, 'transparent', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, bboxMinX - 5, bboxMinY - 5, bboxMinX + 5, bboxMinY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, bboxMaxX - 5, bboxMinY - 5, bboxMaxX + 5, bboxMinY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, bboxMaxX - 5, bboxMaxY - 5, bboxMaxX + 5, bboxMaxY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+		DrawEllipse(canvasEl, bboxMinX - 5, bboxMaxY - 5, bboxMinX + 5, bboxMaxY + 5, 'black', {a:1,b:0,c:0,d:1,e:0,f:0})
+	}
+	var knots = []
+	knots[0] = {x: rotateConnectorFrom.x, y: rotateConnectorFrom.y}
+	knots[1] = {x: rotateConnectorTo.x, y: rotateConnectorTo.y}
+	DrawPolyline(canvasEl, knots, {a:1,b:0,c:0,d:1,e:0,f:0})
+	DrawEllipse(canvasEl, rotateHandle.x - 5, rotateHandle.y - 5, rotateHandle.x + 5, rotateHandle.y + 5, 'rgb(128,128,128)', {a:1,b:0,c:0,d:1,e:0,f:0})
+	Log('rotateHandle(' + rotateHandle.x + ', ' + rotateHandle.y + ')')
 }
 
 var multiplyMatrices = function (mat1, mat2) {
@@ -124,7 +142,7 @@ var multiplyMatrices = function (mat1, mat2) {
 
 var canvasMouseUp = function (e) {
 	var shapeCount = length(shapes)
-	if (resizing == false && dragging == false) {
+	if (rotating == false && resizing == false && dragging == false) {
 		if (shapeType == 'Line') {
 			curves = getSplinePrimitivesFromKnots(simplify(knots, 3, false))
 			shapes[shapeCount] = {type:'Line',curves:curves,matrix:{a:1,b:0,c:0,d:1,e:0,f:0}}
@@ -160,7 +178,7 @@ var canvasMouseUp = function (e) {
 		}
 	}
 	drawAllShapes()
-	if (shapeType == 'Cursor' && dragging == false && resizing == false) {
+	if (shapeType == 'Cursor' && dragging == false && resizing == false && rotating == false) {
 		var shapeCount = length(shapes)
 		var minX = min(prevX, pageX)
 		var maxX = max(prevX, pageX)
@@ -193,6 +211,7 @@ var canvasMouseUp = function (e) {
 				bboxMaxY = 0
 			}
 		}
+		selectShapes(selectedShapes)
 	}
 	drawSelectBox()
 	dragging = false
@@ -210,16 +229,55 @@ var origBBoxMinY = 0
 var origBBoxMaxY = 0
 var canvasMouseMove = function (e) {
 	coords.textContent = 'X: ' + pageX + ', Y: ' + pageY
-	if (resizing == true) {
-		var scaleX = (pageX - anchorX) / (clickedX - anchorX)
-		var scaleY = (pageY - anchorY) / (clickedY - anchorY)
+	if (rotating == true) {
+		var centroid = {x: preRotateBBoxCentroid.x, y: preRotateBBoxCentroid.y}
+		var cursorPoint = {x: pageX, y: pageY}
+		var rotateAngle = getAngleBetweenTwoTouchingLineSegments({x: centroid.x, y: centroid.y}, {x: pageX, y: pageY}, {x: origRotateHandlePos.x, y: origRotateHandlePos.y})
+		var cosAngle = cos(rotateAngle)
+		var sinAngle = sin(rotateAngle)
+		var rotateMatrix = {a: cosAngle, b: sinAngle, c: 0-sinAngle, d: cosAngle, e: 0, f: 0}
+		rotateMatrix = multiplyMatrices(rotateMatrix, {a: 1, b: 0, c: 0, d: 1, e: centroid.x, f: centroid.y})
 		var shapeCount = length(selectedShapes)
+		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
+			var shape = selectedShapes[i]
+			shape.matrix = multiplyMatrices(shape.untransformedMatrix, rotateMatrix)
+		}
+		selectShapes(selectedShapes)
+		drawAllShapes()
+		drawSelectBox()
+	}
+	else if (resizing == true) {
+		var cosAngle = selectedShapes[0].cosAngle
+		var sinAngle = selectedShapes[0].sinAngle
+		var tanShearAngle = selectedShapes[0].tanShearAngle
+		var scaleX = 1
+		var scaleY = 1
+		if (tight == 'true') {
+			var cursorPoint = {x: pageX, y: pageY}
+			var cursorPointUnrotated = rotatePoint({x: cursorPoint.x - anchorX, y: cursorPoint.y - anchorY}, cosAngle, 0-sinAngle, 0, 0)
+			cursorPointUnrotated.y = cursorPointUnrotated.y - (tanShearAngle * cursorPointUnrotated.x)
+			cursorPointUnrotated.x = cursorPointUnrotated.x + anchorX
+			cursorPointUnrotated.y = cursorPointUnrotated.y + anchorY
+			scaleX = (cursorPointUnrotated.x - anchorX) / (origPointUnrotated.x - anchorX)
+			scaleY = (cursorPointUnrotated.y - anchorY) / (origPointUnrotated.y - anchorY)
+		} else {
+			scaleX = (pageX - anchorX) / (clickedX - anchorX)
+			scaleY = (pageY - anchorY) / (clickedY - anchorY)
+		}
+		var shapeCount = length(selectedShapes)
+		var cosAngle = selectedShapes[0].cosAngle
+		var sinAngle = selectedShapes[0].sinAngle
+		var tanShearAngle = selectedShapes[0].tanShearAngle
 		var scaleMatrix = multiplyMatrices({a:1,b:0,c:0,d:1,e:0,f:0}, {a:scaleX,b:0,c:0,d:scaleY,e:0,f:0})
+		scaleMatrix = multiplyMatrices(scaleMatrix, {a: 1, b: tanShearAngle, c: 0, d: 1, e: 0, f: 0})
+		scaleMatrix = multiplyMatrices(scaleMatrix, {a: cosAngle, b: sinAngle, c: 0-sinAngle, d: cosAngle, e: 0, f: 0})
 		scaleMatrix = multiplyMatrices(scaleMatrix, {a:1,b:0,c:0,d:1,e:anchorX,f:anchorY})
 		for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 			var shape = selectedShapes[i]
 			shape.matrix = multiplyMatrices(shape.untransformedMatrix, scaleMatrix)
 		}
+		
+		selectShapes(selectedShapes)
 		drawAllShapes()
 		drawSelectBox()
 		scaledBBoxMinX = (origBBoxMinX - anchorX) * scaleX + anchorX
@@ -245,6 +303,7 @@ var canvasMouseMove = function (e) {
 			var shape = selectedShapes[i]
 			shape.matrix = multiplyMatrices(shape.matrix, translateMatrix)
 		}
+		selectShapes(selectedShapes)
 		drawAllShapes()
 		drawSelectBox()
 		prevX = pageX
@@ -278,19 +337,31 @@ var canvasMouseDown = function (e) {
 	} else {	
 		resizing = true
 		dragging = false
-		if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
+		rotating = false
+		if (pageX >= (rotateHandle.x - 5) && pageX <= (rotateHandle.x + 5) && pageY >= (rotateHandle.y - 5) && pageY <= (rotateHandle.y + 5)) {
+			var shapeCount = length(selectedShapes)
+			for ( i = 0; i <= shapeCount - 1; i = i + 1) {
+				var shape = selectedShapes[i]
+				shape.untransformedMatrix = multiplyMatrices(shape.matrix, {a:1,b:0,c:0,d:1,e:0-bboxCentroid.x,f:0-bboxCentroid.y})
+			}
+			origRotateHandlePos = {x: rotateHandle.x, y: rotateHandle.y}
+			preRotateBBoxCentroid = {x: bboxCentroid.x, y: bboxCentroid.y}
+			resizing = false
+			rotating = true
+		}
+		else if (pageX >= (selectBoxKnots[0].x - 5) && pageX <= (selectBoxKnots[0].x + 5) && pageY >= (selectBoxKnots[0].y - 5) && pageY <= (selectBoxKnots[0].y + 5)) {
 			clickedHandle = 'nw'
 			anchorHandle = 'se'
 		}
-		else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMinY - 5) && pageY <= (bboxMinY + 5)) {
+		else if (pageX >= (selectBoxKnots[1].x - 5) && pageX <= (selectBoxKnots[1].x + 5) && pageY >= (selectBoxKnots[1].y - 5) && pageY <= (selectBoxKnots[1].y + 5)) {
 			clickedHandle = 'ne'
 			anchorHandle = 'sw'
 		}
-		else if (pageX >= (bboxMaxX - 5) && pageX <= (bboxMaxX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
+		else if (pageX >= (selectBoxKnots[2].x - 5) && pageX <= (selectBoxKnots[2].x + 5) && pageY >= (selectBoxKnots[2].y - 5) && pageY <= (selectBoxKnots[2].y + 5)) {
 			clickedHandle = 'se'
 			anchorHandle = 'nw'
 		}
-		else if (pageX >= (bboxMinX - 5) && pageX <= (bboxMinX + 5) && pageY >= (bboxMaxY - 5) && pageY <= (bboxMaxY + 5)) {
+		else if (pageX >= (selectBoxKnots[3].x - 5) && pageX <= (selectBoxKnots[3].x + 5) && pageY >= (selectBoxKnots[3].y - 5) && pageY <= (selectBoxKnots[3].y + 5)) {
 			clickedHandle = 'sw'
 			anchorHandle = 'ne'
 		} else {
@@ -304,28 +375,28 @@ var canvasMouseDown = function (e) {
 		}
 		if (resizing == true) {
 			if (clickedHandle == 'nw') {
-				anchorX = bboxMaxX
-				anchorY = bboxMaxY
-				clickedX = bboxMinX
-				clickedY = bboxMinY
+				anchorX = selectBoxKnots[2].x
+				anchorY = selectBoxKnots[2].y
+				clickedX = selectBoxKnots[0].x
+				clickedY = selectBoxKnots[0].y
 			}
 			else if (clickedHandle == 'ne') {
-				anchorX = bboxMinX
-				anchorY = bboxMaxY
-				clickedX = bboxMaxX
-				clickedY = bboxMinY
+				anchorX = selectBoxKnots[3].x
+				anchorY = selectBoxKnots[3].y
+				clickedX = selectBoxKnots[1].x
+				clickedY = selectBoxKnots[1].y
 			}
 			else if (clickedHandle == 'se') {
-				anchorX = bboxMinX
-				anchorY = bboxMinY
-				clickedX = bboxMaxX
-				clickedY = bboxMaxY
+				anchorX = selectBoxKnots[0].x
+				anchorY = selectBoxKnots[0].y
+				clickedX = selectBoxKnots[2].x
+				clickedY = selectBoxKnots[2].y
 			}
 			else if (clickedHandle == 'sw') {
-				anchorX = bboxMaxX
-				anchorY = bboxMinY
-				clickedX = bboxMinX
-				clickedY = bboxMaxY
+				anchorX = selectBoxKnots[1].x
+				anchorY = selectBoxKnots[1].y
+				clickedX = selectBoxKnots[3].x
+				clickedY = selectBoxKnots[3].y
 			}
 			
 			origBBoxMinX = bboxMinX
@@ -333,11 +404,23 @@ var canvasMouseDown = function (e) {
 			origBBoxMinY = bboxMinY
 			origBBoxMaxY = bboxMaxY
 			
+			var cosAngle = selectedShapes[0].cosAngle
+			var sinAngle = selectedShapes[0].sinAngle
+			var tanShearAngle = selectedShapes[0].tanShearAngle
+			origPointUnrotated = rotatePoint({x: clickedX - anchorX, y: clickedY - anchorY}, cosAngle, 0-sinAngle, 0, 0)
+			origPointUnrotated.y = (0-tanShearAngle * origPointUnrotated.x) + origPointUnrotated.y
+			origPointUnrotated.x = origPointUnrotated.x + anchorX
+			origPointUnrotated.y = origPointUnrotated.y + anchorY
+			
 			var shapeCount = length(selectedShapes)
 			for ( i = 0; i <= shapeCount - 1; i = i + 1) {
 				var shape = selectedShapes[i]
 				shape.untransformedMatrix = multiplyMatrices(shape.matrix, {a:1,b:0,c:0,d:1,e:0-anchorX,f:0-anchorY})
-			}
+				if (tight == 'true') {
+					shape.untransformedMatrix = multiplyMatrices(shape.untransformedMatrix, {a: shape.cosAngle, b: 0-shape.sinAngle, c: shape.sinAngle, d: shape.cosAngle, e: 0, f: 0})
+					shape.untransformedMatrix = multiplyMatrices(shape.untransformedMatrix, {a: 1, b: 0-shape.tanShearAngle, c: 0, d: 1, e: 0, f: 0})
+				}
+			}			
 		}
 		addEventListener('mousemove', canvasMouseMove)
 		addEventListener('mouseup', canvasMouseUp)

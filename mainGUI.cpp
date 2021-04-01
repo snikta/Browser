@@ -39,6 +39,7 @@ double scrollHandleY = 0.0;
 double scrollY = 0.0;
 double scrollDelta = 0.0;
 bool scrolling = false;
+bool loadScriptsHaveRun = false;
 
 string prevURL;
 
@@ -680,6 +681,7 @@ void loadPage(string url, bool skipStack, string newPrefix) {
 	prefix = newPrefix;
 	curURL = url;
 	pageLoaded = false;
+	loadScriptsHaveRun = false;
 	myParser.set_location(url);
 
 	if (true)//(myParser.rootNode == nullptr)
@@ -945,7 +947,6 @@ void setZIndexes(DOMNode& node) {
 	}
 }
 
-bool loadScriptsHaveRun = false;
 void MainWindow::OnPaint()
 {
 	HRESULT hr = CreateGraphicsResources();
@@ -1737,12 +1738,12 @@ void MainWindow::OnLButtonUp()
 	for (int j = 0, jLen = eventListeners["mouseup"].size(); j < jLen; j++) {
 		ASTNode astFunc = resolveRuntimeObject(eventListeners["mouseup"][j]);
 		Scope myScope;
-		myScope.__parent = astFunc.ASTNodeFunc->arguments;
-		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
-		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 32);
 		if (astFunc.ASTNodeFunc == nullptr) {
 			continue;
 		}
+		myScope.__parent = astFunc.ASTNodeFunc->arguments;
+		myScope.ScopeArray["pageX"] = ASTNode((long double)MainWindow::x1);
+		myScope.ScopeArray["pageY"] = ASTNode((long double)MainWindow::y1 - 32);
 		execAST(*astFunc.ASTNodeFunc, myScope);
 	}
 

@@ -834,6 +834,18 @@ ASTNode PredefinedAcos(vector<ASTNode> args, Scope& scope) {
 	return ASTNode((long double)acos(resolve(args[0], scope).getNumber()));
 }
 
+ASTNode PredefinedTan(vector<ASTNode> args, Scope& scope) {
+	return ASTNode((long double)tan(resolve(args[0], scope).getNumber()));
+}
+
+ASTNode PredefinedSin(vector<ASTNode> args, Scope& scope) {
+	return ASTNode((long double)sin(resolve(args[0], scope).getNumber()));
+}
+
+ASTNode PredefinedCos(vector<ASTNode> args, Scope& scope) {
+	return ASTNode((long double)cos(resolve(args[0], scope).getNumber()));
+}
+
 ASTNode PredefinedPow(vector<ASTNode> args, Scope& scope) {
 	return ASTNode(pow(resolve(args[0], scope).getNumber(), resolve(args[1], scope).getNumber()));
 }
@@ -1558,6 +1570,9 @@ map<string, predefinedFunction> predefinedFunctions = {
 	{"sqrt", &PredefinedSqrt},
 	{"pow", &PredefinedPow},
 	{"acos", &PredefinedAcos},
+	{"sin", &PredefinedSin},
+	{"cos", &PredefinedCos},
+	{"tan", &PredefinedTan},
 	{"abs", &PredefinedAbs},
 	{"min", &PredefinedMin},
 	{"max", &PredefinedMax},
