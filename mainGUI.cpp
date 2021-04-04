@@ -72,8 +72,8 @@ struct StackItem {
 vector<StackItem> undoStack;
 vector<StackItem> redoStack;
 
-string prefix = "http://localhost:8000/";
-string curURL = prefix + "draw.html";
+string prefix = "http://localhost:8000/snikta/";
+string curURL = prefix + "index.php";
 
 double clamp(double value, double min, double max) {
 	return min(max(value, min), max);
@@ -1554,8 +1554,8 @@ void MainWindow::OnMouseMove(int pixelX, int pixelY, DWORD flags)
 		scrollY = scrollHandleY / height * documentHeight;
 	}
 
-	//if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
-	if (!pageLoaded)
+	if (mySlabContainer.ShapeMembers.size() <= 8)// this was causing problems with event listeners
+	//if (!pageLoaded)
 	{
 		vector<string> icons = { "back", "forward", "home", "refresh", "stop", "history", "downloads", "bookmarks" };
 		vector<Shape*> shapesToPreprocess;

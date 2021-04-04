@@ -112,7 +112,6 @@ var drawSelectBox = function () {
 	knots[1] = {x: rotateConnectorTo.x, y: rotateConnectorTo.y}
 	DrawPolyline(canvasEl, knots, {a:1,b:0,c:0,d:1,e:0,f:0})
 	DrawEllipse(canvasEl, rotateHandle.x - 5, rotateHandle.y - 5, rotateHandle.x + 5, rotateHandle.y + 5, 'rgb(128,128,128)', {a:1,b:0,c:0,d:1,e:0,f:0})
-	Log('rotateHandle(' + rotateHandle.x + ', ' + rotateHandle.y + ')')
 }
 
 var multiplyMatrices = function (mat1, mat2) {

@@ -492,20 +492,21 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 		ID2D1Bitmap* pBitmap = NULL;
 		HRESULT hr = pRenderTarget->CreateBitmap(D2D1::SizeU(800, 400), node.bitmap, 800 * 4, D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
 
-		// Draw a bitmap.
-		pRenderTarget->DrawBitmap(
-			pBitmap,
-			D2D1::RectF(
-				node.x,
-				node.y,
-				node.x + node.width,
-				node.y + node.height
-			),
-			1.0
-		);
+		if (SUCCEEDED(hr)) {
+			// Draw a bitmap.
+			pRenderTarget->DrawBitmap(
+				pBitmap,
+				D2D1::RectF(
+					node.x,
+					node.y,
+					node.x + node.width,
+					node.y + node.height
+				),
+				1.0
+			);
 
-		SafeRelease(&pBitmap);
-
+			SafeRelease(&pBitmap);
+		}
 	}
 
 	if (node.get_tag_name() == "img") {
@@ -650,13 +651,28 @@ void drawDOMNode(DOMNode& node, ID2D1HwndRenderTarget* pRenderTarget, ID2D1Solid
 			string s3 = node.get_text_content();
 			std::wstring widestr = std::wstring(s3.begin(), s3.end());
 
+			/*if ('font-size' in node.style) :
+				if node.style['font-size'][-1:] == '%' :
+					size *= float(node.style['font-size'][:-1]) / 100.0
+					elif node.style['font-size'][-2:] == 'px' :
+					size = node.style['font-size'][:-2]*/
+
+			double fontSize = 10.0;
+			if (node.style.find("font-size") != node.style.end()) {
+				if (node.style["font-size"].back() == '%') {
+					fontSize *= stof(node.style["font-size"].substr(0, node.style["font-size"].size() - 1)) / 100.0;
+				}
+				else if (node.style["font-size"].substr(node.style["font-size"].size() - 2, 2) == "px") {
+					fontSize = stof(node.style["font-size"].substr(0, node.style["font-size"].size() - 2));
+				}
+			}
 			HRESULT hr = m_pDWriteFactory->CreateTextFormat(
 				L"Verdana",
 				NULL,
 				node.style["font-weight"] == "bold" ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
 				node.style["font-style"] == "italic" ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
 				DWRITE_FONT_STRETCH_NORMAL,
-				10 * newHeight / origHeight,
+				fontSize * newHeight / origHeight,
 				L"", //locale
 				&m_pTextFormat
 			);
